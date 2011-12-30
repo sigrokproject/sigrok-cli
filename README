@@ -1,0 +1,73 @@
+-------------------------------------------------------------------------------
+README
+-------------------------------------------------------------------------------
+
+The sigrok project aims at creating a portable, cross-platform,
+Free/Libre/Open-Source logic analyzer software that supports various
+logic analyzer hardware products.
+
+sigrok-cli is a command-line tool written in C, which uses both libsigrok
+and libsigrokdecode to provide the basic sigrok functionality from the
+command-line. Among other things, it's useful for scripting purposes.
+
+
+Status
+------
+
+The sigrok-cli project, while still in development, is pretty stable/usable.
+
+
+Requirements
+------------
+
+ - git
+ - gcc, g++, make, ...
+ - autoconf, automake, libtool, pkg-config
+ - libglib >= 2.22.0
+ - libsigrok
+ - libsigrokdecode
+
+
+Building and installing
+-----------------------
+
+In order to get the sigrok-cli source code and build it, run:
+
+ $ git clone git://sigrok.git.sourceforge.net/gitroot/sigrok/sigrok
+ $ cd sigrok/sigrok-cli
+ $ ./autogen.sh
+ $ ./configure
+ $ make
+
+For installing sigrok-cli:
+
+ $ make install
+
+Please see the following wiki pages for more detailed instructions:
+
+ http://sigrok.org/wiki/Linux
+ http://sigrok.org/wiki/Mac_OS_X
+ http://sigrok.org/wiki/Windows
+ http://sigrok.org/wiki/FreeBSD
+
+
+Mailing lists
+-------------
+
+There are two mailing lists for sigrok/sigrok-cli:
+
+ https://lists.sourceforge.net/lists/listinfo/sigrok-devel
+ https://lists.sourceforge.net/lists/listinfo/sigrok-commits
+
+
+IRC
+---
+
+You can find the sigrok developers in the #sigrok IRC channel on Freenode.
+
+
+Website
+-------
+
+http://sigrok.org
+
