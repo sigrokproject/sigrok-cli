@@ -1,0 +1,223 @@
+.TH SIGROK\-CLI 1 "January 19, 2011"
+.SH "NAME"
+sigrok\-cli \- Command-line client for the sigrok logic analyzer software
+.SH "SYNOPSIS"
+.B sigrok\-cli \fR[\fB\-hVDiIodptwaf\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-triggers\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR sequence] [\fB\-f\fR|\fB\-\-format\fR format] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
+.SH "DESCRIPTION"
+.B sigrok\-cli
+is a cross-platform command line utility for the
+.B sigrok
+logic analyzer software.
+.PP
+The command-line frontend for sigrok cannot display graphical output, but is
+still sufficient to run through the whole process of hardware initialization,
+acquisition, protocol analysis and saving the session.
+.PP
+It is useful for running on remote or embedded systems, netbooks, PDAs,
+and for various other use-cases. It can display samples on standard output or
+save them in various file formats.
+.SH "OPTIONS"
+.TP
+.B "\-V, \-\-version"
+Show version, driver and module information.
+.TP
+.B "\-h, \-\-help"
+Show a help text and exit.
+.TP
+.B "\-D, \-\-list\-devices"
+List all logic analyzer devices found on the system.
+.TP
+.BR "\-i, \-\-input\-file " <filename>
+Load input from a file instead of a device. If the
+.B \-\-input\-format
+option is not supplied, sigrok-cli attempts to autodetect the file format of
+the input file.
+.TP
+.BR "\-I, \-\-input\-format " <format>
+When loading an input file, assume it's in the specified format. If this
+option is not supplied (in addition to
+.BR \-\-input\-file ),
+sigrok-cli attempts to autodetect the file format of the input file.
+.TP
+.BR "\-o, \-\-output\-file " <filename>
+Save output to a file instead of writing it to stdout. The default format
+used when saving is the sigrok session file format. This can be changed with
+the
+.B \-\-format
+option, below.
+.TP
+.BR "\-d, \-\-device " <device>
+The device to use for acquisition. It can be specified by ID as reported by
+.BR "\-\-list\-devices" ,
+or by the name of the driver as reported by
+.BR \-\-version .
+.sp
+A device can optionally be followed by a colon-separated list of device
+options, where each option takes the form
+.BR key=value .
+For example, to set the samplerate on the first device you might specify
+.sp
+.RB "  $ " "sigrok\-cli \-d 0:samplerate=1m"
+.sp
+Samplerate is a option common to most devices. The argument specifies the
+samplerate in Hz. You can also specify the samplerate in kHz, MHz or GHz.
+The following are all equivalent:
+.sp
+.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1000000"
+.sp
+.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1m"
+.sp
+.RB "  $ " "sigrok\-cli \-\-samples 100 \-d ""0:samplerate=1 MHz""
+.TP
+.BR "\-p, \-\-probes " <probelist>
+A comma-separated list of probes to be used in the session.
+.sp
+The default is to use all the probes available on a device. You can name
+a probe like this:
+.BR "1=CLK" .
+A range of probes can also be given, in the form
+.BR "1\-5" .
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-\-samples 100 \-\-probes 1=CLK,2\-4,7"
+.br
+ CLK:11111111 11111111 11111111 11111111 [...]
+   2:11111111 11111111 11111111 11111111 [...]
+   3:11111111 11111111 11111111 11111111 [...]
+   4:11111111 11111111 11111111 11111111 [...]
+   7:11111111 11111111 11111111 11111111 [...]
+.sp
+The comma-separated list is processed from left to right, i.e. items farther
+to the right override previous items. For example
+.B "1=CS,1=MISO"
+will set the name of probe 1 to
+.BR "MISO" .
+.sp
+Also, while
+.B "5=MOSI,6=MISO"
+will only select probes 5 and 6, and set their names to MISO and MOSI, the
+command line
+.B "5=MOSI,6=MISO,1\-8"
+will select probes 1\-8 (including 5 and 6, of course), but the names specified
+for probes 5 and 6 will be reset to the defaults by the
+.B "1\-8"
+probe selection.
+.TP
+.BR "\-t, \-\-triggers " <triggerlist>
+A comma-separated list of triggers to use, of the form
+.BR "<probe>=<trigger>" .
+You can use the name or number of the probe, and the trigger itself is a
+series of characters:
+.sp
+.BR "0 or 1" :
+A low or high value on the pin.
+.br
+.BR "r or f" :
+A rising or falling value on the pin. An
+.B r
+effectively corresponds to
+.BR 01 .
+.br
+.BR "c" :
+Any kind of change on a pin.
+.sp
+Not every device supports all of these trigger types. Use the
+.B "\-d <device>"
+argument (with no other arguments) to see which triggers your device supports.
+.TP
+.BR "\-w, \-\-wait-trigger"
+Don't output any sample data (even if it's actually received from the logic
+analyzer) before the trigger condition is met. In other words, do not output
+any pre-trigger data. This option is useful if you don't care about the data
+that came before the trigger (but the logic analyzer hardware delivers this
+data to sigrok nonetheless).
+.TP
+.BR "\-f, \-\-format " <formatname>
+Set the output format to use. Use the
+.B \-V
+option to see a list of available output formats. The format name may
+optionally be followed by a colon-separated list of options, where each
+option takes the form
+.BR "key=value" .
+.sp
+Supported formats currently include
+.BR bits ,
+.BR hex ,
+.BR ascii ,
+.BR binary ,
+.BR vcd ,
+.BR ols ,
+.BR gnuplot ", and"
+.BR analog .
+.sp
+The
+.B bits
+or
+.B hex
+formats, for an ASCII bit or ASCII hexadecimal display, can take a "width" option, specifying the number of samples (in bits) to display per line. Thus
+.B hex:width=128
+will display 128 bits per line, in hexadecimal:
+.sp
+ 1:ffff ffff ffff ffff ffff ffff ffff ffff
+ 2:ff00 ff00 ff00 ff00 ff00 ff00 ff00 ff00
+.sp
+The lines always start with the probe number (or name, if defined), followed by a colon. If no format is specified, it defaults to
+.BR bits:width=64 ,
+like this:
+.sp
+ 1:11111111 11111111 11111111 11111111 [...]
+ 2:11111111 00000000 11111111 00000000 [...]
+.TP
+.BR "\-\-time " <ms>
+Sample for
+.B <ms>
+milliseconds, then quit. You can optionally follow the number by
+.B s
+to state the number of seconds to sample instead. For example,
+.B "\-\-time 2s"
+will sample for two seconds.
+.TP
+.BR "\-\-samples " <numsamples>
+Acquire
+.B <numsamples>
+samples, then quit.
+.TP
+.BR "\-\-continuous"
+Sample continuously until stopped. Not all devices support this.
+.SH "EXAMPLES"
+In order to get exactly 100 samples from the (only) detected logic analyzer
+hardware, run the following command:
+.TP
+.B "  sigrok\-cli \-\-samples 100"
+.TP
+If you want to sample data for 3 seconds, use:
+.TP
+.B "  sigrok\-cli \-\-time 3000"
+.TP
+Alternatively, you can also use:
+.TP
+.B "  sigrok\-cli \-\-time 3s"
+.TP
+To capture data from 4 probes lasting 100ms at 10 MHz starting at the trigger condition 1:high, 2:rising, 3:low, 4:high, use:
+.TP
+.B "  sigrok\-cli \-f bits \-p 1\-4 \-\-time 100 \-o samplerate=10m \\\\"
+.B "      \-\-wait\-trigger \-\-triggers 1=1,2=r,3=0,4=1 "
+.SH "EXIT STATUS"
+.B sigrok\-cli
+exits with 0 on success, 1 on most failures.
+.SH "SEE ALSO"
+\fBsigrok\-gui\fP(1)
+.SH "BUGS"
+Please report any bugs on the sigrok\-devel mailing list
+.RB "(" sigrok\-devel@lists.souceforge.net ")."
+.SH "LICENSE"
+.B sigrok\-cli
+is covered by the GNU General Public License (GPL). Some portions are
+licensed under the "GPL v2 or later", some under "GPL v3 or later".
+.SH "AUTHORS"
+Please see the individual source code files.
+.PP
+This manual page was written by Uwe Hermann <uwe@hermann\-uwe.de>.
+It is licensed under the terms of the GNU GPL (version 2 or later).
