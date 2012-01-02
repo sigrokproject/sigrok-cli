@@ -38,12 +38,12 @@
 
 extern struct sr_hwcap_option sr_hwcap_options[];
 
-gboolean debug = 0;
-uint64_t limit_samples = 0;
-struct sr_output_format *output_format = NULL;
-int default_output_format = FALSE;
-char *output_format_param = NULL;
-char *input_format_param = NULL;
+static gboolean debug = 0;
+static uint64_t limit_samples = 0;
+static struct sr_output_format *output_format = NULL;
+static int default_output_format = FALSE;
+static char *output_format_param = NULL;
+static char *input_format_param = NULL;
 
 static gboolean opt_version = FALSE;
 static gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
@@ -653,7 +653,7 @@ int num_real_devices(void)
 	return num_devices;
 }
 
-int set_device_options(struct sr_device *device, GHashTable *args)
+static int set_device_options(struct sr_device *device, GHashTable *args)
 {
 	GHashTableIter iter;
 	gpointer key, value;

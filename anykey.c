@@ -30,10 +30,10 @@
 #include "sigrok-cli.h"
 
 #ifdef _WIN32
-HANDLE stdin_handle;
-DWORD stdin_mode;
+static HANDLE stdin_handle;
+static DWORD stdin_mode;
 #else
-struct termios term_orig;
+static struct termios term_orig;
 #endif
 
 static int received_anykey(int fd, int revents, void *user_data)
