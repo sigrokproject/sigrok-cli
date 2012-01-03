@@ -31,7 +31,7 @@ AC_CONFIG_AUX_DIR([autostuff])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign std-options])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-AH_TOP([#ifndef SGIROK_CLI_CONFIG_H
+AH_TOP([#ifndef SIGROK_CLI_CONFIG_H
 #define SIGROK_CLI_CONFIG_H    /* To stop multiple inclusions. */])
 AH_BOTTOM([#endif /* SIGROK_CLI_CONFIG_H */])
 
