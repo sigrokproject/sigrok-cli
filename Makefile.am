@@ -17,6 +17,8 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+ACLOCAL_AMFLAGS = -I autostuff
+
 SUBDIRS = doc
 
 bin_PROGRAMS = sigrok-cli
