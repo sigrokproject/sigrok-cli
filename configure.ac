@@ -52,6 +52,9 @@ PKG_PROG_PKG_CONFIG([0.22])
 
 # Checks for libraries.
 
+AM_PATH_GLIB_2_0([2.22.0],
+        [CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
+
 PKG_CHECK_MODULES([libsigrok], [libsigrok],
 	[CFLAGS="$CFLAGS $libsigrok_CFLAGS";
 	LIBS="$LIBS $libsigrok_LIBS"])
@@ -86,4 +89,26 @@ AC_CONFIG_FILES([Makefile
 		 doc/Makefile])
 
 AC_OUTPUT
+
+echo
+echo "sigrok-cli configuration summary:"
+echo
+echo "  - Package version: $VERSION"
+echo "  - Prefix: $prefix"
+echo
+echo "Detected libraries:"
+echo
+
+# Note: This only works for libs with pkg-config integration.
+for lib in "glib-2.0" "libsigrok" "libsigrokdecode"; do
+        if `$PKG_CONFIG --exists $lib`; then
+                ver=`$PKG_CONFIG --modversion $lib`
+                answer="yes ($ver)"
+        else
+                answer="no"
+        fi
+        echo "  - $lib: $answer"
+done
+
+echo
 
