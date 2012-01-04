@@ -17,7 +17,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-AC_PREREQ(2.61)
+AC_PREREQ([2.61])
 
 AC_INIT([sigrok-cli], [0.1], [sigrok-devel@lists.sourceforge.net],
         [sigrok-cli], [http://www.sigrok.org])
