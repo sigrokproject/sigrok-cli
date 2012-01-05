@@ -258,7 +258,7 @@ static void show_device_detail(void)
 static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
-	static int probelist[65] = { 0 };
+	static int probelist[SR_MAX_NUM_PROBES] = { 0 };
 	static uint64_t received_samples = 0;
 	static int unitsize = 0;
 	static int triggered = 0;
@@ -322,8 +322,8 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 			}
 		}
 		if (opt_pds)
-			srd_session_start(device->plugin->name, unitsize, 
-					  time(NULL), header->samplerate);
+			srd_session_start(num_enabled_probes, unitsize,
+					header->samplerate);
 		break;
 	case SR_DF_END:
 		g_message("cli: Received SR_DF_END");
