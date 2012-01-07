@@ -461,9 +461,15 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 		for (optok = optokens+1; *optok; optok++) {
 			char probe[strlen(*optok)];
 			int num;
-			if(sscanf(*optok, "%[^=]=%d", probe, &num) == 2)
+			if (sscanf(*optok, "%[^=]=%d", probe, &num) == 2) {
+				printf("Setting probe '%s' to %d\n", probe, num);
 				srd_instance_set_probe(di, probe, num);
-				/* TODO: else fail somehow */
+			} else {
+				fprintf(stderr, "Error: Couldn't parse decoder "
+					"options correctly! Aborting.\n");
+				/* FIXME: Better error handling. */
+				exit(EXIT_FAILURE);
+			}
 		}
 		g_strfreev(optokens);
 
