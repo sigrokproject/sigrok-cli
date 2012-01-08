@@ -481,6 +481,24 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 	return 0;
 }
 
+void show_pd_annotation(struct srd_protocol_data *pdata)
+{
+	int i;
+	char **annotation;
+
+	annotation = pdata->data;
+	if (pdata->annotation_format != 0) {
+		/* CLI only shows the default annotation format */
+		return;
+	}
+
+	printf("%s: ", pdata->pdo->protocol_id);
+	for (i = 0; annotation[i]; i++)
+		printf("\"%s\" ", annotation[i]);
+	printf("\n");
+
+}
+
 static int select_probes(struct sr_device *device)
 {
 	struct sr_probe *probe;
@@ -939,9 +957,19 @@ int main(int argc, char **argv)
 		return 1;
 
 	if (opt_pds) {
-		/* TODO: Error handling. */
-		srd_init();
-		register_pds(NULL, opt_pds);
+		if (srd_init() != SRD_OK) {
+			printf("Failed to initialize sigrokdecode\n");
+			return 1;
+		}
+		if (register_pds(NULL, opt_pds) != 0) {
+			printf("Failed to register protocol decoders\n");
+			return 1;
+		}
+		if (srd_register_callback(SRD_OUTPUT_ANNOTATION,
+				show_pd_annotation) != SRD_OK) {
+			printf("Failed to register protocol decoder callback\n");
+			return 1;
+		}
 	}
 
 	if (!opt_format) {
