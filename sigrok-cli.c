@@ -44,6 +44,7 @@ static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
 static char *input_format_param = NULL;
+static GData *pd_ann_visible = NULL;
 
 static gboolean opt_version = FALSE;
 static gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
@@ -55,6 +56,7 @@ static gchar *opt_device = NULL;
 static gchar *opt_probes = NULL;
 static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
+static gchar *opt_pd_stack = NULL;
 static gchar *opt_input_format = NULL;
 static gchar *opt_format = NULL;
 static gchar *opt_time = NULL;
@@ -72,6 +74,7 @@ static GOptionEntry optargs[] = {
 	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers, "Trigger configuration", NULL},
 	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger, "Wait for trigger", NULL},
 	{"protocol-decoders", 'a', 0, G_OPTION_ARG_STRING, &opt_pds, "Protocol decoder sequence", NULL},
+	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack, "Protocol decoder stack", NULL},
 	{"input-format", 'I', 0, G_OPTION_ARG_STRING, &opt_input_format, "Input format", NULL},
 	{"format", 'f', 0, G_OPTION_ARG_STRING, &opt_format, "Output format", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time, "How long to sample (ms)", NULL},
@@ -428,29 +431,31 @@ cleanup:
 
 }
 
-/* Register the given PDs for this session. */
-/* Accepts a string of the form: "spi:sck=3:sdata=4,spi:sck=3:sdata=5" 
+/* Register the given PDs for this session.
+ * Accepts a string of the form: "spi:sck=3:sdata=4,spi:sck=3:sdata=5"
  * That will instantiate two SPI decoders on the clock but different data
  * lines.
  */
-/* TODO: Support both serial PDs and nested PDs. Parallel PDs even? */
-/* TODO: Only register here, run in streaming fashion later/elsewhere. */
 static int register_pds(struct sr_device *device, const char *pdstring)
 {
+	gpointer dummy;
 	char **pdtokens, **pdtok;
 
 	/* Avoid compiler warnings. */
 	(void)device;
 
+	g_datalist_init(&pd_ann_visible);
 	pdtokens = g_strsplit(pdstring, ",", -1);
 
+	/* anything, but not NULL */
+	dummy = register_pds;
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		struct srd_decoder_instance *di;
 
 		/* Configure probes from command line */
 		char **optokens, **optok;
 		optokens = g_strsplit(*pdtok, ":", -1);
-		di = srd_instance_new(optokens[0]);
+		di = srd_instance_new(optokens[0], NULL);
 		if(!di) {
 			fprintf(stderr, "Failed to instantiate PD: %s\n",
 					optokens[0]);
@@ -458,6 +463,7 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 			g_strfreev(pdtokens);
 			return -1;
 		}
+		g_datalist_set_data(&pd_ann_visible, optokens[0], dummy);
 		for (optok = optokens+1; *optok; optok++) {
 			char probe[strlen(*optok)];
 			int num;
@@ -489,6 +495,11 @@ void show_pd_annotation(struct srd_protocol_data *pdata)
 	annotation = pdata->data;
 	if (pdata->annotation_format != 0) {
 		/* CLI only shows the default annotation format */
+		return;
+	}
+
+	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->protocol_id)) {
+		/* not in the list of PDs whose annotations we're showing */
 		return;
 	}
 
@@ -924,14 +935,15 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 
 int main(int argc, char **argv)
 {
-	struct sr_output_format **outputs;
 	GOptionContext *context;
 	GError *error;
 	GHashTable *fmtargs;
 	GHashTableIter iter;
 	gpointer key, value;
-	int i;
-	char *fmtspec;
+	struct sr_output_format **outputs;
+	struct srd_decoder_instance *di_from, *di_to;
+	int i, ret;
+	char *fmtspec, **pds;
 
 	g_log_set_default_handler(logger, NULL);
 	if (getenv("SIGROK_DEBUG"))
@@ -979,9 +991,38 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (opt_pd_stack) {
+		pds = g_strsplit(opt_pd_stack, ":", 0);
+		if (g_strv_length(pds) < 2) {
+			printf("Specify at least two protocol decoders to stack.\n");
+			return 1;
+		}
+
+		if (!(di_from = srd_instance_find(pds[0]))) {
+			printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[0]);
+			return 1;
+		}
+		for (i = 1; pds[i]; i++) {
+			if (!(di_to = srd_instance_find(pds[i]))) {
+				printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[i]);
+				return 1;
+			}
+			if ((ret = srd_instance_stack(di_from, di_to) != SRD_OK))
+				return ret;
+
+			/* Don't show annotation from this PD. Only the last PD in
+			 * the stack will be left on the annotation list.
+			 */
+			g_datalist_remove_data(&pd_ann_visible, di_from->instance_id);
+
+			di_from = di_to;
+		}
+		g_strfreev(pds);
+	}
+
 	if (!opt_format) {
 		opt_format = DEFAULT_OUTPUT_FORMAT;
-		/* we'll need to remember this, so when saving to an file
+		/* we'll need to remember this so when saving to a file
 		 * later, sigrok session format will be used.
 		 */
 		default_output_format = TRUE;
