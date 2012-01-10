@@ -487,25 +487,25 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 	return 0;
 }
 
-void show_pd_annotation(struct srd_protocol_data *pdata)
+void show_pd_annotation(struct srd_proto_data *pdata)
 {
 	int i;
-	char **annotation;
+	char **annotations;
 
-	annotation = pdata->data;
-	if (pdata->annotation_format != 0) {
+	annotations = pdata->data;
+	if (pdata->ann_format != 0) {
 		/* CLI only shows the default annotation format */
 		return;
 	}
 
-	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->protocol_id)) {
+	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->proto_id)) {
 		/* not in the list of PDs whose annotations we're showing */
 		return;
 	}
 
-	printf("%s: ", pdata->pdo->protocol_id);
-	for (i = 0; annotation[i]; i++)
-		printf("\"%s\" ", annotation[i]);
+	printf("%s: ", pdata->pdo->proto_id);
+	for (i = 0; annotations[i]; i++)
+		printf("\"%s\" ", annotations[i]);
 	printf("\n");
 
 }
@@ -984,7 +984,7 @@ int main(int argc, char **argv)
 			printf("Failed to register protocol decoders\n");
 			return 1;
 		}
-		if (srd_register_callback(SRD_OUTPUT_ANNOTATION,
+		if (srd_register_callback(SRD_OUTPUT_ANN,
 				show_pd_annotation) != SRD_OK) {
 			printf("Failed to register protocol decoder callback\n");
 			return 1;
