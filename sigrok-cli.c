@@ -119,7 +119,7 @@ static void show_version(void)
 	printf("Supported protocol decoders:\n");
 	for (l = srd_list_decoders(); l; l = l->next) {
 		dec = l->data;
-		printf("  %-20s %s\n", dec->id, dec->desc);
+		printf("  %-20s %s\n", dec->id, dec->longname);
 	}
 	printf("\n");
 
