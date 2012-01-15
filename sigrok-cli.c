@@ -535,6 +535,8 @@ void show_pd_annotation(struct srd_proto_data *pdata)
 		return;
 	}
 
+	if (opt_loglevel > SR_LOG_WARN)
+		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
 	printf("%s: ", pdata->pdo->proto_id);
 	for (i = 0; annotations[i]; i++)
 		printf("\"%s\" ", annotations[i]);
