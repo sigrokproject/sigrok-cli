@@ -258,6 +258,38 @@ static void show_device_detail(void)
 	}
 }
 
+static void show_pd_detail(void)
+{
+	GSList *l;
+	struct srd_decoder *dec;
+	char **pdtokens, **pdtok, **ann, *doc;
+
+	pdtokens = g_strsplit(opt_pds, ",", -1);
+	for (pdtok = pdtokens; *pdtok; pdtok++) {
+		if (!(dec = srd_get_decoder_by_id(*pdtok))) {
+			printf("Protocol decoder %s not found.", *pdtok);
+			return;
+		}
+		printf("ID: %s\nName: %s\nLong name: %s\nDescription: %s\n",
+				dec->id, dec->name, dec->longname, dec->desc);
+		printf("License: %s\n", dec->license);
+		if (dec->annotations) {
+			printf("Annotations:\n");
+			for (l = dec->annotations; l; l = l->next) {
+				ann = l->data;
+				printf("- %s\n  %s\n", ann[0], ann[1]);
+			}
+		}
+		if ((doc = srd_decoder_doc(dec))) {
+			printf("Documentation:\n%s\n", doc[0] == '\n' ? doc+1 : doc);
+			g_free(doc);
+		}
+	}
+
+	g_strfreev(pdtokens);
+
+}
+
 static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
@@ -1063,6 +1095,8 @@ int main(int argc, char **argv)
 		run_session();
 	else if (opt_device)
 		show_device_detail();
+	else if (opt_pds)
+		show_pd_detail();
 	else
 		printf("%s", g_option_context_get_help(context, TRUE, NULL));
 
