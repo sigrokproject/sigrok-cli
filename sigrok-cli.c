@@ -470,51 +470,51 @@ cleanup:
  */
 static int register_pds(struct sr_device *device, const char *pdstring)
 {
-	gpointer dummy;
-	char **pdtokens, **pdtok;
+	GHashTable *pd;
+	struct srd_decoder_instance *di;
+	char **pdtokens, **pdtok, *pd_name;
 
 	/* Avoid compiler warnings. */
 	(void)device;
 
 	g_datalist_init(&pd_ann_visible);
 	pdtokens = g_strsplit(pdstring, ",", -1);
+	pd = NULL;
+	pd_name = NULL;
 
-	/* anything, but not NULL */
-	dummy = register_pds;
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
-		struct srd_decoder_instance *di;
-
-		/* Configure probes from command line */
-		char **optokens, **optok;
-		optokens = g_strsplit(*pdtok, ":", -1);
-		di = srd_instance_new(optokens[0], NULL);
-		if(!di) {
-			fprintf(stderr, "Failed to instantiate PD: %s\n",
-					optokens[0]);
-			g_strfreev(optokens);
-			g_strfreev(pdtokens);
-			return -1;
+		if (!(pd = parse_generic_arg(*pdtok))) {
+			fprintf(stderr, "Invalid protocol decoder option '%s'.\n", *pdtok);
+			goto err_out;
 		}
-		g_datalist_set_data(&pd_ann_visible, optokens[0], dummy);
-		for (optok = optokens+1; *optok; optok++) {
-			char probe[strlen(*optok)];
-			int num;
-			if (sscanf(*optok, "%[^=]=%d", probe, &num) == 2) {
-				printf("Setting probe '%s' to %d\n", probe, num);
-				srd_instance_set_probe(di, probe, num);
-			} else {
-				fprintf(stderr, "Error: Couldn't parse decoder "
-					"options correctly! Aborting.\n");
-				/* FIXME: Better error handling. */
-				exit(EXIT_FAILURE);
-			}
-		}
-		g_strfreev(optokens);
 
-		/* TODO: Handle errors. */
+		pd_name = g_strdup(g_hash_table_lookup(pd, "sigrok_key"));
+		g_hash_table_remove(pd, "sigrok_key");
+		if (!(di = srd_instance_new(pd_name, pd))) {
+			fprintf(stderr, "Failed to instantiate PD %s\n", pd_name);
+			goto err_out;
+		}
+		g_datalist_set_data(&pd_ann_visible, pd_name, pd_name);
 	}
 
+	/* Any keys left in the options hash are probes, where the key
+	 * is the probe name as specified in the decoder class, and the
+	 * value is the probe number i.e. the order in which the PD's
+	 * incoming samples are arranged. */
+	if (srd_instance_set_probes(di, pd) != SRD_OK)
+		return 1;
+
+	if (g_hash_table_size(pd) > 0) {
+		fprintf(stderr, "Unknown options or probes specified.");
+		return 1;
+	}
+
+err_out:
 	g_strfreev(pdtokens);
+	if (pd)
+		g_hash_table_destroy(pd);
+	if (pd_name)
+		g_free(pd_name);
 
 	return 0;
 }
