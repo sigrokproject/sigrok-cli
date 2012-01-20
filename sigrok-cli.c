@@ -504,11 +504,6 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 	if (srd_instance_set_probes(di, pd) != SRD_OK)
 		return 1;
 
-	if (g_hash_table_size(pd) > 0) {
-		fprintf(stderr, "Unknown options or probes specified.");
-		return 1;
-	}
-
 err_out:
 	g_strfreev(pdtokens);
 	if (pd)
