@@ -159,7 +159,7 @@ static void show_device_list(void)
 	demo_device = NULL;
 	for (l = devices; l; l = l->next) {
 		device = l->data;
-		if (strstr(device->plugin->name, "demo")) {
+		if (sr_device_has_hwcap(device, SR_HWCAP_DEMO_DEVICE)) {
 			demo_device = device;
 			continue;
 		}
@@ -710,7 +710,7 @@ int num_real_devices(void)
 	devices = sr_device_list();
 	for (l = devices; l; l = l->next) {
 		device = l->data;
-		if (!strstr(device->plugin->name, "demo"))
+		if (!sr_device_has_hwcap(device, SR_HWCAP_DEMO_DEVICE))
 			num_devices++;
 	}
 

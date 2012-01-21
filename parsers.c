@@ -147,7 +147,7 @@ struct sr_device *parse_devicestring(const char *devicestring)
 		devices = sr_device_list();
 		for (l = devices; l; l = l->next) {
 			d = l->data;
-			if (strstr(d->plugin->name, "demo"))
+			if (sr_device_has_hwcap(d, SR_HWCAP_DEMO_DEVICE))
 				continue;
 			if (device_cnt == device_num) {
 				if (device_num == device_cnt) {
