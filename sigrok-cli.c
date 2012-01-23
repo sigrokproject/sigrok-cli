@@ -446,7 +446,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 	if (opt_pds) {
 		if (srd_session_feed(received_samples, (uint8_t*)filter_out,
 				filter_out_len) != SRD_OK)
-			abort();
+			sr_session_halt();
 	} else {
 		output_len = 0;
 		if (o->format->data && packet->type == o->format->df_type)
