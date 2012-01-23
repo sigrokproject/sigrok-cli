@@ -1021,7 +1021,7 @@ int main(int argc, char **argv)
 	}
 
 	if (opt_pd_stack) {
-		pds = g_strsplit(opt_pd_stack, ":", 0);
+		pds = g_strsplit(opt_pd_stack, ",", 0);
 		if (g_strv_length(pds) < 2) {
 			printf("Specify at least two protocol decoders to stack.\n");
 			return 1;
