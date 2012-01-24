@@ -470,7 +470,7 @@ cleanup:
  */
 static int register_pds(struct sr_device *device, const char *pdstring)
 {
-	GHashTable *pd;
+	GHashTable *pd_opthash;
 	struct srd_decoder_instance *di;
 	char **pdtokens, **pdtok, *pd_name;
 
@@ -479,18 +479,18 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 
 	g_datalist_init(&pd_ann_visible);
 	pdtokens = g_strsplit(pdstring, ",", -1);
-	pd = NULL;
+	pd_opthash = NULL;
 	pd_name = NULL;
 
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
-		if (!(pd = parse_generic_arg(*pdtok))) {
+		if (!(pd_opthash = parse_generic_arg(*pdtok))) {
 			fprintf(stderr, "Invalid protocol decoder option '%s'.\n", *pdtok);
 			goto err_out;
 		}
 
-		pd_name = g_strdup(g_hash_table_lookup(pd, "sigrok_key"));
-		g_hash_table_remove(pd, "sigrok_key");
-		if (!(di = srd_instance_new(pd_name, pd))) {
+		pd_name = g_strdup(g_hash_table_lookup(pd_opthash, "sigrok_key"));
+		g_hash_table_remove(pd_opthash, "sigrok_key");
+		if (!(di = srd_instance_new(pd_name, pd_opthash))) {
 			fprintf(stderr, "Failed to instantiate PD %s\n", pd_name);
 			goto err_out;
 		}
@@ -501,13 +501,13 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 	 * is the probe name as specified in the decoder class, and the
 	 * value is the probe number i.e. the order in which the PD's
 	 * incoming samples are arranged. */
-	if (srd_instance_set_probes(di, pd) != SRD_OK)
+	if (srd_instance_set_probes(di, pd_opthash) != SRD_OK)
 		return 1;
 
 err_out:
 	g_strfreev(pdtokens);
-	if (pd)
-		g_hash_table_destroy(pd);
+	if (pd_opthash)
+		g_hash_table_destroy(pd_opthash);
 	if (pd_name)
 		g_free(pd_name);
 
@@ -519,17 +519,17 @@ void show_pd_annotation(struct srd_proto_data *pdata)
 	int i;
 	char **annotations;
 
-	annotations = pdata->data;
 	if (pdata->ann_format != 0) {
-		/* CLI only shows the default annotation format */
+		/* CLI only shows the default annotation format. */
 		return;
 	}
 
 	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->di->instance_id)) {
-		/* not in the list of PDs whose annotations we're showing */
+		/* Not in the list of PDs whose annotations we're showing. */
 		return;
 	}
 
+	annotations = pdata->data;
 	if (opt_loglevel > SR_LOG_WARN)
 		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
 	printf("%s: ", pdata->pdo->proto_id);
