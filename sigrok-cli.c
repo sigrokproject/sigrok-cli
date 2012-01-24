@@ -494,7 +494,7 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 			fprintf(stderr, "Failed to instantiate PD %s\n", pd_name);
 			goto err_out;
 		}
-		g_datalist_set_data(&pd_ann_visible, pd_name, pd_name);
+		g_datalist_set_data(&pd_ann_visible, di->instance_id, pd_name);
 	}
 
 	/* Any keys left in the options hash are probes, where the key
@@ -525,7 +525,7 @@ void show_pd_annotation(struct srd_proto_data *pdata)
 		return;
 	}
 
-	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->proto_id)) {
+	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->di->instance_id)) {
 		/* not in the list of PDs whose annotations we're showing */
 		return;
 	}
