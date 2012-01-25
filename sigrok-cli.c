@@ -1027,12 +1027,12 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		if (!(di_from = srd_instance_find(pds[0]))) {
+		if (!(di_from = srd_instance_find_by_id(pds[0]))) {
 			printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[0]);
 			return 1;
 		}
 		for (i = 1; pds[i]; i++) {
-			if (!(di_to = srd_instance_find(pds[i]))) {
+			if (!(di_to = srd_instance_find_by_id(pds[i]))) {
 				printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[i]);
 				return 1;
 			}
