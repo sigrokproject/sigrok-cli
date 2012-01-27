@@ -495,14 +495,16 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 			goto err_out;
 		}
 		g_datalist_set_data(&pd_ann_visible, di->instance_id, pd_name);
-	}
 
-	/* Any keys left in the options hash are probes, where the key
-	 * is the probe name as specified in the decoder class, and the
-	 * value is the probe number i.e. the order in which the PD's
-	 * incoming samples are arranged. */
-	if (srd_instance_set_probes(di, pd_opthash) != SRD_OK)
-		return 1;
+		/* Any keys left in the options hash are probes, where the key
+		 * is the probe name as specified in the decoder class, and the
+		 * value is the probe number i.e. the order in which the PD's
+		 * incoming samples are arranged. */
+		if (srd_instance_set_probes(di, pd_opthash) != SRD_OK)
+			goto err_out;
+		g_hash_table_destroy(pd_opthash);
+		pd_opthash = NULL;
+	}
 
 err_out:
 	g_strfreev(pdtokens);
