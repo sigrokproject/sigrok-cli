@@ -126,11 +126,11 @@ static void show_version(void)
 	srd_exit();
 }
 
-static void print_device_line(struct sr_device *device)
+static void print_device_line(const struct sr_device *device)
 {
-	struct sr_device_instance *sdi;
+	const struct sr_device_instance *sdi;
 
-	sdi = device->plugin->get_device_info(device->plugin_index, SR_DI_INSTANCE);
+	sr_device_get_info(device, SR_DI_INSTANCE, (const void **) &sdi);
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
@@ -176,9 +176,10 @@ static void show_device_detail(void)
 {
 	struct sr_device *device;
 	struct sr_hwcap_option *hwo;
-	struct sr_samplerates *samplerates;
+	const struct sr_samplerates *samplerates;
 	int cap, *capabilities, i;
-	char *s, *title, *charopts, **stropts;
+	char *s, *title;
+	const char *charopts, **stropts;
 
 	device = parse_devicestring(opt_device);
 	if (!device) {
@@ -188,8 +189,8 @@ static void show_device_detail(void)
 
 	print_device_line(device);
 
-	if ((charopts = (char *)device->plugin->get_device_info(
-			device->plugin_index, SR_DI_TRIGGER_TYPES))) {
+	if (sr_device_get_info(device, SR_DI_TRIGGER_TYPES,
+						   (const void **) &charopts) == SR_OK) {
 		printf("Supported triggers: ");
 		while (*charopts) {
 			printf("%c ", *charopts);
@@ -211,21 +212,19 @@ static void show_device_detail(void)
 
 		if (hwo->capability == SR_HWCAP_PATTERN_MODE) {
 			printf("    %s", hwo->shortname);
-			stropts = (char **)device->plugin->get_device_info(
-					device->plugin_index, SR_DI_PATTERNMODES);
-			if (!stropts) {
+			if (sr_device_get_info(device, SR_DI_PATTERNMODES,
+								   (const void **) &stropts) == SR_OK) {
+				printf(" - supported modes:\n");
+				for (i = 0; stropts[i]; i++)
+					printf("      %s\n", stropts[i]);
+			} else {
 				printf("\n");
-				continue;
 			}
-			printf(" - supported modes:\n");
-			for (i = 0; stropts[i]; i++)
-				printf("      %s\n", stropts[i]);
 		} else if (hwo->capability == SR_HWCAP_SAMPLERATE) {
 			printf("    %s", hwo->shortname);
 			/* Supported samplerates */
-			samplerates = device->plugin->get_device_info(
-				device->plugin_index, SR_DI_SAMPLERATES);
-			if (!samplerates) {
+			if (sr_device_get_info(device, SR_DI_SAMPLERATES,
+								   (const void **) &samplerates) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -786,7 +785,7 @@ static void run_session(void)
 	struct sr_device *device;
 	GHashTable *devargs;
 	int num_devices, max_probes, *capabilities, i;
-	uint64_t tmp_u64, time_msec;
+	uint64_t time_msec;
 	char **probelist, *devspec;
 
 	devargs = NULL;
@@ -883,9 +882,11 @@ static void run_session(void)
 			 */
 			limit_samples = 0;
 			if (sr_device_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
-				tmp_u64 = *((uint64_t *) device->plugin->get_device_info(
-						device->plugin_index, SR_DI_CUR_SAMPLERATE));
-				limit_samples = tmp_u64 * time_msec / (uint64_t) 1000;
+				const uint64_t *samplerate;
+
+				sr_device_get_info(device, SR_DI_CUR_SAMPLERATE,
+								   (const void **) &samplerate);
+				limit_samples = (*samplerate) * time_msec / (uint64_t) 1000;
 			}
 			if (limit_samples == 0) {
 				printf("Not enough time at this samplerate.\n");
