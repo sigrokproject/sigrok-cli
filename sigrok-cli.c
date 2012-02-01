@@ -387,8 +387,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 		o = NULL;
 		break;
 	case SR_DF_TRIGGER:
-		g_message("cli: received SR_DF_TRIGGER at %"PRIu64" ms",
-				packet->timeoffset / 1000000);
+		g_message("cli: received SR_DF_TRIGGER");
 		if (o->format->event)
 			o->format->event(o, SR_DF_TRIGGER, &output_buf,
 					 &output_len);
@@ -397,9 +396,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 	case SR_DF_LOGIC:
 		logic = packet->payload;
 		sample_size = logic->unitsize;
-		g_message("cli: received SR_DF_LOGIC at %f ms duration %f ms, %"PRIu64" bytes",
-				packet->timeoffset / 1000000.0, packet->duration / 1000000.0,
-				logic->length);
+		g_message("cli: received SR_DF_LOGIC, %"PRIu64" bytes", logic->length);
 		break;
 	case SR_DF_ANALOG:
 		break;
