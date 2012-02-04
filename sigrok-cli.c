@@ -398,8 +398,6 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 		sample_size = logic->unitsize;
 		g_message("cli: received SR_DF_LOGIC, %"PRIu64" bytes", logic->length);
 		break;
-	case SR_DF_ANALOG:
-		break;
 	}
 
 	/* not supporting anything but SR_DF_LOGIC for now */
