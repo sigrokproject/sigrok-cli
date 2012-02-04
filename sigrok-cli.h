@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SIGROK_SIGROK_CLI_H
-#define SIGROK_SIGROK_CLI_H
+#ifndef SIGROK_CLI_SIGROK_CLI_H
+#define SIGROK_CLI_SIGROK_CLI_H
 
 /* sigrok-cli.c */
 int num_real_devices(void);
