@@ -1,1 +1,4 @@
 sigrok-cli
+sigrok-cli.exe
+contrib/sigrok-cli.nsi
+contrib/sigrok-cli-installer*.exe

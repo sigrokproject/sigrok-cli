@@ -88,6 +88,8 @@ AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
 AC_CONFIG_FILES([Makefile
+		 contrib/Makefile
+		 contrib/sigrok-cli.nsi
 		 doc/Makefile])
 
 AC_OUTPUT
