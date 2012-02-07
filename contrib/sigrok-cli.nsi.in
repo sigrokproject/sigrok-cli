@@ -132,6 +132,10 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	File "c:\MinGW\bin\libiconv-2.dll"
 	File "c:\MinGW\bin\libstdc++-6.dll"
 
+	# MSYS libs.
+	File "c:\MinGW\msys\1.0\bin\msys-1.0.dll"
+	File "c:\MinGW\msys\1.0\bin\msys-z.dll"
+
 	# External libs
 	File "c:\MinGW\msys\1.0\local\bin\libglib-2.0-0.dll"
 	File "c:\MinGW\msys\1.0\local\bin\libgthread-2.0-0.dll"
@@ -199,6 +203,8 @@ Section "Uninstall"
 	Delete "$INSTDIR\intl.dll"
 	Delete "$INSTDIR\libiconv-2.dll"
 	Delete "$INSTDIR\libstdc++-6.dll"
+	Delete "$INSTDIR\msys-1.0.dll"
+	Delete "$INSTDIR\msys-z.dll"
 	Delete "$INSTDIR\libglib-2.0-0.dll"
 	Delete "$INSTDIR\libgthread-2.0-0.dll"
 	Delete "$INSTDIR\libusb-1.0.dll"
