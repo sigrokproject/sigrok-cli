@@ -41,8 +41,9 @@ OutFile "@PACKAGE_NAME@-installer-@PACKAGE_VERSION@.exe"
 # Where to install the application.
 InstallDir "$PROGRAMFILES\sigrok\@PACKAGE_NAME@"
 
-# Request application privileges for Windows Vista.
-RequestExecutionLevel user
+# Request admin privileges for Windows Vista and Windows 7.
+# http://nsis.sourceforge.net/Docs/Chapter4.html
+RequestExecutionLevel admin
 
 
 # --- MUI interface configuration ---------------------------------------------
