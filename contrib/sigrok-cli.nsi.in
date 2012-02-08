@@ -159,12 +159,22 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	CreateDirectory "$SMPROGRAMS\sigrok"
 	CreateDirectory "$SMPROGRAMS\sigrok\@PACKAGE_NAME@"
 
-	# TODO: Create a shortcut for sigrok-cli (DOS box? README only?).
+	# Create a shortcut for sigrok-cli (this merely opens a "DOS box").
+	# Set the working directory (where the user will be placed into when
+	# the DOS box starts) to the user's Desktop directory.
+	SetOutPath "$DESKTOP"
+	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\sigrok command-line tool.lnk" \
+		"$SYSDIR\cmd.exe" \
+		"/K echo For instructions run sigrok-cli --help." \
+		"$INSTDIR\Uninstall.exe" 0 \
+		SW_SHOWNORMAL "" "Run @PACKAGE_NAME@"
 
 	# Create a shortcut for the uninstaller.
 	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Uninstall.lnk" \
 		"$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0 \
 		SW_SHOWNORMAL "" "Uninstall @PACKAGE_NAME@"
+
+	# TODO: Add sigrok-cli directory to the PATH env. variable.
 
 SectionEnd
 
@@ -222,6 +232,7 @@ Section "Uninstall"
 	RMDir "$INSTDIR"
 
 	# Delete the links from the start menu.
+	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\sigrok command-line tool.lnk"
 	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Uninstall.lnk"
 
 	# Delete the sub-directory in the start menu.
