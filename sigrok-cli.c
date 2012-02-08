@@ -993,8 +993,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
-	if (srd_set_loglevel(opt_loglevel) != SRD_OK) {
-		fprintf(stderr, "cli: %s: srd_set_loglevel(%d) failed\n",
+	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK) {
+		fprintf(stderr, "cli: %s: srd_log_loglevel_set(%d) failed\n",
 			__func__, opt_loglevel);
 		return 1;
 	}
