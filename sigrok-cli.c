@@ -986,8 +986,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrok. */
-	if (sr_set_loglevel(opt_loglevel) != SR_OK) {
-		fprintf(stderr, "cli: %s: sr_set_loglevel(%d) failed\n",
+	if (sr_log_loglevel_set(opt_loglevel) != SR_OK) {
+		fprintf(stderr, "cli: %s: sr_log_loglevel_set(%d) failed\n",
 			__func__, opt_loglevel);
 		return 1;
 	}
