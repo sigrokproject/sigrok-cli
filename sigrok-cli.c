@@ -130,7 +130,7 @@ static void print_device_line(const struct sr_device *device)
 {
 	const struct sr_device_instance *sdi;
 
-	sr_device_get_info(device, SR_DI_INSTANCE, (const void **) &sdi);
+	sr_device_get_info(device, SR_DI_INSTANCE, (const void **)&sdi);
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
@@ -190,7 +190,7 @@ static void show_device_detail(void)
 	print_device_line(device);
 
 	if (sr_device_get_info(device, SR_DI_TRIGGER_TYPES,
-						   (const void **) &charopts) == SR_OK) {
+					(const void **)&charopts) == SR_OK) {
 		printf("Supported triggers: ");
 		while (*charopts) {
 			printf("%c ", *charopts);
@@ -213,7 +213,7 @@ static void show_device_detail(void)
 		if (hwo->capability == SR_HWCAP_PATTERN_MODE) {
 			printf("    %s", hwo->shortname);
 			if (sr_device_get_info(device, SR_DI_PATTERNMODES,
-								   (const void **) &stropts) == SR_OK) {
+					(const void **)&stropts) == SR_OK) {
 				printf(" - supported modes:\n");
 				for (i = 0; stropts[i]; i++)
 					printf("      %s\n", stropts[i]);
@@ -224,7 +224,7 @@ static void show_device_detail(void)
 			printf("    %s", hwo->shortname);
 			/* Supported samplerates */
 			if (sr_device_get_info(device, SR_DI_SAMPLERATES,
-								   (const void **) &samplerates) != SR_OK) {
+					(const void **)&samplerates) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -510,13 +510,13 @@ err_out:
 	return 0;
 }
 
-void show_pd_annotation(struct srd_proto_data *pdata, void *data)
+void show_pd_annotation(struct srd_proto_data *pdata, void *user_data)
 {
 	int i;
 	char **annotations;
 
-	/* 'data' is not used in this specific callback. */
-	(void)data;
+	/* 'user_data' is not used in this specific callback. */
+	(void)user_data;
 
 	if (pdata->ann_format != 0) {
 		/* CLI only shows the default annotation format. */
@@ -883,8 +883,8 @@ static void run_session(void)
 				const uint64_t *samplerate;
 
 				sr_device_get_info(device, SR_DI_CUR_SAMPLERATE,
-								   (const void **) &samplerate);
-				limit_samples = (*samplerate) * time_msec / (uint64_t) 1000;
+						(const void **)&samplerate);
+				limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
 			}
 			if (limit_samples == 0) {
 				printf("Not enough time at this samplerate.\n");
