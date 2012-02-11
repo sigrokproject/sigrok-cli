@@ -234,17 +234,17 @@ static void show_device_detail(void)
 				if (!(s = sr_samplerate_string(samplerates->low)))
 					continue;
 				printf(" (%s", s);
-				free(s);
+				g_free(s);
 				/* high */
 				if (!(s = sr_samplerate_string(samplerates->high)))
 					continue;
 				printf(" - %s", s);
-				free(s);
+				g_free(s);
 				/* step */
 				if (!(s = sr_samplerate_string(samplerates->step)))
 					continue;
 				printf(" in steps of %s)\n", s);
-				free(s);
+				g_free(s);
 			} else {
 				printf(" - supported samplerates:\n");
 				for (i = 0; samplerates->list[i]; i++) {
@@ -313,7 +313,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 	case SR_DF_HEADER:
 		g_message("cli: Received SR_DF_HEADER");
 		/* Initialize the output module. */
-		if (!(o = malloc(sizeof(struct sr_output)))) {
+		if (!(o = g_try_malloc(sizeof(struct sr_output)))) {
 			printf("Output module malloc failed.\n");
 			exit(1);
 		}
@@ -370,7 +370,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 			if (output_len) {
 				if (outfile)
 					fwrite(output_buf, 1, output_len, outfile);
-				free(output_buf);
+				g_free(output_buf);
 				output_len = 0;
 			}
 		}
@@ -383,7 +383,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 		sr_session_halt();
 		if (outfile && outfile != stdout)
 			fclose(outfile);
-		free(o);
+		g_free(o);
 		o = NULL;
 		break;
 	case SR_DF_TRIGGER:
@@ -447,7 +447,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 			o->format->data(o, filter_out, filter_out_len, &output_buf, &output_len);
 		if (output_len) {
 			fwrite(output_buf, 1, output_len, outfile);
-			free(output_buf);
+			g_free(output_buf);
 		}
 	}
 
@@ -646,7 +646,7 @@ static void load_input_file_format(void)
 	}
 
 	/* Initialize the input module. */
-	if (!(in = malloc(sizeof(struct sr_input)))) {
+	if (!(in = g_try_malloc(sizeof(struct sr_input)))) {
 		printf("Failed to allocate input module.\n");
 		exit(1);
 	}

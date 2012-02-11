@@ -33,7 +33,9 @@ char **parse_probestring(int max_probes, const char *probestring)
 
 	error = FALSE;
 	range = NULL;
-	probelist = g_malloc0(max_probes * sizeof(char *));
+	if (!(probelist = g_try_malloc0(max_probes * sizeof(char *)))) {
+		/* TODO: Handle errors. */
+	}
 	tokens = g_strsplit(probestring, ",", max_probes);
 
 	for (i = 0; tokens[i]; i++) {
