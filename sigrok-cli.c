@@ -465,7 +465,7 @@ cleanup:
 static int register_pds(struct sr_device *device, const char *pdstring)
 {
 	GHashTable *pd_opthash;
-	struct srd_decoder_instance *di;
+	struct srd_decoder_inst *di;
 	char **pdtokens, **pdtok, *pd_name;
 
 	/* Avoid compiler warnings. */
@@ -484,17 +484,17 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 
 		pd_name = g_strdup(g_hash_table_lookup(pd_opthash, "sigrok_key"));
 		g_hash_table_remove(pd_opthash, "sigrok_key");
-		if (!(di = srd_instance_new(pd_name, pd_opthash))) {
+		if (!(di = srd_inst_new(pd_name, pd_opthash))) {
 			fprintf(stderr, "Failed to instantiate PD %s\n", pd_name);
 			goto err_out;
 		}
-		g_datalist_set_data(&pd_ann_visible, di->instance_id, pd_name);
+		g_datalist_set_data(&pd_ann_visible, di->inst_id, pd_name);
 
 		/* Any keys left in the options hash are probes, where the key
 		 * is the probe name as specified in the decoder class, and the
 		 * value is the probe number i.e. the order in which the PD's
 		 * incoming samples are arranged. */
-		if (srd_instance_set_probes(di, pd_opthash) != SRD_OK)
+		if (srd_inst_set_probes(di, pd_opthash) != SRD_OK)
 			goto err_out;
 		g_hash_table_destroy(pd_opthash);
 		pd_opthash = NULL;
@@ -520,7 +520,7 @@ void show_pd_annotation(struct srd_proto_data *pdata)
 		return;
 	}
 
-	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->di->instance_id)) {
+	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->di->inst_id)) {
 		/* Not in the list of PDs whose annotations we're showing. */
 		return;
 	}
@@ -968,7 +968,7 @@ int main(int argc, char **argv)
 	GHashTableIter iter;
 	gpointer key, value;
 	struct sr_output_format **outputs;
-	struct srd_decoder_instance *di_from, *di_to;
+	struct srd_decoder_inst *di_from, *di_to;
 	int i, ret;
 	char *fmtspec, **pds;
 
@@ -1025,22 +1025,22 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		if (!(di_from = srd_instance_find_by_id(pds[0]))) {
+		if (!(di_from = srd_inst_find_by_id(pds[0]))) {
 			printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[0]);
 			return 1;
 		}
 		for (i = 1; pds[i]; i++) {
-			if (!(di_to = srd_instance_find_by_id(pds[i]))) {
+			if (!(di_to = srd_inst_find_by_id(pds[i]))) {
 				printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[i]);
 				return 1;
 			}
-			if ((ret = srd_instance_stack(di_from, di_to) != SRD_OK))
+			if ((ret = srd_inst_stack(di_from, di_to) != SRD_OK))
 				return ret;
 
 			/* Don't show annotation from this PD. Only the last PD in
 			 * the stack will be left on the annotation list.
 			 */
-			g_datalist_remove_data(&pd_ann_visible, di_from->instance_id);
+			g_datalist_remove_data(&pd_ann_visible, di_from->inst_id);
 
 			di_from = di_to;
 		}
