@@ -510,10 +510,13 @@ err_out:
 	return 0;
 }
 
-void show_pd_annotation(struct srd_proto_data *pdata)
+void show_pd_annotation(struct srd_proto_data *pdata, void *data)
 {
 	int i;
 	char **annotations;
+
+	/* 'data' is not used in this specific callback. */
+	(void)data;
 
 	if (pdata->ann_format != 0) {
 		/* CLI only shows the default annotation format. */
@@ -1012,7 +1015,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (srd_register_callback(SRD_OUTPUT_ANN,
-				show_pd_annotation) != SRD_OK) {
+				show_pd_annotation, NULL) != SRD_OK) {
 			printf("Failed to register protocol decoder callback\n");
 			return 1;
 		}
