@@ -114,7 +114,7 @@ static void show_version(void)
 	printf("\n");
 
 	/* TODO: Error handling. */
-	srd_init();
+	srd_init(NULL);
 
 	printf("Supported protocol decoders:\n");
 	for (l = srd_list_decoders(); l; l = l->next) {
@@ -1006,7 +1006,7 @@ int main(int argc, char **argv)
 		return 1;
 
 	if (opt_pds) {
-		if (srd_init() != SRD_OK) {
+		if (srd_init(NULL) != SRD_OK) {
 			printf("Failed to initialize sigrokdecode\n");
 			return 1;
 		}
