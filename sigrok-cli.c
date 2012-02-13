@@ -94,7 +94,7 @@ static void show_version(void)
 
 	printf("sigrok-cli %s\n\n", VERSION);
 	printf("Supported hardware drivers:\n");
-	plugins = sr_list_hwplugins();
+	plugins = sr_hwplugins_list();
 	for (p = plugins; p; p = p->next) {
 		plugin = p->data;
 		printf("  %-20s %s\n", plugin->name, plugin->longname);
