@@ -146,10 +146,10 @@ struct sr_device *parse_devicestring(const char *devicestring)
 			return NULL;
 
 		device_cnt = 0;
-		devices = sr_device_list();
+		devices = sr_dev_list();
 		for (l = devices; l; l = l->next) {
 			d = l->data;
-			if (sr_device_has_hwcap(d, SR_HWCAP_DEMO_DEVICE))
+			if (sr_dev_has_hwcap(d, SR_HWCAP_DEMO_DEVICE))
 				continue;
 			if (device_cnt == device_num) {
 				if (device_num == device_cnt) {
@@ -171,7 +171,7 @@ struct sr_device *parse_devicestring(const char *devicestring)
 				continue;
 			num_devices = sr_init_hwplugin(plugin);
 			if (num_devices == 1) {
-				devices = sr_device_list();
+				devices = sr_dev_list();
 				device = devices->data;
 			} else if (num_devices > 1) {
 				printf("driver '%s' found %d devices, select by ID instead.\n",

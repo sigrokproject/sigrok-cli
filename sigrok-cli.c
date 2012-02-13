@@ -130,7 +130,7 @@ static void print_device_line(const struct sr_device *device)
 {
 	const struct sr_device_instance *sdi;
 
-	sr_device_get_info(device, SR_DI_INSTANCE, (const void **)&sdi);
+	sr_dev_get_info(device, SR_DI_INSTANCE, (const void **)&sdi);
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
@@ -150,7 +150,7 @@ static void show_device_list(void)
 	int devcnt;
 
 	devcnt = 0;
-	devices = sr_device_list();
+	devices = sr_dev_list();
 
 	if (g_slist_length(devices) == 0)
 		return;
@@ -159,7 +159,7 @@ static void show_device_list(void)
 	demo_device = NULL;
 	for (l = devices; l; l = l->next) {
 		device = l->data;
-		if (sr_device_has_hwcap(device, SR_HWCAP_DEMO_DEVICE)) {
+		if (sr_dev_has_hwcap(device, SR_HWCAP_DEMO_DEVICE)) {
 			demo_device = device;
 			continue;
 		}
@@ -189,7 +189,7 @@ static void show_device_detail(void)
 
 	print_device_line(device);
 
-	if (sr_device_get_info(device, SR_DI_TRIGGER_TYPES,
+	if (sr_dev_get_info(device, SR_DI_TRIGGER_TYPES,
 					(const void **)&charopts) == SR_OK) {
 		printf("Supported triggers: ");
 		while (*charopts) {
@@ -212,7 +212,7 @@ static void show_device_detail(void)
 
 		if (hwo->capability == SR_HWCAP_PATTERN_MODE) {
 			printf("    %s", hwo->shortname);
-			if (sr_device_get_info(device, SR_DI_PATTERNMODES,
+			if (sr_dev_get_info(device, SR_DI_PATTERNMODES,
 					(const void **)&stropts) == SR_OK) {
 				printf(" - supported modes:\n");
 				for (i = 0; stropts[i]; i++)
@@ -223,7 +223,7 @@ static void show_device_detail(void)
 		} else if (hwo->capability == SR_HWCAP_SAMPLERATE) {
 			printf("    %s", hwo->shortname);
 			/* Supported samplerates */
-			if (sr_device_get_info(device, SR_DI_SAMPLERATES,
+			if (sr_dev_get_info(device, SR_DI_SAMPLERATES,
 					(const void **)&samplerates) != SR_OK) {
 				printf("\n");
 				continue;
@@ -559,10 +559,10 @@ static int select_probes(struct sr_device *device)
 
 	for (i = 0; i < max_probes; i++) {
 		if (probelist[i]) {
-			sr_device_probe_name(device, i + 1, probelist[i]);
+			sr_dev_probe_name(device, i + 1, probelist[i]);
 			g_free(probelist[i]);
 		} else {
-			probe = sr_device_probe_find(device, i + 1);
+			probe = sr_dev_probe_find(device, i + 1);
 			probe->enabled = FALSE;
 		}
 	}
@@ -706,10 +706,10 @@ int num_real_devices(void)
 	int num_devices;
 
 	num_devices = 0;
-	devices = sr_device_list();
+	devices = sr_dev_list();
 	for (l = devices; l; l = l->next) {
 		device = l->data;
-		if (!sr_device_has_hwcap(device, SR_HWCAP_DEMO_DEVICE))
+		if (!sr_dev_has_hwcap(device, SR_HWCAP_DEMO_DEVICE))
 			num_devices++;
 	}
 
@@ -850,7 +850,7 @@ static void run_session(void)
 		max_probes = g_slist_length(device->probes);
 		for (i = 0; i < max_probes; i++) {
 			if (probelist[i]) {
-				sr_device_trigger_set(device, i + 1, probelist[i]);
+				sr_dev_trigger_set(device, i + 1, probelist[i]);
 				g_free(probelist[i]);
 			}
 		}
@@ -879,10 +879,10 @@ static void run_session(void)
 			 * convert to samples based on the samplerate.
 			 */
 			limit_samples = 0;
-			if (sr_device_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
+			if (sr_dev_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
 				const uint64_t *samplerate;
 
-				sr_device_get_info(device, SR_DI_CUR_SAMPLERATE,
+				sr_dev_get_info(device, SR_DI_CUR_SAMPLERATE,
 						(const void **)&samplerate);
 				limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
 			}
