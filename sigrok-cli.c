@@ -130,7 +130,7 @@ static void print_device_line(const struct sr_device *device)
 {
 	const struct sr_device_instance *sdi;
 
-	sr_dev_get_info(device, SR_DI_INSTANCE, (const void **)&sdi);
+	sr_dev_info_get(device, SR_DI_INSTANCE, (const void **)&sdi);
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
@@ -189,7 +189,7 @@ static void show_device_detail(void)
 
 	print_device_line(device);
 
-	if (sr_dev_get_info(device, SR_DI_TRIGGER_TYPES,
+	if (sr_dev_info_get(device, SR_DI_TRIGGER_TYPES,
 					(const void **)&charopts) == SR_OK) {
 		printf("Supported triggers: ");
 		while (*charopts) {
@@ -202,7 +202,7 @@ static void show_device_detail(void)
 	title = "Supported options:\n";
 	capabilities = device->plugin->get_capabilities();
 	for (cap = 0; capabilities[cap]; cap++) {
-		if (!(hwo = sr_find_hwcap_option(capabilities[cap])))
+		if (!(hwo = sr_hwplugins_hwcap_get(capabilities[cap])))
 			continue;
 
 		if (title) {
@@ -212,7 +212,7 @@ static void show_device_detail(void)
 
 		if (hwo->capability == SR_HWCAP_PATTERN_MODE) {
 			printf("    %s", hwo->shortname);
-			if (sr_dev_get_info(device, SR_DI_PATTERNMODES,
+			if (sr_dev_info_get(device, SR_DI_PATTERNMODES,
 					(const void **)&stropts) == SR_OK) {
 				printf(" - supported modes:\n");
 				for (i = 0; stropts[i]; i++)
@@ -223,7 +223,7 @@ static void show_device_detail(void)
 		} else if (hwo->capability == SR_HWCAP_SAMPLERATE) {
 			printf("    %s", hwo->shortname);
 			/* Supported samplerates */
-			if (sr_dev_get_info(device, SR_DI_SAMPLERATES,
+			if (sr_dev_info_get(device, SR_DI_SAMPLERATES,
 					(const void **)&samplerates) != SR_OK) {
 				printf("\n");
 				continue;
@@ -782,7 +782,7 @@ static void run_session(void)
 {
 	struct sr_device *device;
 	GHashTable *devargs;
-	int num_devices, max_probes, *capabilities, i;
+	int num_devices, max_probes, i;
 	uint64_t time_msec;
 	char **probelist, *devspec;
 
@@ -832,8 +832,7 @@ static void run_session(void)
             return;
 
 	if (opt_continuous) {
-		capabilities = device->plugin->get_capabilities();
-		if (!sr_has_hwcap(capabilities, SR_HWCAP_CONTINUOUS)) {
+		if (!sr_hwplugin_has_hwcap(device->plugin, SR_HWCAP_CONTINUOUS)) {
 			printf("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
@@ -865,8 +864,7 @@ static void run_session(void)
 			return;
 		}
 
-		capabilities = device->plugin->get_capabilities();
-		if (sr_has_hwcap(capabilities, SR_HWCAP_LIMIT_MSEC)) {
+		if (sr_hwplugin_has_hwcap(device->plugin, SR_HWCAP_LIMIT_MSEC)) {
 			if (device->plugin->set_configuration(device->plugin_index,
 							  SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
 				printf("Failed to configure time limit.\n");
@@ -882,7 +880,7 @@ static void run_session(void)
 			if (sr_dev_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
 				const uint64_t *samplerate;
 
-				sr_dev_get_info(device, SR_DI_CUR_SAMPLERATE,
+				sr_dev_info_get(device, SR_DI_CUR_SAMPLERATE,
 						(const void **)&samplerate);
 				limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
 			}
