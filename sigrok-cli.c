@@ -93,6 +93,7 @@ static void show_version(void)
 	int i;
 
 	printf("sigrok-cli %s\n\n", VERSION);
+
 	printf("Supported hardware drivers:\n");
 	plugins = sr_hwplugins_list();
 	for (p = plugins; p; p = p->next) {
@@ -113,17 +114,17 @@ static void show_version(void)
 		printf("  %-20s %s\n", outputs[i]->id, outputs[i]->description);
 	printf("\n");
 
-	/* TODO: Error handling. */
-	srd_init(NULL);
-
-	printf("Supported protocol decoders:\n");
-	for (l = srd_list_decoders(); l; l = l->next) {
-		dec = l->data;
-		printf("  %-20s %s\n", dec->id, dec->longname);
+	if (srd_init(NULL) == SRD_OK) {
+		printf("Supported protocol decoders:\n");
+		srd_load_all_decoders();
+		for (l = srd_list_decoders(); l; l = l->next) {
+			dec = l->data;
+			printf("  %-20s %s\n", dec->id, dec->longname);
+		}
+		srd_exit();
 	}
 	printf("\n");
 
-	srd_exit();
 }
 
 static void print_device_line(const struct sr_device *device)
@@ -484,8 +485,12 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 
 		pd_name = g_strdup(g_hash_table_lookup(pd_opthash, "sigrok_key"));
 		g_hash_table_remove(pd_opthash, "sigrok_key");
+		if (srd_load_decoder(pd_name) != SRD_OK) {
+			fprintf(stderr, "Failed to load protocol decoder %s\n", pd_name);
+			goto err_out;
+		}
 		if (!(di = srd_inst_new(pd_name, pd_opthash))) {
-			fprintf(stderr, "Failed to instantiate PD %s\n", pd_name);
+			fprintf(stderr, "Failed to instantiate protocol decoder %s\n", pd_name);
 			goto err_out;
 		}
 		g_datalist_set_data(&pd_ann_visible, di->inst_id, pd_name);
