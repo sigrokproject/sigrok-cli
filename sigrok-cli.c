@@ -116,8 +116,8 @@ static void show_version(void)
 
 	if (srd_init(NULL) == SRD_OK) {
 		printf("Supported protocol decoders:\n");
-		srd_load_all_decoders();
-		for (l = srd_list_decoders(); l; l = l->next) {
+		srd_decoders_load_all();
+		for (l = srd_decoders_list(); l; l = l->next) {
 			dec = l->data;
 			printf("  %-20s %s\n", dec->id, dec->longname);
 		}
@@ -266,7 +266,7 @@ static void show_pd_detail(void)
 
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
-		if (!(dec = srd_get_decoder_by_id(*pdtok))) {
+		if (!(dec = srd_decoder_get_by_id(*pdtok))) {
 			printf("Protocol decoder %s not found.", *pdtok);
 			return;
 		}
@@ -485,7 +485,7 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 
 		pd_name = g_strdup(g_hash_table_lookup(pd_opthash, "sigrok_key"));
 		g_hash_table_remove(pd_opthash, "sigrok_key");
-		if (srd_load_decoder(pd_name) != SRD_OK) {
+		if (srd_decoder_load(pd_name) != SRD_OK) {
 			fprintf(stderr, "Failed to load protocol decoder %s\n", pd_name);
 			goto err_out;
 		}
@@ -499,7 +499,7 @@ static int register_pds(struct sr_device *device, const char *pdstring)
 		 * is the probe name as specified in the decoder class, and the
 		 * value is the probe number i.e. the order in which the PD's
 		 * incoming samples are arranged. */
-		if (srd_inst_set_probes(di, pd_opthash) != SRD_OK)
+		if (srd_inst_probes_set(di, pd_opthash) != SRD_OK)
 			goto err_out;
 		g_hash_table_destroy(pd_opthash);
 		pd_opthash = NULL;
