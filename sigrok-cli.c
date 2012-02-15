@@ -95,7 +95,7 @@ static void show_version(void)
 	printf("sigrok-cli %s\n\n", VERSION);
 
 	printf("Supported hardware drivers:\n");
-	plugins = sr_hwplugins_list();
+	plugins = sr_hw_list();
 	for (p = plugins; p; p = p->next) {
 		plugin = p->data;
 		printf("  %-20s %s\n", plugin->name, plugin->longname);
@@ -203,7 +203,7 @@ static void show_device_detail(void)
 	title = "Supported options:\n";
 	capabilities = device->plugin->get_capabilities();
 	for (cap = 0; capabilities[cap]; cap++) {
-		if (!(hwo = sr_hwplugins_hwcap_get(capabilities[cap])))
+		if (!(hwo = sr_hw_hwcap_get(capabilities[cap])))
 			continue;
 
 		if (title) {
@@ -837,7 +837,7 @@ static void run_session(void)
             return;
 
 	if (opt_continuous) {
-		if (!sr_hwplugin_has_hwcap(device->plugin, SR_HWCAP_CONTINUOUS)) {
+		if (!sr_hw_has_hwcap(device->plugin, SR_HWCAP_CONTINUOUS)) {
 			printf("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
@@ -869,7 +869,7 @@ static void run_session(void)
 			return;
 		}
 
-		if (sr_hwplugin_has_hwcap(device->plugin, SR_HWCAP_LIMIT_MSEC)) {
+		if (sr_hw_has_hwcap(device->plugin, SR_HWCAP_LIMIT_MSEC)) {
 			if (device->plugin->set_configuration(device->plugin_index,
 							  SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
 				printf("Failed to configure time limit.\n");

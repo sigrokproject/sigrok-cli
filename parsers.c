@@ -164,12 +164,12 @@ struct sr_device *parse_devicestring(const char *devicestring)
 		 * no need to let them all scan
 		 */
 		device = NULL;
-		plugins = sr_hwplugins_list();
+		plugins = sr_hw_list();
 		for (p = plugins; p; p = p->next) {
 			plugin = p->data;
 			if (strcmp(plugin->name, devicestring))
 				continue;
-			num_devices = sr_hwplugin_init(plugin);
+			num_devices = sr_hw_init(plugin);
 			if (num_devices == 1) {
 				devices = sr_dev_list();
 				device = devices->data;
