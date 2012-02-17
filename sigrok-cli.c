@@ -48,11 +48,11 @@ static GData *pd_ann_visible = NULL;
 
 static gboolean opt_version = FALSE;
 static gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
-static gboolean opt_list_devices = FALSE;
+static gboolean opt_list_devs = FALSE;
 static gboolean opt_wait_trigger = FALSE;
 static gchar *opt_input_file = NULL;
 static gchar *opt_output_file = NULL;
-static gchar *opt_device = NULL;
+static gchar *opt_dev = NULL;
 static gchar *opt_probes = NULL;
 static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
@@ -66,10 +66,10 @@ static gchar *opt_continuous = NULL;
 static GOptionEntry optargs[] = {
 	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version, "Show version and support list", NULL},
 	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel, "Select libsigrok loglevel", NULL},
-	{"list-devices", 'D', 0, G_OPTION_ARG_NONE, &opt_list_devices, "List devices", NULL},
+	{"list-devices", 'D', 0, G_OPTION_ARG_NONE, &opt_list_devs, "List devices", NULL},
 	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file, "Load input from file", NULL},
 	{"output-file", 'o', 0, G_OPTION_ARG_FILENAME, &opt_output_file, "Save output to file", NULL},
-	{"device", 'd', 0, G_OPTION_ARG_STRING, &opt_device, "Use device ID", NULL},
+	{"device", 'd', 0, G_OPTION_ARG_STRING, &opt_dev, "Use device ID", NULL},
 	{"probes", 'p', 0, G_OPTION_ARG_STRING, &opt_probes, "Probes to use", NULL},
 	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers, "Trigger configuration", NULL},
 	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger, "Wait for trigger", NULL},
@@ -86,7 +86,7 @@ static GOptionEntry optargs[] = {
 static void show_version(void)
 {
 	GSList *plugins, *p, *l;
-	struct sr_device_plugin *plugin;
+	struct sr_dev_plugin *plugin;
 	struct sr_input_format **inputs;
 	struct sr_output_format **outputs;
 	struct srd_decoder *dec;
@@ -127,11 +127,11 @@ static void show_version(void)
 
 }
 
-static void print_device_line(const struct sr_device *device)
+static void print_dev_line(const struct sr_dev *dev)
 {
-	const struct sr_device_instance *sdi;
+	const struct sr_dev_inst *sdi;
 
-	sr_dev_info_get(device, SR_DI_INSTANCE, (const void **)&sdi);
+	sr_dev_info_get(dev, SR_DI_INSTANCE, (const void **)&sdi);
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
@@ -139,58 +139,58 @@ static void print_device_line(const struct sr_device *device)
 		printf("%s ", sdi->model);
 	if (sdi->version && sdi->version[0])
 		printf("%s ", sdi->version);
-	if (device->probes)
-		printf("with %d probes", g_slist_length(device->probes));
+	if (dev->probes)
+		printf("with %d probes", g_slist_length(dev->probes));
 	printf("\n");
 }
 
-static void show_device_list(void)
+static void show_dev_list(void)
 {
-	struct sr_device *device, *demo_device;
-	GSList *devices, *l;
+	struct sr_dev *dev, *demo_dev;
+	GSList *devs, *l;
 	int devcnt;
 
 	devcnt = 0;
-	devices = sr_dev_list();
+	devs = sr_dev_list();
 
-	if (g_slist_length(devices) == 0)
+	if (g_slist_length(devs) == 0)
 		return;
 
 	printf("The following devices were found:\nID    Device\n");
-	demo_device = NULL;
-	for (l = devices; l; l = l->next) {
-		device = l->data;
-		if (sr_dev_has_hwcap(device, SR_HWCAP_DEMO_DEVICE)) {
-			demo_device = device;
+	demo_dev = NULL;
+	for (l = devs; l; l = l->next) {
+		dev = l->data;
+		if (sr_dev_has_hwcap(dev, SR_HWCAP_DEMO_DEV)) {
+			demo_dev = dev;
 			continue;
 		}
 		printf("%-3d   ", devcnt++);
-		print_device_line(device);
+		print_dev_line(dev);
 	}
-	if (demo_device) {
+	if (demo_dev) {
 		printf("demo  ");
-		print_device_line(demo_device);
+		print_dev_line(demo_dev);
 	}
 }
 
-static void show_device_detail(void)
+static void show_dev_detail(void)
 {
-	struct sr_device *device;
+	struct sr_dev *dev;
 	struct sr_hwcap_option *hwo;
 	const struct sr_samplerates *samplerates;
 	int cap, *capabilities, i;
 	char *s, *title;
 	const char *charopts, **stropts;
 
-	device = parse_devicestring(opt_device);
-	if (!device) {
+	dev = parse_devstring(opt_dev);
+	if (!dev) {
 		printf("No such device. Use -D to list all devices.\n");
 		return;
 	}
 
-	print_device_line(device);
+	print_dev_line(dev);
 
-	if (sr_dev_info_get(device, SR_DI_TRIGGER_TYPES,
+	if (sr_dev_info_get(dev, SR_DI_TRIGGER_TYPES,
 					(const void **)&charopts) == SR_OK) {
 		printf("Supported triggers: ");
 		while (*charopts) {
@@ -201,7 +201,7 @@ static void show_device_detail(void)
 	}
 
 	title = "Supported options:\n";
-	capabilities = device->plugin->get_capabilities();
+	capabilities = dev->plugin->get_capabilities();
 	for (cap = 0; capabilities[cap]; cap++) {
 		if (!(hwo = sr_hw_hwcap_get(capabilities[cap])))
 			continue;
@@ -213,7 +213,7 @@ static void show_device_detail(void)
 
 		if (hwo->capability == SR_HWCAP_PATTERN_MODE) {
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(device, SR_DI_PATTERNMODES,
+			if (sr_dev_info_get(dev, SR_DI_PATTERNMODES,
 					(const void **)&stropts) == SR_OK) {
 				printf(" - supported modes:\n");
 				for (i = 0; stropts[i]; i++)
@@ -224,7 +224,7 @@ static void show_device_detail(void)
 		} else if (hwo->capability == SR_HWCAP_SAMPLERATE) {
 			printf("    %s", hwo->shortname);
 			/* Supported samplerates */
-			if (sr_dev_info_get(device, SR_DI_SAMPLERATES,
+			if (sr_dev_info_get(dev, SR_DI_SAMPLERATES,
 					(const void **)&samplerates) != SR_OK) {
 				printf("\n");
 				continue;
@@ -290,7 +290,7 @@ static void show_pd_detail(void)
 
 }
 
-static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *packet)
+static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
 	static int probelist[SR_MAX_NUM_PROBES] = { 0 };
@@ -319,7 +319,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 			exit(1);
 		}
 		o->format = output_format;
-		o->device = device;
+		o->dev = dev;
 		o->param = output_format_param;
 		if (o->format->init) {
 			if (o->format->init(o) != SR_OK) {
@@ -331,7 +331,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 		header = packet->payload;
 		num_enabled_probes = 0;
 		for (i = 0; i < header->num_logic_probes; i++) {
-			probe = g_slist_nth_data(device->probes, i);
+			probe = g_slist_nth_data(dev->probes, i);
 			if (probe->enabled)
 				probelist[num_enabled_probes++] = probe->index;
 		}
@@ -345,7 +345,7 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 				 * dump everything in the datastore as it comes in,
 				 * and save from there after the session. */
 				outfile = NULL;
-				ret = sr_datastore_new(unitsize, &(device->datastore));
+				ret = sr_datastore_new(unitsize, &(dev->datastore));
 				if (ret != SR_OK) {
 					printf("Failed to create datastore.\n");
 					exit(1);
@@ -429,8 +429,8 @@ static void datafeed_in(struct sr_device *device, struct sr_datafeed_packet *pac
 			limit_samples * sample_size))
 		filter_out_len = limit_samples * sample_size - received_samples;
 
-	if (device->datastore)
-		sr_datastore_put(device->datastore, filter_out,
+	if (dev->datastore)
+		sr_datastore_put(dev->datastore, filter_out,
 				 filter_out_len, sample_size, probelist);
 
 	if (opt_output_file && default_output_format)
@@ -463,14 +463,14 @@ cleanup:
  * That will instantiate two SPI decoders on the clock but different data
  * lines.
  */
-static int register_pds(struct sr_device *device, const char *pdstring)
+static int register_pds(struct sr_dev *dev, const char *pdstring)
 {
 	GHashTable *pd_opthash;
 	struct srd_decoder_inst *di;
 	char **pdtokens, **pdtok, *pd_name;
 
 	/* Avoid compiler warnings. */
-	(void)device;
+	(void)dev;
 
 	g_datalist_init(&pd_ann_visible);
 	pdtokens = g_strsplit(pdstring, ",", -1);
@@ -543,7 +543,7 @@ void show_pd_annotation(struct srd_proto_data *pdata, void *user_data)
 
 }
 
-static int select_probes(struct sr_device *device)
+static int select_probes(struct sr_dev *dev)
 {
 	struct sr_probe *probe;
 	char **probelist;
@@ -556,7 +556,7 @@ static int select_probes(struct sr_device *device)
 	 * This only works because a device by default initializes
 	 * and enables all its probes.
 	 */
-	max_probes = g_slist_length(device->probes);
+	max_probes = g_slist_length(dev->probes);
 	probelist = parse_probestring(max_probes, opt_probes);
 	if (!probelist) {
 		return SR_ERR;
@@ -564,10 +564,10 @@ static int select_probes(struct sr_device *device)
 
 	for (i = 0; i < max_probes; i++) {
 		if (probelist[i]) {
-			sr_dev_probe_name(device, i + 1, probelist[i]);
+			sr_dev_probe_name(dev, i + 1, probelist[i]);
 			g_free(probelist[i]);
 		} else {
-			probe = sr_dev_probe_find(device, i + 1);
+			probe = sr_dev_probe_find(dev, i + 1);
 			probe->enabled = FALSE;
 		}
 	}
@@ -667,12 +667,12 @@ static void load_input_file_format(void)
 		}
 	}
 
-	if (select_probes(in->vdevice) > 0)
+	if (select_probes(in->vdev) > 0)
             return;
 
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
-	if (sr_session_device_add(in->vdevice) != SR_OK) {
+	if (sr_session_dev_add(in->vdev) != SR_OK) {
 		printf("Failed to use device.\n");
 		sr_session_destroy();
 		return;
@@ -704,24 +704,24 @@ static void load_input_file(void)
 
 }
 
-int num_real_devices(void)
+int num_real_devs(void)
 {
-	struct sr_device *device;
-	GSList *devices, *l;
-	int num_devices;
+	struct sr_dev *dev;
+	GSList *devs, *l;
+	int num_devs;
 
-	num_devices = 0;
-	devices = sr_dev_list();
-	for (l = devices; l; l = l->next) {
-		device = l->data;
-		if (!sr_dev_has_hwcap(device, SR_HWCAP_DEMO_DEVICE))
-			num_devices++;
+	num_devs = 0;
+	devs = sr_dev_list();
+	for (l = devs; l; l = l->next) {
+		dev = l->data;
+		if (!sr_dev_has_hwcap(dev, SR_HWCAP_DEMO_DEV))
+			num_devs++;
 	}
 
-	return num_devices;
+	return num_devs;
 }
 
-static int set_device_options(struct sr_device *device, GHashTable *args)
+static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 {
 	GHashTableIter iter;
 	gpointer key, value;
@@ -747,20 +747,20 @@ static int set_device_options(struct sr_device *device, GHashTable *args)
 				ret = sr_parse_sizestring(value, &tmp_u64);
 				if (ret != SR_OK)
 					break;
-				ret = device->plugin-> set_configuration(device-> plugin_index,
-						sr_hwcap_options[i]. capability, &tmp_u64);
+				ret = dev->plugin->set_configuration(dev->plugin_index,
+						sr_hwcap_options[i].capability, &tmp_u64);
 				break;
 			case SR_T_CHAR:
-				ret = device->plugin-> set_configuration(device-> plugin_index,
-						sr_hwcap_options[i]. capability, value);
+				ret = dev->plugin->set_configuration(dev->plugin_index,
+						sr_hwcap_options[i].capability, value);
 				break;
 			case SR_T_BOOL:
 				if (!value)
 					tmp_bool = TRUE;
 				else 
 					tmp_bool = sr_parse_boolstring(value);
-				ret = device->plugin-> set_configuration(device-> plugin_index,
-						sr_hwcap_options[i]. capability, 
+				ret = dev->plugin->set_configuration(dev->plugin_index,
+						sr_hwcap_options[i].capability, 
 						GINT_TO_POINTER(tmp_bool));
 				break;
 			default:
@@ -785,33 +785,33 @@ static int set_device_options(struct sr_device *device, GHashTable *args)
 
 static void run_session(void)
 {
-	struct sr_device *device;
+	struct sr_dev *dev;
 	GHashTable *devargs;
-	int num_devices, max_probes, i;
+	int num_devs, max_probes, i;
 	uint64_t time_msec;
 	char **probelist, *devspec;
 
 	devargs = NULL;
-	if (opt_device) {
-		devargs = parse_generic_arg(opt_device);
+	if (opt_dev) {
+		devargs = parse_generic_arg(opt_dev);
 		devspec = g_hash_table_lookup(devargs, "sigrok_key");
-		device = parse_devicestring(devspec);
-		if (!device) {
+		dev = parse_devstring(devspec);
+		if (!dev) {
 			g_warning("Device not found.");
 			return;
 		}
 		g_hash_table_remove(devargs, "sigrok_key");
 	} else {
-		num_devices = num_real_devices();
-		if (num_devices == 1) {
+		num_devs = num_real_devs();
+		if (num_devs == 1) {
 			/* No device specified, but there is only one. */
 			devargs = NULL;
-			device = parse_devicestring("0");
-		} else if (num_devices == 0) {
+			dev = parse_devstring("0");
+		} else if (num_devs == 0) {
 			printf("No devices found.\n");
 			return;
 		} else {
-			printf("%d devices found, please select one.\n", num_devices);
+			printf("%d devices found, please select one.\n", num_devs);
 			return;
 		}
 	}
@@ -819,25 +819,25 @@ static void run_session(void)
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
 
-	if (sr_session_device_add(device) != SR_OK) {
+	if (sr_session_dev_add(dev) != SR_OK) {
 		printf("Failed to use device.\n");
 		sr_session_destroy();
 		return;
 	}
 
 	if (devargs) {
-		if (set_device_options(device, devargs) != SR_OK) {
+		if (set_dev_options(dev, devargs) != SR_OK) {
 			sr_session_destroy();
 			return;
 		}
 		g_hash_table_destroy(devargs);
 	}
 
-	if (select_probes(device) != SR_OK)
+	if (select_probes(dev) != SR_OK)
             return;
 
 	if (opt_continuous) {
-		if (!sr_hw_has_hwcap(device->plugin, SR_HWCAP_CONTINUOUS)) {
+		if (!sr_hw_has_hwcap(dev->plugin, SR_HWCAP_CONTINUOUS)) {
 			printf("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
@@ -845,16 +845,16 @@ static void run_session(void)
 	}
 
 	if (opt_triggers) {
-		probelist = sr_parse_triggerstring(device, opt_triggers);
+		probelist = sr_parse_triggerstring(dev, opt_triggers);
 		if (!probelist) {
 			sr_session_destroy();
 			return;
 		}
 
-		max_probes = g_slist_length(device->probes);
+		max_probes = g_slist_length(dev->probes);
 		for (i = 0; i < max_probes; i++) {
 			if (probelist[i]) {
-				sr_dev_trigger_set(device, i + 1, probelist[i]);
+				sr_dev_trigger_set(dev, i + 1, probelist[i]);
 				g_free(probelist[i]);
 			}
 		}
@@ -869,8 +869,8 @@ static void run_session(void)
 			return;
 		}
 
-		if (sr_hw_has_hwcap(device->plugin, SR_HWCAP_LIMIT_MSEC)) {
-			if (device->plugin->set_configuration(device->plugin_index,
+		if (sr_hw_has_hwcap(dev->plugin, SR_HWCAP_LIMIT_MSEC)) {
+			if (dev->plugin->set_configuration(dev->plugin_index,
 							  SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
 				printf("Failed to configure time limit.\n");
 				sr_session_destroy();
@@ -882,10 +882,10 @@ static void run_session(void)
 			 * convert to samples based on the samplerate.
 			 */
 			limit_samples = 0;
-			if (sr_dev_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
+			if (sr_dev_has_hwcap(dev, SR_HWCAP_SAMPLERATE)) {
 				const uint64_t *samplerate;
 
-				sr_dev_info_get(device, SR_DI_CUR_SAMPLERATE,
+				sr_dev_info_get(dev, SR_DI_CUR_SAMPLERATE,
 						(const void **)&samplerate);
 				limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
 			}
@@ -895,7 +895,7 @@ static void run_session(void)
 				return;
 			}
 
-			if (device->plugin->set_configuration(device->plugin_index,
+			if (dev->plugin->set_configuration(dev->plugin_index,
 						  SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK) {
 				printf("Failed to configure time-based sample limit.\n");
 				sr_session_destroy();
@@ -906,7 +906,7 @@ static void run_session(void)
 
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-			|| (device->plugin->set_configuration(device->plugin_index,
+			|| (dev->plugin->set_configuration(dev->plugin_index,
 					SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK)) {
 			printf("Failed to configure sample limit.\n");
 			sr_session_destroy();
@@ -914,8 +914,8 @@ static void run_session(void)
 		}
 	}
 
-	if (device->plugin->set_configuration(device->plugin_index,
-		  SR_HWCAP_PROBECONFIG, (char *)device->probes) != SR_OK) {
+	if (dev->plugin->set_configuration(dev->plugin_index,
+		  SR_HWCAP_PROBECONFIG, (char *)dev->probes) != SR_OK) {
 		printf("Failed to configure probes.\n");
 		sr_session_destroy();
 		return;
@@ -1088,14 +1088,14 @@ int main(int argc, char **argv)
 
 	if (opt_version)
 		show_version();
-	else if (opt_list_devices)
-		show_device_list();
+	else if (opt_list_devs)
+		show_dev_list();
 	else if (opt_input_file)
 		load_input_file();
 	else if (opt_samples || opt_time || opt_continuous)
 		run_session();
-	else if (opt_device)
-		show_device_detail();
+	else if (opt_dev)
+		show_dev_detail();
 	else if (opt_pds)
 		show_pd_detail();
 	else

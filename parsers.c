@@ -124,63 +124,63 @@ GHashTable *parse_generic_arg(const char *arg)
 	return hash;
 }
 
-struct sr_device *parse_devicestring(const char *devicestring)
+struct sr_dev *parse_devstring(const char *devstring)
 {
-	struct sr_device *device, *d;
-	struct sr_device_plugin *plugin;
-	GSList *devices, *plugins, *l, *p;
-	int num_devices, device_num, device_cnt;
+	struct sr_dev *dev, *d;
+	struct sr_dev_plugin *plugin;
+	GSList *devs, *plugins, *l, *p;
+	int num_devs, dev_num, dev_cnt;
 	char *tmp;
 
-	if (!devicestring)
+	if (!devstring)
 		return NULL;
 
-	device = NULL;
-	device_num = strtol(devicestring, &tmp, 10);
-	if (tmp != devicestring) {
+	dev = NULL;
+	dev_num = strtol(devstring, &tmp, 10);
+	if (tmp != devstring) {
 		/* argument is numeric, meaning a device ID. Make all driver
 		 * plugins scan for devices.
 		 */
-		num_devices = num_real_devices();
-		if (device_num < 0 || device_num >= num_devices)
+		num_devs = num_real_devs();
+		if (dev_num < 0 || dev_num >= num_devs)
 			return NULL;
 
-		device_cnt = 0;
-		devices = sr_dev_list();
-		for (l = devices; l; l = l->next) {
+		dev_cnt = 0;
+		devs = sr_dev_list();
+		for (l = devs; l; l = l->next) {
 			d = l->data;
-			if (sr_dev_has_hwcap(d, SR_HWCAP_DEMO_DEVICE))
+			if (sr_dev_has_hwcap(d, SR_HWCAP_DEMO_DEV))
 				continue;
-			if (device_cnt == device_num) {
-				if (device_num == device_cnt) {
-					device = d;
+			if (dev_cnt == dev_num) {
+				if (dev_num == dev_cnt) {
+					dev = d;
 					break;
 				}
 			}
-			device_cnt++;
+			dev_cnt++;
 		}
 	} else {
 		/* select device by driver -- only initialize that driver,
 		 * no need to let them all scan
 		 */
-		device = NULL;
+		dev = NULL;
 		plugins = sr_hw_list();
 		for (p = plugins; p; p = p->next) {
 			plugin = p->data;
-			if (strcmp(plugin->name, devicestring))
+			if (strcmp(plugin->name, devstring))
 				continue;
-			num_devices = sr_hw_init(plugin);
-			if (num_devices == 1) {
-				devices = sr_dev_list();
-				device = devices->data;
-			} else if (num_devices > 1) {
+			num_devs = sr_hw_init(plugin);
+			if (num_devs == 1) {
+				devs = sr_dev_list();
+				dev = devs->data;
+			} else if (num_devs > 1) {
 				printf("driver '%s' found %d devices, select by ID instead.\n",
-						devicestring, num_devices);
+						devstring, num_devs);
 			}
 			/* fall through: selected driver found no devices */
 			break;
 		}
 	}
 
-	return device;
+	return dev;
 }
