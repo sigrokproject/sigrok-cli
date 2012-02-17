@@ -178,7 +178,7 @@ static void show_dev_detail(void)
 	struct sr_dev *dev;
 	struct sr_hwcap_option *hwo;
 	const struct sr_samplerates *samplerates;
-	int cap, *capabilities, i;
+	int cap, *hwcaps, i;
 	char *s, *title;
 	const char *charopts, **stropts;
 
@@ -201,9 +201,9 @@ static void show_dev_detail(void)
 	}
 
 	title = "Supported options:\n";
-	capabilities = dev->plugin->get_capabilities();
-	for (cap = 0; capabilities[cap]; cap++) {
-		if (!(hwo = sr_hw_hwcap_get(capabilities[cap])))
+	hwcaps = dev->plugin->hwcap_get_all();
+	for (cap = 0; hwcaps[cap]; cap++) {
+		if (!(hwo = sr_hw_hwcap_get(hwcaps[cap])))
 			continue;
 
 		if (title) {
@@ -211,7 +211,7 @@ static void show_dev_detail(void)
 			title = NULL;
 		}
 
-		if (hwo->capability == SR_HWCAP_PATTERN_MODE) {
+		if (hwo->hwcap == SR_HWCAP_PATTERN_MODE) {
 			printf("    %s", hwo->shortname);
 			if (sr_dev_info_get(dev, SR_DI_PATTERNMODES,
 					(const void **)&stropts) == SR_OK) {
@@ -221,7 +221,7 @@ static void show_dev_detail(void)
 			} else {
 				printf("\n");
 			}
-		} else if (hwo->capability == SR_HWCAP_SAMPLERATE) {
+		} else if (hwo->hwcap == SR_HWCAP_SAMPLERATE) {
 			printf("    %s", hwo->shortname);
 			/* Supported samplerates */
 			if (sr_dev_info_get(dev, SR_DI_SAMPLERATES,
@@ -733,7 +733,7 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		found = FALSE;
-		for (i = 0; sr_hwcap_options[i].capability; i++) {
+		for (i = 0; sr_hwcap_options[i].hwcap; i++) {
 			if (strcmp(sr_hwcap_options[i].shortname, key))
 				continue;
 			if ((value == NULL) && 
@@ -748,11 +748,11 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				if (ret != SR_OK)
 					break;
 				ret = dev->plugin->set_configuration(dev->plugin_index,
-						sr_hwcap_options[i].capability, &tmp_u64);
+						sr_hwcap_options[i].hwcap, &tmp_u64);
 				break;
 			case SR_T_CHAR:
 				ret = dev->plugin->set_configuration(dev->plugin_index,
-						sr_hwcap_options[i].capability, value);
+						sr_hwcap_options[i].hwcap, value);
 				break;
 			case SR_T_BOOL:
 				if (!value)
@@ -760,7 +760,7 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				else 
 					tmp_bool = sr_parse_boolstring(value);
 				ret = dev->plugin->set_configuration(dev->plugin_index,
-						sr_hwcap_options[i].capability, 
+						sr_hwcap_options[i].hwcap, 
 						GINT_TO_POINTER(tmp_bool));
 				break;
 			default:
