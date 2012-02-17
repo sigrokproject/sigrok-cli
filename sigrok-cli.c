@@ -131,7 +131,7 @@ static void print_dev_line(const struct sr_dev *dev)
 {
 	const struct sr_dev_inst *sdi;
 
-	sr_dev_info_get(dev, SR_DI_INSTANCE, (const void **)&sdi);
+	sr_dev_info_get(dev, SR_DI_INST, (const void **)&sdi);
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
