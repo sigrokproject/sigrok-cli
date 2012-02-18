@@ -747,11 +747,11 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				ret = sr_parse_sizestring(value, &tmp_u64);
 				if (ret != SR_OK)
 					break;
-				ret = dev->plugin->config_set(dev->plugin_index,
+				ret = dev->plugin->dev_config_set(dev->plugin_index,
 					sr_hwcap_options[i].hwcap, &tmp_u64);
 				break;
 			case SR_T_CHAR:
-				ret = dev->plugin->config_set(dev->plugin_index,
+				ret = dev->plugin->dev_config_set(dev->plugin_index,
 					sr_hwcap_options[i].hwcap, value);
 				break;
 			case SR_T_BOOL:
@@ -759,7 +759,7 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 					tmp_bool = TRUE;
 				else 
 					tmp_bool = sr_parse_boolstring(value);
-				ret = dev->plugin->config_set(dev->plugin_index,
+				ret = dev->plugin->dev_config_set(dev->plugin_index,
 						sr_hwcap_options[i].hwcap, 
 						GINT_TO_POINTER(tmp_bool));
 				break;
@@ -870,7 +870,7 @@ static void run_session(void)
 		}
 
 		if (sr_hw_has_hwcap(dev->plugin, SR_HWCAP_LIMIT_MSEC)) {
-			if (dev->plugin->config_set(dev->plugin_index,
+			if (dev->plugin->dev_config_set(dev->plugin_index,
 			    SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
 				printf("Failed to configure time limit.\n");
 				sr_session_destroy();
@@ -895,7 +895,7 @@ static void run_session(void)
 				return;
 			}
 
-			if (dev->plugin->config_set(dev->plugin_index,
+			if (dev->plugin->dev_config_set(dev->plugin_index,
 			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK) {
 				printf("Failed to configure time-based sample limit.\n");
 				sr_session_destroy();
@@ -906,7 +906,7 @@ static void run_session(void)
 
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-			|| (dev->plugin->config_set(dev->plugin_index,
+			|| (dev->plugin->dev_config_set(dev->plugin_index,
 			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK)) {
 			printf("Failed to configure sample limit.\n");
 			sr_session_destroy();
@@ -914,7 +914,7 @@ static void run_session(void)
 		}
 	}
 
-	if (dev->plugin->config_set(dev->plugin_index,
+	if (dev->plugin->dev_config_set(dev->plugin_index,
 		  SR_HWCAP_PROBECONFIG, (char *)dev->probes) != SR_OK) {
 		printf("Failed to configure probes.\n");
 		sr_session_destroy();
