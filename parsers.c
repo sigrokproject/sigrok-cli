@@ -127,9 +127,9 @@ GHashTable *parse_generic_arg(const char *arg)
 struct sr_dev *parse_devstring(const char *devstring)
 {
 	struct sr_dev *dev, *d;
-	struct sr_dev_plugin *plugin;
-	GSList *devs, *plugins, *l, *p;
-	int num_devs, dev_num, dev_cnt;
+	struct sr_dev_plugin **plugins;
+	GSList *devs, *l;
+	int i, num_devs, dev_num, dev_cnt;
 	char *tmp;
 
 	if (!devstring)
@@ -165,11 +165,10 @@ struct sr_dev *parse_devstring(const char *devstring)
 		 */
 		dev = NULL;
 		plugins = sr_hw_list();
-		for (p = plugins; p; p = p->next) {
-			plugin = p->data;
-			if (strcmp(plugin->name, devstring))
+		for (i = 0; plugins[i]; i++) {
+			if (strcmp(plugins[i]->name, devstring))
 				continue;
-			num_devs = sr_hw_init(plugin);
+			num_devs = sr_hw_init(plugins[i]);
 			if (num_devs == 1) {
 				devs = sr_dev_list();
 				dev = devs->data;

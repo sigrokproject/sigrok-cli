@@ -85,8 +85,8 @@ static GOptionEntry optargs[] = {
 
 static void show_version(void)
 {
-	GSList *plugins, *p, *l;
-	struct sr_dev_plugin *plugin;
+	GSList *l;
+	struct sr_dev_plugin **plugins;
 	struct sr_input_format **inputs;
 	struct sr_output_format **outputs;
 	struct srd_decoder *dec;
@@ -96,9 +96,8 @@ static void show_version(void)
 
 	printf("Supported hardware drivers:\n");
 	plugins = sr_hw_list();
-	for (p = plugins; p; p = p->next) {
-		plugin = p->data;
-		printf("  %-20s %s\n", plugin->name, plugin->longname);
+	for (i = 0; plugins[i]; i++) {
+		printf("  %-20s %s\n", plugins[i]->name, plugins[i]->longname);
 	}
 	printf("\n");
 
