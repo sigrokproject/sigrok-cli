@@ -36,7 +36,7 @@
 Name "@PACKAGE_NAME@"
 
 # Filename of the installer executable.
-OutFile "@PACKAGE_NAME@-installer-@PACKAGE_VERSION@.exe"
+OutFile "@PACKAGE_NAME@-@PACKAGE_VERSION@-installer.exe"
 
 # Where to install the application.
 InstallDir "$PROGRAMFILES\sigrok\@PACKAGE_NAME@"
