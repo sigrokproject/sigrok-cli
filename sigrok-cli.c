@@ -248,7 +248,7 @@ static void show_dev_detail(void)
 			} else {
 				printf(" - supported samplerates:\n");
 				for (i = 0; samplerates->list[i]; i++) {
-					printf("      %7s\n", sr_samplerate_string(samplerates->list[i]));
+					printf("      %s\n", sr_samplerate_string(samplerates->list[i]));
 				}
 			}
 		} else {
