@@ -127,7 +127,7 @@ GHashTable *parse_generic_arg(const char *arg)
 struct sr_dev *parse_devstring(const char *devstring)
 {
 	struct sr_dev *dev, *d;
-	struct sr_dev_plugin **plugins;
+	struct sr_dev_driver **drivers;
 	GSList *devs, *l;
 	int i, num_devs, dev_num, dev_cnt;
 	char *tmp;
@@ -138,8 +138,8 @@ struct sr_dev *parse_devstring(const char *devstring)
 	dev = NULL;
 	dev_num = strtol(devstring, &tmp, 10);
 	if (tmp != devstring) {
-		/* argument is numeric, meaning a device ID. Make all driver
-		 * plugins scan for devices.
+		/* argument is numeric, meaning a device ID. Make all drivers
+		 * scan for devices.
 		 */
 		num_devs = num_real_devs();
 		if (dev_num < 0 || dev_num >= num_devs)
@@ -164,11 +164,11 @@ struct sr_dev *parse_devstring(const char *devstring)
 		 * no need to let them all scan
 		 */
 		dev = NULL;
-		plugins = sr_hw_list();
-		for (i = 0; plugins[i]; i++) {
-			if (strcmp(plugins[i]->name, devstring))
+		drivers = sr_hw_list();
+		for (i = 0; drivers[i]; i++) {
+			if (strcmp(drivers[i]->name, devstring))
 				continue;
-			num_devs = sr_hw_init(plugins[i]);
+			num_devs = sr_hw_init(drivers[i]);
 			if (num_devs == 1) {
 				devs = sr_dev_list();
 				dev = devs->data;

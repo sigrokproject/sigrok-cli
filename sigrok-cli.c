@@ -86,7 +86,7 @@ static GOptionEntry optargs[] = {
 static void show_version(void)
 {
 	GSList *l;
-	struct sr_dev_plugin **plugins;
+	struct sr_dev_driver **drivers;
 	struct sr_input_format **inputs;
 	struct sr_output_format **outputs;
 	struct srd_decoder *dec;
@@ -95,9 +95,9 @@ static void show_version(void)
 	printf("sigrok-cli %s\n\n", VERSION);
 
 	printf("Supported hardware drivers:\n");
-	plugins = sr_hw_list();
-	for (i = 0; plugins[i]; i++) {
-		printf("  %-20s %s\n", plugins[i]->name, plugins[i]->longname);
+	drivers = sr_hw_list();
+	for (i = 0; drivers[i]; i++) {
+		printf("  %-20s %s\n", drivers[i]->name, drivers[i]->longname);
 	}
 	printf("\n");
 
@@ -200,7 +200,7 @@ static void show_dev_detail(void)
 	}
 
 	title = "Supported options:\n";
-	hwcaps = dev->plugin->hwcap_get_all();
+	hwcaps = dev->driver->hwcap_get_all();
 	for (cap = 0; hwcaps[cap]; cap++) {
 		if (!(hwo = sr_hw_hwcap_get(hwcaps[cap])))
 			continue;
@@ -746,11 +746,11 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				ret = sr_parse_sizestring(value, &tmp_u64);
 				if (ret != SR_OK)
 					break;
-				ret = dev->plugin->dev_config_set(dev->plugin_index,
+				ret = dev->driver->dev_config_set(dev->driver_index,
 					sr_hwcap_options[i].hwcap, &tmp_u64);
 				break;
 			case SR_T_CHAR:
-				ret = dev->plugin->dev_config_set(dev->plugin_index,
+				ret = dev->driver->dev_config_set(dev->driver_index,
 					sr_hwcap_options[i].hwcap, value);
 				break;
 			case SR_T_BOOL:
@@ -758,7 +758,7 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 					tmp_bool = TRUE;
 				else 
 					tmp_bool = sr_parse_boolstring(value);
-				ret = dev->plugin->dev_config_set(dev->plugin_index,
+				ret = dev->driver->dev_config_set(dev->driver_index,
 						sr_hwcap_options[i].hwcap, 
 						GINT_TO_POINTER(tmp_bool));
 				break;
@@ -836,7 +836,7 @@ static void run_session(void)
             return;
 
 	if (opt_continuous) {
-		if (!sr_hw_has_hwcap(dev->plugin, SR_HWCAP_CONTINUOUS)) {
+		if (!sr_hw_has_hwcap(dev->driver, SR_HWCAP_CONTINUOUS)) {
 			printf("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
@@ -868,8 +868,8 @@ static void run_session(void)
 			return;
 		}
 
-		if (sr_hw_has_hwcap(dev->plugin, SR_HWCAP_LIMIT_MSEC)) {
-			if (dev->plugin->dev_config_set(dev->plugin_index,
+		if (sr_hw_has_hwcap(dev->driver, SR_HWCAP_LIMIT_MSEC)) {
+			if (dev->driver->dev_config_set(dev->driver_index,
 			    SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
 				printf("Failed to configure time limit.\n");
 				sr_session_destroy();
@@ -894,7 +894,7 @@ static void run_session(void)
 				return;
 			}
 
-			if (dev->plugin->dev_config_set(dev->plugin_index,
+			if (dev->driver->dev_config_set(dev->driver_index,
 			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK) {
 				printf("Failed to configure time-based sample limit.\n");
 				sr_session_destroy();
@@ -905,7 +905,7 @@ static void run_session(void)
 
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-			|| (dev->plugin->dev_config_set(dev->plugin_index,
+			|| (dev->driver->dev_config_set(dev->driver_index,
 			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK)) {
 			printf("Failed to configure sample limit.\n");
 			sr_session_destroy();
@@ -913,7 +913,7 @@ static void run_session(void)
 		}
 	}
 
-	if (dev->plugin->dev_config_set(dev->plugin_index,
+	if (dev->driver->dev_config_set(dev->driver_index,
 		  SR_HWCAP_PROBECONFIG, (char *)dev->probes) != SR_OK) {
 		printf("Failed to configure probes.\n");
 		sr_session_destroy();
