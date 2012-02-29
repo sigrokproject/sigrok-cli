@@ -563,7 +563,7 @@ static int select_probes(struct sr_dev *dev)
 
 	for (i = 0; i < max_probes; i++) {
 		if (probelist[i]) {
-			sr_dev_probe_name(dev, i + 1, probelist[i]);
+			sr_dev_probe_name_set(dev, i + 1, probelist[i]);
 			g_free(probelist[i]);
 		} else {
 			probe = sr_dev_probe_find(dev, i + 1);
