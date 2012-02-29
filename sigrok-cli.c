@@ -95,7 +95,7 @@ static void show_version(void)
 	printf("sigrok-cli %s\n\n", VERSION);
 
 	printf("Supported hardware drivers:\n");
-	drivers = sr_hw_list();
+	drivers = sr_driver_list();
 	for (i = 0; drivers[i]; i++) {
 		printf("  %-20s %s\n", drivers[i]->name, drivers[i]->longname);
 	}
@@ -836,7 +836,7 @@ static void run_session(void)
             return;
 
 	if (opt_continuous) {
-		if (!sr_hw_has_hwcap(dev->driver, SR_HWCAP_CONTINUOUS)) {
+		if (!sr_driver_hwcap_exists(dev->driver, SR_HWCAP_CONTINUOUS)) {
 			printf("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
@@ -868,7 +868,7 @@ static void run_session(void)
 			return;
 		}
 
-		if (sr_hw_has_hwcap(dev->driver, SR_HWCAP_LIMIT_MSEC)) {
+		if (sr_driver_hwcap_exists(dev->driver, SR_HWCAP_LIMIT_MSEC)) {
 			if (dev->driver->dev_config_set(dev->driver_index,
 			    SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
 				printf("Failed to configure time limit.\n");

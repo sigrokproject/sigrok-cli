@@ -164,11 +164,11 @@ struct sr_dev *parse_devstring(const char *devstring)
 		 * no need to let them all scan
 		 */
 		dev = NULL;
-		drivers = sr_hw_list();
+		drivers = sr_driver_list();
 		for (i = 0; drivers[i]; i++) {
 			if (strcmp(drivers[i]->name, devstring))
 				continue;
-			num_devs = sr_hw_init(drivers[i]);
+			num_devs = sr_driver_init(drivers[i]);
 			if (num_devs == 1) {
 				devs = sr_dev_list();
 				dev = devs->data;
