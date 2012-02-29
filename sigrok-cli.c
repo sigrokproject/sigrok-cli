@@ -514,13 +514,13 @@ err_out:
 	return 0;
 }
 
-void show_pd_annotation(struct srd_proto_data *pdata, void *user_data)
+void show_pd_annotation(struct srd_proto_data *pdata, void *cb_data)
 {
 	int i;
 	char **annotations;
 
-	/* 'user_data' is not used in this specific callback. */
-	(void)user_data;
+	/* 'cb_data' is not used in this specific callback. */
+	(void)cb_data;
 
 	if (pdata->ann_format != 0) {
 		/* CLI only shows the default annotation format. */
@@ -943,11 +943,11 @@ static void run_session(void)
 }
 
 static void logger(const gchar *log_domain, GLogLevelFlags log_level,
-		   const gchar *message, gpointer user_data)
+		   const gchar *message, gpointer cb_data)
 {
 	/* Avoid compiler warnings. */
 	(void)log_domain;
-	(void)user_data;
+	(void)cb_data;
 
 	/*
 	 * All messages, warnings, errors etc. go to stderr (not stdout) in

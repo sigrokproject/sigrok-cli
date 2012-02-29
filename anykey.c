@@ -36,12 +36,12 @@ static DWORD stdin_mode;
 static struct termios term_orig;
 #endif
 
-static int received_anykey(int fd, int revents, void *user_data)
+static int received_anykey(int fd, int revents, void *cb_data)
 {
 	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
-	(void)user_data;
+	(void)cb_data;
 
 	sr_session_stop();
 
