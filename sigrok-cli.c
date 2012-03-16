@@ -115,8 +115,8 @@ static void show_version(void)
 
 	if (srd_init(NULL) == SRD_OK) {
 		printf("Supported protocol decoders:\n");
-		srd_decoders_load_all();
-		for (l = srd_decoders_list(); l; l = l->next) {
+		srd_decoder_load_all();
+		for (l = srd_decoder_list(); l; l = l->next) {
 			dec = l->data;
 			printf("  %-20s %s\n", dec->id, dec->longname);
 		}
