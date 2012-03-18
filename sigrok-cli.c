@@ -58,7 +58,7 @@ static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
 static gchar *opt_pd_stack = NULL;
 static gchar *opt_input_format = NULL;
-static gchar *opt_format = NULL;
+static gchar *opt_output_format = NULL;
 static gchar *opt_time = NULL;
 static gchar *opt_samples = NULL;
 static gchar *opt_continuous = NULL;
@@ -76,7 +76,7 @@ static GOptionEntry optargs[] = {
 	{"protocol-decoders", 'a', 0, G_OPTION_ARG_STRING, &opt_pds, "Protocol decoder sequence", NULL},
 	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack, "Protocol decoder stack", NULL},
 	{"input-format", 'I', 0, G_OPTION_ARG_STRING, &opt_input_format, "Input format", NULL},
-	{"format", 'f', 0, G_OPTION_ARG_STRING, &opt_format, "Output format", NULL},
+	{"output-format", 'O', 0, G_OPTION_ARG_STRING, &opt_output_format, "Output format", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time, "How long to sample (ms)", NULL},
 	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples, "Number of samples to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous, "Sample continuously", NULL},
@@ -351,7 +351,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 				}
 			} else {
 				/* saving to a file in whatever format was set
-				 * with --format, so all we need is a filehandle */
+				 * with -O, so all we need is a filehandle */
 				outfile = g_fopen(opt_output_file, "wb");
 			}
 		}
@@ -1052,14 +1052,14 @@ int main(int argc, char **argv)
 		g_strfreev(pds);
 	}
 
-	if (!opt_format) {
-		opt_format = DEFAULT_OUTPUT_FORMAT;
+	if (!opt_output_format) {
+		opt_output_format = DEFAULT_OUTPUT_FORMAT;
 		/* we'll need to remember this so when saving to a file
 		 * later, sigrok session format will be used.
 		 */
 		default_output_format = TRUE;
 	}
-	fmtargs = parse_generic_arg(opt_format);
+	fmtargs = parse_generic_arg(opt_output_format);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec) {
 		printf("Invalid output format.\n");
@@ -1081,7 +1081,7 @@ int main(int argc, char **argv)
 		break;
 	}
 	if (!output_format) {
-		printf("invalid output format %s\n", opt_format);
+		printf("invalid output format %s\n", opt_output_format);
 		return 1;
 	}
 

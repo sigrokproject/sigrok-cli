@@ -2,7 +2,7 @@
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok logic analyzer software
 .SH "SYNOPSIS"
-.B sigrok\-cli \fR[\fB\-hVDiIodptwaf\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-triggers\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR sequence] [\fB\-f\fR|\fB\-\-format\fR format] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
+.B sigrok\-cli \fR[\fB\-hVDiIodptwaf\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-triggers\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR sequence] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
 .SH "DESCRIPTION"
 .B sigrok\-cli
 is a cross-platform command line utility for the
@@ -43,7 +43,7 @@ sigrok-cli attempts to autodetect the file format of the input file.
 Save output to a file instead of writing it to stdout. The default format
 used when saving is the sigrok session file format. This can be changed with
 the
-.B \-\-format
+.B \-\-output\-format
 option, below.
 .TP
 .BR "\-d, \-\-device " <device>
@@ -134,7 +134,7 @@ any pre-trigger data. This option is useful if you don't care about the data
 that came before the trigger (but the logic analyzer hardware delivers this
 data to sigrok nonetheless).
 .TP
-.BR "\-f, \-\-format " <formatname>
+.BR "\-O, \-\-output\-format " <formatname>
 Set the output format to use. Use the
 .B \-V
 option to see a list of available output formats. The format name may
