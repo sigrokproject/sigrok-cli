@@ -2,7 +2,7 @@
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok logic analyzer software
 .SH "SYNOPSIS"
-.B sigrok\-cli \fR[\fB\-hVlDiIoOdptwas\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR list] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
+.B sigrok\-cli \fR[\fB\-hVlDdiIoOptwas\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR list] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
 .SH "DESCRIPTION"
 .B sigrok\-cli
 is a cross-platform command line utility for the
@@ -42,6 +42,29 @@ number, the more debug output will be printed. Valid loglevels are
 .B "\-D, \-\-list\-devices"
 List all logic analyzer devices found on the system. This actively scans for
 devices (USB, serial port, and others).
+.TP
+.BR "\-d, \-\-device " <device>
+The device to use for acquisition. It can be specified by ID as reported by
+.BR "\-\-list\-devices" ,
+or by the name of the driver as reported by
+.BR \-\-version .
+.sp
+A device can optionally be followed by a colon-separated list of device
+options, where each option takes the form
+.BR key=value .
+For example, to set the samplerate on the first device you might specify
+.sp
+.RB "  $ " "sigrok\-cli \-d 0:samplerate=1m"
+.sp
+Samplerate is an option common to most devices. The argument specifies the
+samplerate in Hz. You can also specify the samplerate in kHz, MHz or GHz.
+The following are all equivalent:
+.sp
+.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1000000"
+.sp
+.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1m"
+.sp
+.RB "  $ " "sigrok\-cli \-\-samples 100 \-d ""0:samplerate=1 MHz""
 .TP
 .BR "\-i, \-\-input\-file " <filename>
 Load input from a file instead of a hardware device. If the
@@ -98,29 +121,6 @@ like this:
 .sp
  1:11111111 11111111 11111111 11111111 [...]
  2:11111111 00000000 11111111 00000000 [...]
-.TP
-.BR "\-d, \-\-device " <device>
-The device to use for acquisition. It can be specified by ID as reported by
-.BR "\-\-list\-devices" ,
-or by the name of the driver as reported by
-.BR \-\-version .
-.sp
-A device can optionally be followed by a colon-separated list of device
-options, where each option takes the form
-.BR key=value .
-For example, to set the samplerate on the first device you might specify
-.sp
-.RB "  $ " "sigrok\-cli \-d 0:samplerate=1m"
-.sp
-Samplerate is an option common to most devices. The argument specifies the
-samplerate in Hz. You can also specify the samplerate in kHz, MHz or GHz.
-The following are all equivalent:
-.sp
-.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1000000"
-.sp
-.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1m"
-.sp
-.RB "  $ " "sigrok\-cli \-\-samples 100 \-d ""0:samplerate=1 MHz""
 .TP
 .BR "\-p, \-\-probes " <probelist>
 A comma-separated list of probes to be used in the session.
