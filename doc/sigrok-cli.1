@@ -2,7 +2,7 @@
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok logic analyzer software
 .SH "SYNOPSIS"
-.B sigrok\-cli \fR[\fB\-hVDiIoOdptwa\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-triggers\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR sequence] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
+.B sigrok\-cli \fR[\fB\-hVlDiIoOdptwas\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR list] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
 .SH "DESCRIPTION"
 .B sigrok\-cli
 is a cross-platform command line utility for the
@@ -11,7 +11,7 @@ logic analyzer software.
 .PP
 The command-line frontend for sigrok cannot display graphical output, but is
 still sufficient to run through the whole process of hardware initialization,
-acquisition, protocol analysis and saving the session.
+acquisition, protocol decoding and saving the session.
 .PP
 It is useful for running on remote or embedded systems, netbooks, PDAs,
 and for various other use-cases. It can display samples on standard output or
@@ -26,6 +26,18 @@ Show
 .B sigrok-cli
 version, and information about supported hardware drivers, input file
 formats, output file formats, and protocol decoders.
+.TP
+.BR "\-l, \-\-loglevel " <level>
+Set the libsigrok and libsigrokdecode loglevel. At the moment
+.B sigrok-cli
+doesn't support setting the two loglevels independently. The higher the
+number, the more debug output will be printed. Valid loglevels are
+.BR 0 " (NONE),"
+.BR 1 " (ERR),"
+.BR 2 " (WARN),"
+.BR 3 " (INFO),"
+.BR 4 " (DBG), and"
+.BR 5 " (SPEW)."
 .TP
 .B "\-D, \-\-list\-devices"
 List all logic analyzer devices found on the system. This actively scans for
@@ -64,8 +76,10 @@ Supported formats currently include
 .BR ascii ,
 .BR binary ,
 .BR vcd ,
-.BR ols ", and"
-.BR gnuplot .
+.BR ols ,
+.BR gnuplot ,
+.BR chronovu-la8 ", and"
+.BR csv .
 .sp
 The
 .B bits
@@ -160,7 +174,7 @@ effectively corresponds to
 .BR 01 .
 .br
 .BR "c" :
-Any kind of change on a pin.
+Any kind of change on a pin (either a rising or a falling edge).
 .sp
 Not every device supports all of these trigger types. Use the
 .B "\-d <device>"
@@ -172,6 +186,87 @@ analyzer) before the trigger condition is met. In other words, do not output
 any pre-trigger data. This option is useful if you don't care about the data
 that came before the trigger (but the logic analyzer hardware delivers this
 data to sigrok nonetheless).
+.TP
+.BR "\-a, \-\-protocol\-decoders " <list>
+This option allows the user to specify a comma-separated list of protocol
+decoders to be used in this session. The decoders are specified by their
+ID, as shown in the
+.B \-\-version
+output.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-a i2c"
+.sp
+Each protocol decoder can optionally be followed by a colon-separated list
+of options, where each option takes the form
+.BR "key=value" .
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-a uart:baudrate=115200:parity=odd"
+.sp
+The list of supported options depends entirely on the protocol decoder. Every
+protocol decoder has different options it supports.
+.sp
+Any "options" specified for a protocol decoder which are not actually
+supported options, will be interpreted as being probe name/number assignments.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr>"
+.br
+.B "              \-a spi:wordsize=9:miso=1:mosi=5:sck=3:cs=0"
+.sp
+In this example,
+.B wordsize
+is an option supported by the
+.B spi
+protocol decoder. Additionally, the user tells sigrok to decode the SPI
+protocol using probe 1 as MISO signal for SPI, probe 5 as MOSI, probe 3
+as SCK, and probe 0 as CS# signal.
+.TP
+.BR "\-s, \-\-protocol\-decoder\-stack " <stack>
+This option allows the user to specify a protocol decoder stack, i.e.
+the way in which one protocol decoder's output gets piped into another
+protocol decoder.
+.sp
+The decoders are specified by their ID, as shown in the
+.B \-\-version
+output. In addition to the
+.B \-s
+option, all protocol decoders that are used in a stack, must also be specified
+(together with their options, if any) using the
+.B \-a
+parameter.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-a i2c:sda=4,scl=7,rtc8564"
+.br
+.B "              \-s i2c,rtc8564"
+.sp
+In this example, the
+.B \-s
+option specifies that the output of the
+.BR i2c " decoder"
+is piped into the
+.BR rtc8564 " decoder,"
+i.e., the
+.BR rtc8564 " decoder"
+is stacked on top of the
+.BR i2c " decoder."
+.sp
+The respective protocol decoder options and probe name/number assignments
+must be given using the
+.B \-a
+option (you cannot specify them in the
+.B \-s
+option).
 .TP
 .BR "\-\-time " <ms>
 Sample for
@@ -205,7 +300,7 @@ Alternatively, you can also use:
 .TP
 To capture data from 4 probes lasting 100ms at 10 MHz starting at the trigger condition 1:high, 2:rising, 3:low, 4:high, use:
 .TP
-.B "  sigrok\-cli \-O bits \-p 1\-4 \-\-time 100 \-o samplerate=10m \\\\"
+.B "  sigrok\-cli -d 0:samplerate=10m \-O bits \-p 1\-4 \-\-time 100 \\\\"
 .B "      \-\-wait\-trigger \-\-triggers 1=1,2=r,3=0,4=1 "
 .SH "EXIT STATUS"
 .B sigrok\-cli
