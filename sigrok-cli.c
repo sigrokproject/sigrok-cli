@@ -212,9 +212,9 @@ static void show_dev_detail(void)
 
 		if (hwo->hwcap == SR_HWCAP_PATTERN_MODE) {
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_PATTERNMODES,
+			if (sr_dev_info_get(dev, SR_DI_PATTERNS,
 					(const void **)&stropts) == SR_OK) {
-				printf(" - supported modes:\n");
+				printf(" - supported patterns:\n");
 				for (i = 0; stropts[i]; i++)
 					printf("      %s\n", stropts[i]);
 			} else {
