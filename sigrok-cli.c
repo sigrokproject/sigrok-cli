@@ -438,7 +438,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		goto cleanup;
 
 	if (opt_pds) {
-		if (srd_session_feed(received_samples, (uint8_t*)filter_out,
+		if (srd_session_send(received_samples, (uint8_t*)filter_out,
 				filter_out_len) != SRD_OK)
 			sr_session_halt();
 	} else {
