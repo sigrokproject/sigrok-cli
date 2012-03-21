@@ -20,7 +20,7 @@
 # We require at least autoconf 2.63 (AC_INIT format changed there).
 AC_PREREQ([2.63])
 
-AC_INIT([sigrok-cli], [0.1], [sigrok-devel@lists.sourceforge.net],
+AC_INIT([sigrok-cli], [0.3.0], [sigrok-devel@lists.sourceforge.net],
         [sigrok-cli], [http://www.sigrok.org])
 
 AC_CONFIG_SRCDIR([sigrok-cli.c])
@@ -57,11 +57,11 @@ PKG_PROG_PKG_CONFIG([0.22])
 AM_PATH_GLIB_2_0([2.22.0],
         [CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
-PKG_CHECK_MODULES([libsigrok], [libsigrok >= 0.2],
+PKG_CHECK_MODULES([libsigrok], [libsigrok >= 0.1.0],
 	[CFLAGS="$CFLAGS $libsigrok_CFLAGS";
 	LIBS="$LIBS $libsigrok_LIBS"])
 
-PKG_CHECK_MODULES([libsigrokdecode], [libsigrokdecode >= 0.2],
+PKG_CHECK_MODULES([libsigrokdecode], [libsigrokdecode >= 0.1.0],
 	[CFLAGS="$CFLAGS $libsigrokdecode_CFLAGS";
 	LIBS="$LIBS $libsigrokdecode_LIBS"])
 

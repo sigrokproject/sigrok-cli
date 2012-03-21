@@ -28,8 +28,8 @@ Requirements
  - libtool
  - pkg-config >= 0.22
  - libglib >= 2.22.0
- - libsigrok >= 0.2
- - libsigrokdecode >= 0.2
+ - libsigrok >= 0.1.0
+ - libsigrokdecode >= 0.1.0
 
 
 Building and installing
