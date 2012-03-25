@@ -279,7 +279,7 @@ static void show_pd_detail(void)
 				printf("- %s\n  %s\n", ann[0], ann[1]);
 			}
 		}
-		if ((doc = srd_decoder_doc(dec))) {
+		if ((doc = srd_decoder_doc_get(dec))) {
 			printf("Documentation:\n%s\n", doc[0] == '\n' ? doc+1 : doc);
 			g_free(doc);
 		}
@@ -498,7 +498,7 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 		 * is the probe name as specified in the decoder class, and the
 		 * value is the probe number i.e. the order in which the PD's
 		 * incoming samples are arranged. */
-		if (srd_inst_probes_set(di, pd_opthash) != SRD_OK)
+		if (srd_inst_probe_set_all(di, pd_opthash) != SRD_OK)
 			goto err_out;
 		g_hash_table_destroy(pd_opthash);
 		pd_opthash = NULL;
@@ -1016,7 +1016,7 @@ int main(int argc, char **argv)
 			printf("Failed to register protocol decoders\n");
 			return 1;
 		}
-		if (srd_register_callback(SRD_OUTPUT_ANN,
+		if (srd_pd_output_callback_add(SRD_OUTPUT_ANN,
 				show_pd_annotation, NULL) != SRD_OK) {
 			printf("Failed to register protocol decoder callback\n");
 			return 1;
