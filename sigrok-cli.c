@@ -302,7 +302,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 	struct sr_datafeed_logic *logic;
 	int num_enabled_probes, sample_size, ret, i;
 	uint64_t output_len, filter_out_len;
-	char *output_buf, *filter_out;
+	uint8_t *output_buf, *filter_out;
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
