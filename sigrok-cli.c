@@ -292,7 +292,7 @@ static void show_pd_detail(void)
 static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
-	static int probelist[SR_MAX_NUM_PROBES] = { 0 };
+	static int probelist[SR_MAX_NUM_PROBES + 1] = { 0 };
 	static uint64_t received_samples = 0;
 	static int unitsize = 0;
 	static int triggered = 0;
