@@ -3,12 +3,23 @@
 
  * TODO.
 
-0.2.0 (yyyy-mm-dd)
+0.2.0 (2011-04-03)
 ------------------
 
- * TODO.
+This is mostly a bugfix release.
 
-0.1.0 (yyyy-mm-dd)
+ * Fix session saving & input file loading, implement session loading support.
+ * Initial work on an NSIS-based Windows installer for sigrok.
+ * CLI: Change syntax for -d and -f to <thing>:key=value:key2=value2.
+ * Various bugfixes, internal code improvements, and documentation updates.
+ * Improve MinGW/Windows support in sigrok, fix various Windows issues.
+ * Improve Openbench Logic Sniffer output format support and add metadata
+   support (requires jawi's OLS client >= 0.9.4-rc1).
+ * Add FreeBSD support for sigrok.
+ * Add initial doxygen support (sigrok API documentation).
+ * ASIX SIGMA: Fix a firmware loading bug.
+
+0.1.0 (2011-01-20)
 ------------------
 
  * Initial release.
