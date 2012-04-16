@@ -94,6 +94,11 @@ static void show_version(void)
 
 	printf("sigrok-cli %s\n\n", VERSION);
 
+	printf("Using libsigrok %s (lib version %s).\n",
+	       sr_package_version_string_get(), sr_lib_version_string_get());
+	printf("Using libsigrokdecode %s (lib version %s).\n\n",
+	       srd_package_version_string_get(), srd_lib_version_string_get());
+
 	printf("Supported hardware drivers:\n");
 	drivers = sr_driver_list();
 	for (i = 0; drivers[i]; i++) {
