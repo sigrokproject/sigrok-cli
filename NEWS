@@ -1,7 +1,22 @@
-0.3.0 (yyyy-mm-dd)
+0.3.0 (2012-04-17)
 ------------------
 
- * TODO.
+ * New major version, now depends on libsigrok and libsigrokdecode.
+ * Initial support for protocol decoders (written in Python >= 3).
+   Supports streaming processing, and stacking of protocol decoders.
+   Currently supported: dcf77, mx25lxx05d, i2s, spi, edid, pan1321, mlx90614,
+   rtc8564, transitioncounter, usb, i2cdemux, i2c, i2cfilter, uart.
+ * Add support for the ChronoVu LA8 logic analyzer.
+ * Add support for the ChronoVu LA8 input- and output-formats.
+ * Add support for the CSV output format.
+ * New CLI options: --loglevel, --input-format, --protocol-decoders, and
+   --protocol-decoder-stack.
+ * Changed CLI options: Rename -f|--format to -O|--output-format.
+ * Demo driver: Add all-low and all-high pattern support.
+ * Saleae Logic driver: Initial support for multiple attached devices.
+ * OLS driver: Run-Length Encoding (RLE) support.
+ * Various portability fixes for Mac OS X and MinGW/Windows.
+ * Many bugfixes, improvements, and documentation updates.
 
 0.2.0 (2011-04-03)
 ------------------
