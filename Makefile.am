@@ -25,3 +25,11 @@ bin_PROGRAMS = sigrok-cli
 
 sigrok_cli_SOURCES = sigrok-cli.c sigrok-cli.h parsers.c anykey.c
 
+DISTCLEANFILES = ChangeLog
+
+.PHONY: ChangeLog
+ChangeLog:
+	git --git-dir $(top_srcdir)/../.git log > ChangeLog || touch ChangeLog
+
+dist-hook: ChangeLog
+
