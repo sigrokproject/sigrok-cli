@@ -341,17 +341,23 @@ static void show_pd_detail(void)
 static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
-	static int probelist[SR_MAX_NUM_PROBES + 1] = { 0 };
+	static int logic_probelist[SR_MAX_NUM_PROBES] = { 0 };
+	static int analog_probelist[SR_MAX_NUM_PROBES] = { 0 };
 	static uint64_t received_samples = 0;
 	static int unitsize = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
+	static int num_analog_probes = 0;
 	struct sr_probe *probe;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_logic *logic;
+	struct sr_datafeed_meta_logic *meta_logic;
+	struct sr_datafeed_analog *analog;
+	struct sr_datafeed_meta_analog *meta_analog;
 	int num_enabled_probes, sample_size, ret, i;
 	uint64_t output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
+	float asample1, asample2;
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -375,41 +381,8 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 				exit(1);
 			}
 		}
-
-		header = packet->payload;
-		num_enabled_probes = 0;
-		for (i = 0; i < header->num_logic_probes; i++) {
-			probe = g_slist_nth_data(dev->probes, i);
-			if (probe->enabled)
-				probelist[num_enabled_probes++] = probe->index;
-		}
-		/* How many bytes we need to store num_enabled_probes bits */
-		unitsize = (num_enabled_probes + 7) / 8;
-
-		outfile = stdout;
-		if (opt_output_file) {
-			if (default_output_format) {
-				/* output file is in session format, which means we'll
-				 * dump everything in the datastore as it comes in,
-				 * and save from there after the session. */
-				outfile = NULL;
-				ret = sr_datastore_new(unitsize, &(dev->datastore));
-				if (ret != SR_OK) {
-					g_critical("Failed to create datastore.");
-					exit(1);
-				}
-			} else {
-				/* saving to a file in whatever format was set
-				 * with -O, so all we need is a filehandle */
-				outfile = g_fopen(opt_output_file, "wb");
-			}
-		}
-		if (opt_pds) {
-			if (srd_session_start(num_enabled_probes, unitsize,
-					header->samplerate) != SRD_OK)
-				sr_session_halt();
-		}
 		break;
+
 	case SR_DF_END:
 		g_debug("cli: Received SR_DF_END");
 		if (!o) {
@@ -437,6 +410,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		g_free(o);
 		o = NULL;
 		break;
+
 	case SR_DF_TRIGGER:
 		g_debug("cli: received SR_DF_TRIGGER");
 		if (o->format->event)
@@ -444,67 +418,159 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 					 &output_len);
 		triggered = 1;
 		break;
+
+	case SR_DF_META_LOGIC:
+		g_message("cli: Received SR_DF_META_LOGIC");
+		meta_logic = packet->payload;
+		num_enabled_probes = 0;
+		for (i = 0; i < meta_logic->num_probes; i++) {
+			probe = g_slist_nth_data(dev->probes, i);
+			if (probe->enabled)
+				logic_probelist[num_enabled_probes++] = probe->index;
+		}
+		/* How many bytes we need to store num_enabled_probes bits */
+		unitsize = (num_enabled_probes + 7) / 8;
+
+		outfile = stdout;
+		if (opt_output_file) {
+			if (default_output_format) {
+				/* output file is in session format, which means we'll
+				 * dump everything in the datastore as it comes in,
+				 * and save from there after the session. */
+				outfile = NULL;
+				ret = sr_datastore_new(unitsize, &(dev->datastore));
+				if (ret != SR_OK) {
+					printf("Failed to create datastore.\n");
+					exit(1);
+				}
+			} else {
+				/* saving to a file in whatever format was set
+				 * with --format, so all we need is a filehandle */
+				outfile = g_fopen(opt_output_file, "wb");
+			}
+		}
+		if (opt_pds)
+			srd_session_start(num_enabled_probes, unitsize,
+					meta_logic->samplerate);
+		break;
+
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		sample_size = logic->unitsize;
 		g_message("cli: received SR_DF_LOGIC, %"PRIu64" bytes", logic->length);
-		break;
-	}
+		sample_size = logic->unitsize;
+		if (logic->length == 0)
+			break;
 
-	/* not supporting anything but SR_DF_LOGIC for now */
+		/* Don't store any samples until triggered. */
+		if (opt_wait_trigger && !triggered)
+			break;
 
-	if (sample_size == -1 || logic->length == 0)
-		return;
+		if (limit_samples && received_samples >= limit_samples)
+			break;
 
-	/* Don't store any samples until triggered. */
-	if (opt_wait_trigger && !triggered)
-		return;
+		ret = sr_filter_probes(sample_size, unitsize, logic_probelist,
+					   logic->data, logic->length,
+					   &filter_out, &filter_out_len);
+		if (ret != SR_OK)
+			break;
 
-	if (limit_samples && received_samples >= limit_samples)
-		return;
+		/* what comes out of the filter is guaranteed to be packed into the
+		 * minimum size needed to support the number of samples at this sample
+		 * size. however, the driver may have submitted too much -- cut off
+		 * the buffer of the last packet according to the sample limit.
+		 */
+		if (limit_samples && (received_samples + logic->length / sample_size >
+				limit_samples * sample_size))
+			filter_out_len = limit_samples * sample_size - received_samples;
 
-	/* TODO: filters only support SR_DF_LOGIC */
-	ret = sr_filter_probes(sample_size, unitsize, probelist,
-				   logic->data, logic->length,
-				   &filter_out, &filter_out_len);
-	if (ret != SR_OK)
-		return;
+		if (dev->datastore)
+			sr_datastore_put(dev->datastore, filter_out,
+					 filter_out_len, sample_size, logic_probelist);
 
-	/* what comes out of the filter is guaranteed to be packed into the
-	 * minimum size needed to support the number of samples at this sample
-	 * size. however, the driver may have submitted too much -- cut off
-	 * the buffer of the last packet according to the sample limit.
-	 */
-	if (limit_samples && (received_samples + logic->length / sample_size >
-			limit_samples * sample_size))
-		filter_out_len = limit_samples * sample_size - received_samples;
+		if (opt_output_file && default_output_format)
+			/* saving to a session file, don't need to do anything else
+			 * to this data for now. */
+			goto cleanup;
 
-	if (dev->datastore)
-		sr_datastore_put(dev->datastore, filter_out,
-				 filter_out_len, sample_size, probelist);
-
-	if (opt_output_file && default_output_format)
-		/* saving to a session file, don't need to do anything else
-		 * to this data for now. */
-		goto cleanup;
-
-	if (opt_pds) {
-		if (srd_session_send(received_samples, (uint8_t*)filter_out,
-				filter_out_len) != SRD_OK)
-			sr_session_halt();
-	} else {
-		output_len = 0;
-		if (o->format->data && packet->type == o->format->df_type)
-			o->format->data(o, filter_out, filter_out_len, &output_buf, &output_len);
-		if (output_len) {
-			fwrite(output_buf, 1, output_len, outfile);
-			g_free(output_buf);
+		if (opt_pds) {
+			if (srd_session_send(received_samples, (uint8_t*)filter_out,
+					filter_out_len) != SRD_OK)
+				sr_session_halt();
+		} else {
+			output_len = 0;
+			if (o->format->data && packet->type == o->format->df_type)
+				o->format->data(o, filter_out, filter_out_len, &output_buf, &output_len);
+			if (output_len) {
+				fwrite(output_buf, 1, output_len, outfile);
+				g_free(output_buf);
+			}
 		}
+
+		cleanup:
+		g_free(filter_out);
+		received_samples += logic->length / sample_size;
+		break;
+
+	case SR_DF_META_ANALOG:
+		g_message("cli: Received SR_DF_META_ANALOG");
+		meta_analog = packet->payload;
+		num_analog_probes = meta_analog->num_probes;
+		num_enabled_probes = 0;
+		for (i = 0; i < num_analog_probes; i++) {
+			probe = g_slist_nth_data(dev->probes, i);
+			if (probe->enabled)
+				analog_probelist[num_enabled_probes++] = probe->index;
+		}
+
+		outfile = stdout;
+		if (opt_output_file) {
+			if (default_output_format) {
+				/* output file is in session format, which means we'll
+				 * dump everything in the datastore as it comes in,
+				 * and save from there after the session. */
+				outfile = NULL;
+				ret = sr_datastore_new(unitsize, &(dev->datastore));
+				if (ret != SR_OK) {
+					printf("Failed to create datastore.\n");
+					exit(1);
+				}
+			} else {
+				/* saving to a file in whatever format was set
+				 * with --format, so all we need is a filehandle */
+				outfile = g_fopen(opt_output_file, "wb");
+			}
+		}
+//		if (opt_pds)
+//			srd_session_start(num_enabled_probes, unitsize,
+//					meta_logic->samplerate);
+		break;
+
+	case SR_DF_ANALOG:
+		analog = packet->payload;
+		g_message("cli: received SR_DF_ANALOG, %d samples", analog->num_samples);
+		if (analog->num_samples == 0)
+			break;
+
+		if (limit_samples && received_samples >= limit_samples)
+			break;
+
+		for (i = 0; i < analog->num_samples; i++) {
+			asample1 = analog->data[i * num_analog_probes];
+			asample2 = analog->data[i * num_analog_probes + 1];
+			printf("CH1 %f   CH2 %f\n", asample1, asample2);
+//			write(STDOUT_FILENO, &asample1, sizeof(float));
+		}
+
+//		output_len = 0;
+//		if (o->format->data && packet->type == o->format->df_type)
+//			o->format->data(o, filter_out, filter_out_len, &output_buf, &output_len);
+
+		received_samples += analog->num_samples;
+
+	default:
+		g_message("received unknown packet type %d", packet->type);
 	}
 
-cleanup:
-	g_free(filter_out);
-	received_samples += logic->length / sample_size;
 }
 
 /* Register the given PDs for this session.
