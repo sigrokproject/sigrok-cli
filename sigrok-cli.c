@@ -39,6 +39,7 @@
 extern struct sr_hwcap_option sr_hwcap_options[];
 
 static uint64_t limit_samples = 0;
+static uint64_t limit_frames = 0;
 static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
@@ -61,6 +62,7 @@ static gchar *opt_input_format = NULL;
 static gchar *opt_output_format = NULL;
 static gchar *opt_time = NULL;
 static gchar *opt_samples = NULL;
+static gchar *opt_frames = NULL;
 static gchar *opt_continuous = NULL;
 
 static GOptionEntry optargs[] = {
@@ -96,6 +98,8 @@ static GOptionEntry optargs[] = {
 			"How long to sample (ms)", NULL},
 	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples,
 			"Number of samples to acquire", NULL},
+	{"frames", 0, 0, G_OPTION_ARG_STRING, &opt_frames,
+			"Number of frames to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
 			"Sample continuously", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
@@ -566,6 +570,17 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 //			o->format->data(o, filter_out, filter_out_len, &output_buf, &output_len);
 
 		received_samples += analog->num_samples;
+		break;
+
+	case SR_DF_FRAME_BEGIN:
+		/* TODO */
+		printf("BEGIN\n");
+		break;
+
+	case SR_DF_FRAME_END:
+		/* TODO */
+		printf("END\n");
+		break;
 
 	default:
 		g_message("received unknown packet type %d", packet->type);
@@ -1181,6 +1196,16 @@ static void run_session(void)
 		}
 	}
 
+	if (opt_frames) {
+		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)
+			|| (dev->driver->dev_config_set(dev->driver_index,
+			    SR_HWCAP_LIMIT_FRAMES, &limit_frames) != SR_OK)) {
+			printf("Failed to configure frame limit.\n");
+			sr_session_destroy();
+			return;
+		}
+	}
+
 	if (dev->driver->dev_config_set(dev->driver_index,
 		  SR_HWCAP_PROBECONFIG, (char *)dev->probes) != SR_OK) {
 		g_critical("Failed to configure probes.");
@@ -1277,7 +1302,7 @@ int main(int argc, char **argv)
 		show_dev_list();
 	else if (opt_input_file)
 		load_input_file();
-	else if (opt_samples || opt_time || opt_continuous)
+	else if (opt_samples || opt_time || opt_frames || opt_continuous)
 		run_session();
 	else if (opt_dev)
 		show_dev_detail();
