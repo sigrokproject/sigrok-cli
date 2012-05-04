@@ -1044,7 +1044,7 @@ int main(int argc, char **argv)
 				printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[i]);
 				return 1;
 			}
-			if ((ret = srd_inst_stack(di_from, di_to) != SRD_OK))
+			if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
 				return ret;
 
 			/* Don't show annotation from this PD. Only the last PD in
