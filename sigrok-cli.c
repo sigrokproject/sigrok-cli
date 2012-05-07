@@ -204,11 +204,12 @@ static void show_dev_list(void)
 static void show_dev_detail(void)
 {
 	struct sr_dev *dev;
-	struct sr_hwcap_option *hwo;
+	const struct sr_hwcap_option *hwo;
 	const struct sr_samplerates *samplerates;
 	struct sr_rational *rationals;
 	uint64_t *integers;
-	int cap, *hwcaps, i;
+	const int *hwcaps;
+	int cap, i;
 	char *s, *title;
 	const char *charopts, **stropts;
 
