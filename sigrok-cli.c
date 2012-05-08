@@ -124,6 +124,9 @@ static void show_version(void)
 		for (l = srd_decoder_list(); l; l = l->next) {
 			dec = l->data;
 			printf("  %-20s %s\n", dec->id, dec->longname);
+			/* Print protocol description upon "-l 3" or higher. */
+			if (opt_loglevel >= SR_LOG_INFO)
+				printf("  %-20s %s\n", "", dec->desc);
 		}
 		srd_exit();
 	}
