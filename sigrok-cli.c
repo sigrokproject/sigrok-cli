@@ -131,7 +131,6 @@ static void show_version(void)
 		srd_exit();
 	}
 	printf("\n");
-
 }
 
 static void print_dev_line(const struct sr_dev *dev)
@@ -270,6 +269,7 @@ static void show_pd_detail(void)
 	GSList *l;
 	struct srd_decoder *dec;
 	char **pdtokens, **pdtok, **ann, *doc;
+	struct srd_probe *p;
 
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
@@ -280,21 +280,44 @@ static void show_pd_detail(void)
 		printf("ID: %s\nName: %s\nLong name: %s\nDescription: %s\n",
 				dec->id, dec->name, dec->longname, dec->desc);
 		printf("License: %s\n", dec->license);
+		printf("Annotations:\n");
 		if (dec->annotations) {
-			printf("Annotations:\n");
 			for (l = dec->annotations; l; l = l->next) {
 				ann = l->data;
 				printf("- %s\n  %s\n", ann[0], ann[1]);
 			}
+		} else {
+			printf("None.\n");
+		}
+		/* TODO: Print supported decoder options. */
+		printf("Required probes:\n");
+		if (dec->probes) {
+			for (l = dec->probes; l; l = l->next) {
+				p = l->data;
+				printf("- %s (%s): %s\n",
+				       p->name, p->id, p->desc);
+			}
+		} else {
+			printf("None.\n");
+		}
+		printf("Optional probes:\n");
+		if (dec->opt_probes) {
+			for (l = dec->opt_probes; l; l = l->next) {
+				p = l->data;
+				printf("- %s (%s): %s\n",
+				       p->name, p->id, p->desc);
+			}
+		} else {
+			printf("None.\n");
 		}
 		if ((doc = srd_decoder_doc_get(dec))) {
-			printf("Documentation:\n%s\n", doc[0] == '\n' ? doc+1 : doc);
+			printf("Documentation:\n%s\n",
+			       doc[0] == '\n' ? doc + 1 : doc);
 			g_free(doc);
 		}
 	}
 
 	g_strfreev(pdtokens);
-
 }
 
 static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
@@ -462,7 +485,6 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 cleanup:
 	g_free(filter_out);
 	received_samples += logic->length / sample_size;
-
 }
 
 /* Register the given PDs for this session.
@@ -547,7 +569,6 @@ void show_pd_annotation(struct srd_proto_data *pdata, void *cb_data)
 	for (i = 0; annotations[i]; i++)
 		printf("\"%s\" ", annotations[i]);
 	printf("\n");
-
 }
 
 static int select_probes(struct sr_dev *dev)
@@ -691,7 +712,6 @@ static void load_input_file_format(void)
 			printf("Failed to save session.\n");
 	}
 	sr_session_destroy();
-
 }
 
 static void load_input_file(void)
@@ -708,7 +728,6 @@ static void load_input_file(void)
 		/* fall back on input modules */
 		load_input_file_format();
 	}
-
 }
 
 int num_real_devs(void)
@@ -947,7 +966,6 @@ static void run_session(void)
 			printf("Failed to save session.\n");
 	}
 	sr_session_destroy();
-
 }
 
 static void logger(const gchar *log_domain, GLogLevelFlags log_level,
