@@ -206,6 +206,8 @@ static void show_dev_detail(void)
 	struct sr_dev *dev;
 	struct sr_hwcap_option *hwo;
 	const struct sr_samplerates *samplerates;
+	struct sr_rational *rationals;
+	uint64_t *integers;
 	int cap, *hwcaps, i;
 	char *s, *title;
 	const char *charopts, **stropts;
@@ -240,6 +242,7 @@ static void show_dev_detail(void)
 		}
 
 		if (hwo->hwcap == SR_HWCAP_PATTERN_MODE) {
+			/* Pattern generator modes */
 			printf("    %s", hwo->shortname);
 			if (sr_dev_info_get(dev, SR_DI_PATTERNS,
 					(const void **)&stropts) == SR_OK) {
@@ -249,15 +252,15 @@ static void show_dev_detail(void)
 			} else {
 				printf("\n");
 			}
+
 		} else if (hwo->hwcap == SR_HWCAP_SAMPLERATE) {
-			printf("    %s", hwo->shortname);
 			/* Supported samplerates */
+			printf("    %s", hwo->shortname);
 			if (sr_dev_info_get(dev, SR_DI_SAMPLERATES,
 					(const void **)&samplerates) != SR_OK) {
 				printf("\n");
 				continue;
 			}
-
 			if (samplerates->step) {
 				/* low */
 				if (!(s = sr_samplerate_string(samplerates->low)))
@@ -276,11 +279,49 @@ static void show_dev_detail(void)
 				g_free(s);
 			} else {
 				printf(" - supported samplerates:\n");
-				for (i = 0; samplerates->list[i]; i++) {
+				for (i = 0; samplerates->list[i]; i++)
 					printf("      %s\n", sr_samplerate_string(samplerates->list[i]));
-				}
 			}
+
+		} else if (hwo->hwcap == SR_HWCAP_BUFFERSIZE) {
+			/* Supported buffer sizes */
+			printf("    %s", hwo->shortname);
+			if (sr_dev_info_get(dev, SR_DI_BUFFERSIZES,
+					(const void **)&integers) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported buffer sizes:\n");
+			for (i = 0; integers[i]; i++)
+				printf("      %"PRIu64"\n", integers[i]);
+
+		} else if (hwo->hwcap == SR_HWCAP_TIMEBASE) {
+			/* Supported time bases */
+			printf("    %s", hwo->shortname);
+			if (sr_dev_info_get(dev, SR_DI_TIMEBASES,
+					(const void **)&rationals) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported time bases:\n");
+			for (i = 0; rationals[i].p && rationals[i].q; i++)
+				printf("      %s\n", sr_period_string(
+						rationals[i].p * rationals[i].q));
+
+		} else if (hwo->hwcap == SR_HWCAP_TRIGGER_SOURCE) {
+			/* Supported trigger sources */
+			printf("    %s", hwo->shortname);
+			if (sr_dev_info_get(dev, SR_DI_TRIGGER_SOURCES,
+					(const void **)&stropts) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported trigger sources:\n");
+			for (i = 0; stropts[i]; i++)
+				printf("      %s\n", stropts[i]);
+
 		} else {
+			/* Everything else */
 			printf("    %s\n", hwo->shortname);
 		}
 	}
@@ -346,22 +387,22 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
 	static int logic_probelist[SR_MAX_NUM_PROBES] = { 0 };
-	static int analog_probelist[SR_MAX_NUM_PROBES] = { 0 };
+	static struct sr_probe *analog_probelist[SR_MAX_NUM_PROBES];
 	static uint64_t received_samples = 0;
 	static int unitsize = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
 	static int num_analog_probes = 0;
 	struct sr_probe *probe;
-	struct sr_datafeed_header *header;
 	struct sr_datafeed_logic *logic;
 	struct sr_datafeed_meta_logic *meta_logic;
 	struct sr_datafeed_analog *analog;
 	struct sr_datafeed_meta_analog *meta_analog;
-	int num_enabled_probes, sample_size, ret, i;
+	static int num_enabled_analog_probes = 0;
+	int num_enabled_probes, sample_size, data_offset, ret, i, j;
 	uint64_t output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
-	float asample1, asample2;
+	float asample;
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -519,11 +560,11 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		g_message("cli: Received SR_DF_META_ANALOG");
 		meta_analog = packet->payload;
 		num_analog_probes = meta_analog->num_probes;
-		num_enabled_probes = 0;
+		num_enabled_analog_probes = 0;
 		for (i = 0; i < num_analog_probes; i++) {
 			probe = g_slist_nth_data(dev->probes, i);
 			if (probe->enabled)
-				analog_probelist[num_enabled_probes++] = probe->index;
+				analog_probelist[num_enabled_analog_probes++] = probe;
 		}
 
 		outfile = stdout;
@@ -558,11 +599,16 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		if (limit_samples && received_samples >= limit_samples)
 			break;
 
+		data_offset = 0;
 		for (i = 0; i < analog->num_samples; i++) {
-			asample1 = analog->data[i * num_analog_probes];
-			asample2 = analog->data[i * num_analog_probes + 1];
-			printf("CH1 %f   CH2 %f\n", asample1, asample2);
-//			write(STDOUT_FILENO, &asample1, sizeof(float));
+			for (j = 0; j < num_enabled_analog_probes; j++) {
+				asample = analog->data[data_offset++];
+				printf("%s: %f\n", analog_probelist[j]->name, asample);
+			}
+//			asample1 = asample2 = 0.0;
+//			asample1 = analog->data[data_offset++];
+//			asample2 = analog->data[i * num_analog_probes + 1];
+//			printf("%d\t%f\t%f\n", received_samples+i+1, asample1, asample2);
 		}
 
 //		output_len = 0;
@@ -1008,9 +1054,11 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret, i;
+	float tmp_float;
 	uint64_t tmp_u64;
-	gboolean found;
+	struct sr_rational tmp_rat;
 	gboolean tmp_bool;
+	gboolean found;
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
@@ -1044,6 +1092,17 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				ret = dev->driver->dev_config_set(dev->driver_index,
 						sr_hwcap_options[i].hwcap, 
 						GINT_TO_POINTER(tmp_bool));
+				break;
+			case SR_T_FLOAT:
+				tmp_float = strtof(value, NULL);
+				ret = dev->driver->dev_config_set(dev->driver_index,
+						sr_hwcap_options[i].hwcap, &tmp_float);
+				break;
+			case SR_T_RATIONAL:
+				if ((ret = sr_parse_period(value, &tmp_rat)) != SR_OK)
+					break;
+				ret = dev->driver->dev_config_set(dev->driver_index,
+						sr_hwcap_options[i].hwcap, &tmp_rat);
 				break;
 			default:
 				ret = SR_ERR;
