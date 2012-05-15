@@ -320,6 +320,18 @@ static void show_dev_detail(void)
 			for (i = 0; stropts[i]; i++)
 				printf("      %s\n", stropts[i]);
 
+		} else if (hwo->hwcap == SR_HWCAP_FILTER) {
+			/* Supported trigger sources */
+			printf("    %s", hwo->shortname);
+			if (sr_dev_info_get(dev, SR_DI_FILTERS,
+					(const void **)&stropts) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported filter targets:\n");
+			for (i = 0; stropts[i]; i++)
+				printf("      %s\n", stropts[i]);
+
 		} else {
 			/* Everything else */
 			printf("    %s\n", hwo->shortname);
