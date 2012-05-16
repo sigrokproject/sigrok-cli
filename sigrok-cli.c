@@ -1110,7 +1110,7 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				ret = dev->driver->dev_config_set(dev->driver_index,
 						sr_hwcap_options[i].hwcap, &tmp_float);
 				break;
-			case SR_T_RATIONAL:
+			case SR_T_RATIONAL_PERIOD:
 				if ((ret = sr_parse_period(value, &tmp_rat)) != SR_OK)
 					break;
 				ret = dev->driver->dev_config_set(dev->driver_index,
