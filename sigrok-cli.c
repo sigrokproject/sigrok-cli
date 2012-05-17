@@ -332,6 +332,18 @@ static void show_dev_detail(void)
 			for (i = 0; stropts[i]; i++)
 				printf("      %s\n", stropts[i]);
 
+		} else if (hwo->hwcap == SR_HWCAP_VDIV) {
+			/* Supported volts/div values */
+			printf("    %s", hwo->shortname);
+			if (sr_dev_info_get(dev, SR_DI_VDIVS,
+					(const void **)&rationals) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported volts/div:\n");
+			for (i = 0; rationals[i].p && rationals[i].q; i++)
+				printf("      %s\n", sr_voltage_string(	&rationals[i]));
+
 		} else {
 			/* Everything else */
 			printf("    %s\n", hwo->shortname);
@@ -1112,6 +1124,12 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				break;
 			case SR_T_RATIONAL_PERIOD:
 				if ((ret = sr_parse_period(value, &tmp_rat)) != SR_OK)
+					break;
+				ret = dev->driver->dev_config_set(dev->driver_index,
+						sr_hwcap_options[i].hwcap, &tmp_rat);
+				break;
+			case SR_T_RATIONAL_VOLT:
+				if ((ret = sr_parse_voltage(value, &tmp_rat)) != SR_OK)
 					break;
 				ret = dev->driver->dev_config_set(dev->driver_index,
 						sr_hwcap_options[i].hwcap, &tmp_rat);
