@@ -344,6 +344,18 @@ static void show_dev_detail(void)
 			for (i = 0; rationals[i].p && rationals[i].q; i++)
 				printf("      %s\n", sr_voltage_string(	&rationals[i]));
 
+		} else if (hwo->hwcap == SR_HWCAP_COUPLING) {
+			/* Supported coupling settings */
+			printf("    %s", hwo->shortname);
+			if (sr_dev_info_get(dev, SR_DI_COUPLING,
+					(const void **)&stropts) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported coupling options:\n");
+			for (i = 0; stropts[i]; i++)
+				printf("      %s\n", stropts[i]);
+
 		} else {
 			/* Everything else */
 			printf("    %s\n", hwo->shortname);
