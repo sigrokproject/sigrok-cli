@@ -38,7 +38,6 @@
 
 extern struct sr_hwcap_option sr_hwcap_options[];
 
-static gboolean debug = 0;
 static uint64_t limit_samples = 0;
 static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
@@ -979,15 +978,10 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 	 * All messages, warnings, errors etc. go to stderr (not stdout) in
 	 * order to not mess up the CLI tool data output, e.g. VCD output.
 	 */
-	if (log_level & (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING)) {
+	if (log_level & (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING)
+			|| opt_loglevel > SR_LOG_WARN) {
 		fprintf(stderr, "%s\n", message);
 		fflush(stderr);
-	} else {
-		if ((log_level & G_LOG_LEVEL_MESSAGE && debug == 1)
-		    || debug == 2) {
-			printf("%s\n", message);
-			fflush(stderr);
-		}
 	}
 }
 
@@ -1004,8 +998,6 @@ int main(int argc, char **argv)
 	char *fmtspec, **pds;
 
 	g_log_set_default_handler(logger, NULL);
-	if (getenv("SIGROK_DEBUG"))
-		debug = strtol(getenv("SIGROK_DEBUG"), NULL, 10);
 
 	error = NULL;
 	context = g_option_context_new(NULL);
