@@ -1047,33 +1047,39 @@ int main(int argc, char **argv)
 			printf("Failed to register protocol decoder callback\n");
 			return 1;
 		}
-	}
 
-	if (opt_pd_stack) {
-		pds = g_strsplit(opt_pd_stack, ",", 0);
-		if (g_strv_length(pds) < 2) {
-			printf("Specify at least two protocol decoders to stack.\n");
-			return 1;
-		}
+		pds = g_strsplit(opt_pds, ",", 0);
+		if (g_strv_length(pds) > 1) {
+			if (opt_pd_stack) {
+				/* A stack setup was specified, use that. */
+				g_strfreev(pds);
+				pds = g_strsplit(opt_pd_stack, ",", 0);
+				if (g_strv_length(pds) < 2) {
+					g_strfreev(pds);
+					printf("Specify at least two protocol decoders to stack.\n");
+					return 1;
+				}
+			}
 
-		if (!(di_from = srd_inst_find_by_id(pds[0]))) {
-			printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[0]);
-			return 1;
-		}
-		for (i = 1; pds[i]; i++) {
-			if (!(di_to = srd_inst_find_by_id(pds[i]))) {
-				printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[i]);
+			if (!(di_from = srd_inst_find_by_id(pds[0]))) {
+				printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[0]);
 				return 1;
 			}
-			if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
-				return ret;
+			for (i = 1; pds[i]; i++) {
+				if (!(di_to = srd_inst_find_by_id(pds[i]))) {
+					printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[i]);
+					return 1;
+				}
+				if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
+					return ret;
 
-			/* Don't show annotation from this PD. Only the last PD in
-			 * the stack will be left on the annotation list.
-			 */
-			g_datalist_remove_data(&pd_ann_visible, di_from->inst_id);
+				/* Don't show annotation from this PD. Only the last PD in
+				 * the stack will be left on the annotation list.
+				 */
+				g_datalist_remove_data(&pd_ann_visible, di_from->inst_id);
 
-			di_from = di_to;
+				di_from = di_to;
+			}
 		}
 		g_strfreev(pds);
 	}
