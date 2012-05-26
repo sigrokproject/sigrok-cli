@@ -341,10 +341,10 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 	sample_size = -1;
 	switch (packet->type) {
 	case SR_DF_HEADER:
-		g_message("cli: Received SR_DF_HEADER");
+		g_debug("cli: Received SR_DF_HEADER");
 		/* Initialize the output module. */
 		if (!(o = g_try_malloc(sizeof(struct sr_output)))) {
-			printf("Output module malloc failed.\n");
+			g_critical("Output module malloc failed.");
 			exit(1);
 		}
 		o->format = output_format;
@@ -352,7 +352,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		o->param = output_format_param;
 		if (o->format->init) {
 			if (o->format->init(o) != SR_OK) {
-				printf("Output format initialization failed.\n");
+				g_critical("Output format initialization failed.");
 				exit(1);
 			}
 		}
@@ -376,7 +376,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 				outfile = NULL;
 				ret = sr_datastore_new(unitsize, &(dev->datastore));
 				if (ret != SR_OK) {
-					printf("Failed to create datastore.\n");
+					g_critical("Failed to create datastore.");
 					exit(1);
 				}
 			} else {
@@ -390,9 +390,9 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 					header->samplerate);
 		break;
 	case SR_DF_END:
-		g_message("cli: Received SR_DF_END");
+		g_debug("cli: Received SR_DF_END");
 		if (!o) {
-			g_message("cli: double end!");
+			g_debug("cli: double end!");
 			break;
 		}
 		if (o->format->event) {
@@ -405,10 +405,10 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 			}
 		}
 		if (limit_samples && received_samples < limit_samples)
-			printf("Device only sent %" PRIu64 " samples.\n",
+			g_warning("Device only sent %" PRIu64 " samples.",
 			       received_samples);
 		if (opt_continuous)
-			printf("Device stopped after %" PRIu64 " samples.\n",
+			g_warning("Device stopped after %" PRIu64 " samples.",
 			       received_samples);
 		sr_session_halt();
 		if (outfile && outfile != stdout)
@@ -417,7 +417,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		o = NULL;
 		break;
 	case SR_DF_TRIGGER:
-		g_message("cli: received SR_DF_TRIGGER");
+		g_debug("cli: received SR_DF_TRIGGER");
 		if (o->format->event)
 			o->format->event(o, SR_DF_TRIGGER, &output_buf,
 					 &output_len);
@@ -507,18 +507,18 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(pd_opthash = parse_generic_arg(*pdtok))) {
-			fprintf(stderr, "Invalid protocol decoder option '%s'.\n", *pdtok);
+			g_critical("Invalid protocol decoder option '%s'.", *pdtok);
 			goto err_out;
 		}
 
 		pd_name = g_strdup(g_hash_table_lookup(pd_opthash, "sigrok_key"));
 		g_hash_table_remove(pd_opthash, "sigrok_key");
 		if (srd_decoder_load(pd_name) != SRD_OK) {
-			fprintf(stderr, "Failed to load protocol decoder %s\n", pd_name);
+			g_critical("Failed to load protocol decoder %s.", pd_name);
 			goto err_out;
 		}
 		if (!(di = srd_inst_new(pd_name, pd_opthash))) {
-			fprintf(stderr, "Failed to instantiate protocol decoder %s\n", pd_name);
+			g_critical("Failed to instantiate protocol decoder %s.", pd_name);
 			goto err_out;
 		}
 		g_datalist_set_data(&pd_ann_visible, di->inst_id, pd_name);
@@ -624,8 +624,7 @@ static struct sr_input_format *determine_input_file_format(
 	/* If there are no input formats, return NULL right away. */
 	inputs = sr_input_list();
 	if (!inputs) {
-		fprintf(stderr, "cli: %s: no supported input formats "
-			"available", __func__);
+		g_critical("No supported input formats available.");
 		return NULL;
 	}
 
@@ -634,14 +633,14 @@ static struct sr_input_format *determine_input_file_format(
 		for (i = 0; inputs[i]; i++) {
 			if (strcasecmp(inputs[i]->id, opt_input_format))
 				continue;
-			printf("Using user-specified input file format"
-			       " '%s'.\n", inputs[i]->id);
+			g_debug("Using user-specified input file format '%s'.",
+					inputs[i]->id);
 			return inputs[i];
 		}
 
 		/* The user specified an unknown input format, return NULL. */
-		fprintf(stderr, "Error: Specified input file format '%s' is "
-			"unknown.\n", opt_input_format);
+		g_critical("Error: specified input file format '%s' is "
+			"unknown.", opt_input_format);
 		return NULL;
 	}
 
@@ -653,11 +652,10 @@ static struct sr_input_format *determine_input_file_format(
 
 	/* Return NULL if no input module wanted to touch this. */
 	if (!inputs[i]) {
-		fprintf(stderr, "Error: No matching input module found.\n");
+		g_critical("Error: no matching input module found.");
 		return NULL;
 	}
 		
-	printf("Using input file format '%s'.\n", inputs[i]->id);
 	return inputs[i];
 }
 
@@ -667,29 +665,27 @@ static void load_input_file_format(void)
 	struct sr_input *in;
 	struct sr_input_format *input_format;
 
-	input_format = determine_input_file_format(opt_input_file,
-						   opt_input_format);
-	if (!input_format) {
-		fprintf(stderr, "Error: Couldn't detect input file format.\n");
+	if (!(input_format = determine_input_file_format(opt_input_file,
+						   opt_input_format)))
+		/* The exact cause was already logged. */
 		return;
-	}
 
 	if (stat(opt_input_file, &st) == -1) {
-		printf("Failed to load %s: %s\n", opt_input_file,
+		g_critical("Failed to load %s: %s", opt_input_file,
 			strerror(errno));
 		exit(1);
 	}
 
 	/* Initialize the input module. */
 	if (!(in = g_try_malloc(sizeof(struct sr_input)))) {
-		printf("Failed to allocate input module.\n");
+		g_critical("Failed to allocate input module.");
 		exit(1);
 	}
 	in->format = input_format;
 	in->param = input_format_param;
 	if (in->format->init) {
 		if (in->format->init(in) != SR_OK) {
-			printf("Input format init failed.\n");
+			g_critical("Input format init failed.");
 			exit(1);
 		}
 	}
@@ -700,7 +696,7 @@ static void load_input_file_format(void)
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
 	if (sr_session_dev_add(in->vdev) != SR_OK) {
-		printf("Failed to use device.\n");
+		g_critical("Failed to use device.");
 		sr_session_destroy();
 		return;
 	}
@@ -708,7 +704,7 @@ static void load_input_file_format(void)
 	input_format->loadfile(in, opt_input_file);
 	if (opt_output_file && default_output_format) {
 		if (sr_session_save(opt_output_file) != SR_OK)
-			printf("Failed to save session.\n");
+			g_critical("Failed to save session.");
 	}
 	sr_session_destroy();
 }
@@ -763,7 +759,7 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				continue;
 			if ((value == NULL) && 
 			    (sr_hwcap_options[i].type != SR_T_BOOL)) {
-				printf("Option '%s' needs a value.\n", (char *)key);
+				g_critical("Option '%s' needs a value.", (char *)key);
 				return SR_ERR;
 			}
 			found = TRUE;
@@ -793,14 +789,14 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 			}
 
 			if (ret != SR_OK) {
-				printf("Failed to set device option '%s'.\n", (char *)key);
+				g_critical("Failed to set device option '%s'.", (char *)key);
 				return ret;
 			}
 			else
 				break;
 		}
 		if (!found) {
-			printf("Unknown device option '%s'.\n", (char *) key);
+			g_critical("Unknown device option '%s'.", (char *) key);
 			return SR_ERR;
 		}
 	}
@@ -822,7 +818,7 @@ static void run_session(void)
 		devspec = g_hash_table_lookup(devargs, "sigrok_key");
 		dev = parse_devstring(devspec);
 		if (!dev) {
-			g_warning("Device not found.");
+			g_critical("Device not found.");
 			return;
 		}
 		g_hash_table_remove(devargs, "sigrok_key");
@@ -833,10 +829,10 @@ static void run_session(void)
 			devargs = NULL;
 			dev = parse_devstring("0");
 		} else if (num_devs == 0) {
-			printf("No devices found.\n");
+			g_critical("No devices found.");
 			return;
 		} else {
-			printf("%d devices found, please select one.\n", num_devs);
+			g_critical("%d devices found, please select one.", num_devs);
 			return;
 		}
 	}
@@ -845,7 +841,7 @@ static void run_session(void)
 	sr_session_datafeed_callback_add(datafeed_in);
 
 	if (sr_session_dev_add(dev) != SR_OK) {
-		printf("Failed to use device.\n");
+		g_critical("Failed to use device.");
 		sr_session_destroy();
 		return;
 	}
@@ -863,7 +859,7 @@ static void run_session(void)
 
 	if (opt_continuous) {
 		if (!sr_driver_hwcap_exists(dev->driver, SR_HWCAP_CONTINUOUS)) {
-			printf("This device does not support continuous sampling.");
+			g_critical("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
 		}
@@ -889,7 +885,7 @@ static void run_session(void)
 	if (opt_time) {
 		time_msec = sr_parse_timestring(opt_time);
 		if (time_msec == 0) {
-			printf("Invalid time '%s'\n", opt_time);
+			g_critical("Invalid time '%s'", opt_time);
 			sr_session_destroy();
 			return;
 		}
@@ -897,7 +893,7 @@ static void run_session(void)
 		if (sr_driver_hwcap_exists(dev->driver, SR_HWCAP_LIMIT_MSEC)) {
 			if (dev->driver->dev_config_set(dev->driver_index,
 			    SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
-				printf("Failed to configure time limit.\n");
+				g_critical("Failed to configure time limit.");
 				sr_session_destroy();
 				return;
 			}
@@ -915,14 +911,14 @@ static void run_session(void)
 				limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
 			}
 			if (limit_samples == 0) {
-				printf("Not enough time at this samplerate.\n");
+				g_critical("Not enough time at this samplerate.");
 				sr_session_destroy();
 				return;
 			}
 
 			if (dev->driver->dev_config_set(dev->driver_index,
 			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK) {
-				printf("Failed to configure time-based sample limit.\n");
+				g_critical("Failed to configure time-based sample limit.");
 				sr_session_destroy();
 				return;
 			}
@@ -933,7 +929,7 @@ static void run_session(void)
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
 			|| (dev->driver->dev_config_set(dev->driver_index,
 			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK)) {
-			printf("Failed to configure sample limit.\n");
+			g_critical("Failed to configure sample limit.");
 			sr_session_destroy();
 			return;
 		}
@@ -941,13 +937,13 @@ static void run_session(void)
 
 	if (dev->driver->dev_config_set(dev->driver_index,
 		  SR_HWCAP_PROBECONFIG, (char *)dev->probes) != SR_OK) {
-		printf("Failed to configure probes.\n");
+		g_critical("Failed to configure probes.");
 		sr_session_destroy();
 		return;
 	}
 
 	if (sr_session_start() != SR_OK) {
-		printf("Failed to start session.\n");
+		g_critical("Failed to start session.");
 		sr_session_destroy();
 		return;
 	}
@@ -962,7 +958,7 @@ static void run_session(void)
 
 	if (opt_output_file && default_output_format) {
 		if (sr_session_save(opt_output_file) != SR_OK)
-			printf("Failed to save session.\n");
+			g_critical("Failed to save session.");
 	}
 	sr_session_destroy();
 }
@@ -1004,21 +1000,19 @@ int main(int argc, char **argv)
 	g_option_context_add_main_entries(context, optargs, NULL);
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
-		g_warning("%s", error->message);
+		g_critical("%s", error->message);
 		return 1;
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrok. */
 	if (sr_log_loglevel_set(opt_loglevel) != SR_OK) {
-		fprintf(stderr, "cli: %s: sr_log_loglevel_set(%d) failed\n",
-			__func__, opt_loglevel);
+		g_critical("sr_log_loglevel_set(%d) failed.", opt_loglevel);
 		return 1;
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
 	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK) {
-		fprintf(stderr, "cli: %s: srd_log_loglevel_set(%d) failed\n",
-			__func__, opt_loglevel);
+		g_critical("srd_log_loglevel_set(%d) failed.", opt_loglevel);
 		return 1;
 	}
 
@@ -1027,16 +1021,16 @@ int main(int argc, char **argv)
 
 	if (opt_pds) {
 		if (srd_init(NULL) != SRD_OK) {
-			printf("Failed to initialize sigrokdecode\n");
+			g_critical("Failed to initialize sigrokdecode.");
 			return 1;
 		}
 		if (register_pds(NULL, opt_pds) != 0) {
-			printf("Failed to register protocol decoders\n");
+			g_critical("Failed to register protocol decoders.");
 			return 1;
 		}
 		if (srd_pd_output_callback_add(SRD_OUTPUT_ANN,
 				show_pd_annotation, NULL) != SRD_OK) {
-			printf("Failed to register protocol decoder callback\n");
+			g_critical("Failed to register protocol decoder callback.");
 			return 1;
 		}
 
@@ -1048,18 +1042,20 @@ int main(int argc, char **argv)
 				pds = g_strsplit(opt_pd_stack, ",", 0);
 				if (g_strv_length(pds) < 2) {
 					g_strfreev(pds);
-					printf("Specify at least two protocol decoders to stack.\n");
+					g_critical("Specify at least two protocol decoders to stack.");
 					return 1;
 				}
 			}
 
 			if (!(di_from = srd_inst_find_by_id(pds[0]))) {
-				printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[0]);
+				g_critical("Cannot stack protocol decoder '%s': "
+						"instance not found.", pds[0]);
 				return 1;
 			}
 			for (i = 1; pds[i]; i++) {
 				if (!(di_to = srd_inst_find_by_id(pds[i]))) {
-					printf("Cannot stack protocol decoder '%s': instance not found.\n", pds[i]);
+					g_critical("Cannot stack protocol decoder '%s': "
+							"instance not found.", pds[i]);
 					return 1;
 				}
 				if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
@@ -1086,7 +1082,7 @@ int main(int argc, char **argv)
 	fmtargs = parse_generic_arg(opt_output_format);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec) {
-		printf("Invalid output format.\n");
+		g_critical("Invalid output format.");
 		return 1;
 	}
 	outputs = sr_output_list();
@@ -1105,7 +1101,7 @@ int main(int argc, char **argv)
 		break;
 	}
 	if (!output_format) {
-		printf("invalid output format %s\n", opt_output_format);
+		g_critical("Invalid output format %s.", opt_output_format);
 		return 1;
 	}
 

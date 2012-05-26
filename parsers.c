@@ -44,8 +44,7 @@ char **parse_probestring(int max_probes, const char *probestring)
 			range = g_strsplit(tokens[i], "-", 2);
 			if (!range[0] || !range[1] || range[2]) {
 				/* Need exactly two arguments. */
-				printf("Invalid probe syntax '%s'.\n",
-				       tokens[i]);
+				g_critical("Invalid probe syntax '%s'.", tokens[i]);
 				error = TRUE;
 				break;
 			}
@@ -53,8 +52,7 @@ char **parse_probestring(int max_probes, const char *probestring)
 			b = strtol(range[0], NULL, 10);
 			e = strtol(range[1], NULL, 10);
 			if (b < 1 || e > max_probes || b >= e) {
-				printf("Invalid probe range '%s'.\n",
-				       tokens[i]);
+				g_critical("Invalid probe range '%s'.", tokens[i]);
 				error = TRUE;
 				break;
 			}
@@ -67,7 +65,7 @@ char **parse_probestring(int max_probes, const char *probestring)
 		} else {
 			tmp = strtol(tokens[i], NULL, 10);
 			if (tmp < 1 || tmp > max_probes) {
-				printf("Invalid probe %d.\n", tmp);
+				g_critical("Invalid probe %d.", tmp);
 				error = TRUE;
 				break;
 			}

@@ -70,7 +70,7 @@ void add_anykey(void)
 
 	sr_session_source_add(STDIN_FILENO, G_IO_IN, -1, received_anykey, NULL);
 
-	printf("Press any key to stop acquisition.\n");
+	g_message("Press any key to stop acquisition.");
 }
 
 /* Restore stdin attributes. */
