@@ -63,22 +63,38 @@ static gchar *opt_samples = NULL;
 static gchar *opt_continuous = NULL;
 
 static GOptionEntry optargs[] = {
-	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version, "Show version and support list", NULL},
-	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel, "Select libsigrok/libsigrokdecode loglevel", NULL},
-	{"list-devices", 'D', 0, G_OPTION_ARG_NONE, &opt_list_devs, "Scan for devices", NULL},
-	{"device", 'd', 0, G_OPTION_ARG_STRING, &opt_dev, "Use specified device", NULL},
-	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file, "Load input from file", NULL},
-	{"input-format", 'I', 0, G_OPTION_ARG_STRING, &opt_input_format, "Input format", NULL},
-	{"output-file", 'o', 0, G_OPTION_ARG_FILENAME, &opt_output_file, "Save output to file", NULL},
-	{"output-format", 'O', 0, G_OPTION_ARG_STRING, &opt_output_format, "Output format", NULL},
-	{"probes", 'p', 0, G_OPTION_ARG_STRING, &opt_probes, "Probes to use", NULL},
-	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers, "Trigger configuration", NULL},
-	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger, "Wait for trigger", NULL},
-	{"protocol-decoders", 'a', 0, G_OPTION_ARG_STRING, &opt_pds, "Protocol decoders to run", NULL},
-	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack, "Protocol decoder stack", NULL},
-	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time, "How long to sample (ms)", NULL},
-	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples, "Number of samples to acquire", NULL},
-	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous, "Sample continuously", NULL},
+	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
+			"Show version and support list", NULL},
+	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
+			"Select libsigrok/libsigrokdecode loglevel", NULL},
+	{"list-devices", 'D', 0, G_OPTION_ARG_NONE, &opt_list_devs,
+			"Scan for devices", NULL},
+	{"device", 'd', 0, G_OPTION_ARG_STRING, &opt_dev,
+			"Use specified device", NULL},
+	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file,
+			"Load input from file", NULL},
+	{"input-format", 'I', 0, G_OPTION_ARG_STRING, &opt_input_format,
+			"Input format", NULL},
+	{"output-file", 'o', 0, G_OPTION_ARG_FILENAME, &opt_output_file,
+			"Save output to file", NULL},
+	{"output-format", 'O', 0, G_OPTION_ARG_STRING, &opt_output_format,
+			"Output format", NULL},
+	{"probes", 'p', 0, G_OPTION_ARG_STRING, &opt_probes,
+			"Probes to use", NULL},
+	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers,
+			"Trigger configuration", NULL},
+	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger,
+			"Wait for trigger", NULL},
+	{"protocol-decoders", 'a', 0, G_OPTION_ARG_STRING, &opt_pds,
+			"Protocol decoders to run", NULL},
+	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
+			"Protocol decoder stack", NULL},
+	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
+			"How long to sample (ms)", NULL},
+	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples,
+			"Number of samples to acquire", NULL},
+	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
+			"Sample continuously", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
 
@@ -273,7 +289,7 @@ static void show_pd_detail(void)
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(dec = srd_decoder_get_by_id(*pdtok))) {
-			printf("Protocol decoder %s not found.", *pdtok);
+			printf("Protocol decoder %s not found.\n", *pdtok);
 			return;
 		}
 		printf("ID: %s\nName: %s\nLong name: %s\nDescription: %s\n",
