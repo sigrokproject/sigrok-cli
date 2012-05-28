@@ -830,6 +830,9 @@ static struct sr_input_format *determine_input_file_format(
 		g_critical("Error: no matching input module found.");
 		return NULL;
 	}
+
+	g_debug("cli: Autodetected '%s' input format for file '%s'.",
+		inputs[i]->id, filename);
 		
 	return inputs[i];
 }
