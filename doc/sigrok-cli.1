@@ -2,7 +2,7 @@
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok logic analyzer software
 .SH "SYNOPSIS"
-.B sigrok\-cli \fR[\fB\-hVlDdiIoOptwasA\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR decoderlist] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-A\fR|\fB\-\-protocol\-decoder\-annotation\fR annlist] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
+.B sigrok\-cli \fR[\fB\-hVlDdiIoOptwasA\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR decoderlist] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-A\fR|\fB\-\-protocol\-decoder\-annotations\fR annlist] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
 .SH "DESCRIPTION"
 .B sigrok\-cli
 is a cross-platform command line utility for the
@@ -271,15 +271,13 @@ option (you cannot specify them in the
 .B \-s
 option).
 .TP
-.BR "\-A, \-\-protocol\-decoder\-annotation " <annotations>
+.BR "\-A, \-\-protocol\-decoder\-annotations " <annotations>
 By default, only the stack's topmost protocol decoder's annotation output is
 shown. With this option another decoder's annotation can be selected for
 display, by specifying its ID:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
-.br
-.B "              \-\-protocol\-decoder\-annotation i2c"
+.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid -A i2c"
 .sp
 If a protocol decoder has multiple annotation formats, you can also specify
 which of them to show by specifying its short description like this:
@@ -287,7 +285,7 @@ which of them to show by specifying its short description like this:
  $
 .B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
 .br
-.B "              \-\-protocol\-decoder\-annotation i2c=rawhex"
+.B "              \-A i2c=rawhex"
 .sp
 You can also select multiple protocol decoders, with an optional selected
 annotation format each, by separating them with commas:
@@ -295,7 +293,7 @@ annotation format each, by separating them with commas:
  $
 .B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
 .br
-.B "              \-\-protocol\-decoder\-annotation i2c=rawhex,edid"
+.B "              \-A i2c=rawhex,edid"
 .TP
 .BR "\-\-time " <ms>
 Sample for

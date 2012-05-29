@@ -56,7 +56,7 @@ static gchar *opt_probes = NULL;
 static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
 static gchar *opt_pd_stack = NULL;
-static gchar *opt_pd_annotation = NULL;
+static gchar *opt_pd_annotations = NULL;
 static gchar *opt_input_format = NULL;
 static gchar *opt_output_format = NULL;
 static gchar *opt_time = NULL;
@@ -90,8 +90,8 @@ static GOptionEntry optargs[] = {
 			"Protocol decoders to run", NULL},
 	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
 			"Protocol decoder stack", NULL},
-	{"protocol-decoder-annotation", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotation,
-			"Protocol decoder annotation to show", NULL},
+	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotations,
+			"Protocol decoder annotation(s) to show", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
 			"How long to sample (ms)", NULL},
 	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples,
@@ -551,8 +551,9 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 		 * This will be pared down later to leave only the last PD
 		 * in the stack.
 		 */
-		if (!opt_pd_annotation)
-			g_hash_table_insert(pd_ann_visible, g_strdup(di->inst_id), NULL);
+		if (!opt_pd_annotations)
+			g_hash_table_insert(pd_ann_visible,
+					    g_strdup(di->inst_id), NULL);
 
 		/* Any keys left in the options hash are probes, where the key
 		 * is the probe name as specified in the decoder class, and the
@@ -615,7 +616,8 @@ int setup_pd_stack(void)
 			 * the annotation list was specifically provided).
 			 */
 			if (!opt_pd_annotation)
-				g_hash_table_remove(pd_ann_visible, di_from->inst_id);
+				g_hash_table_remove(pd_ann_visible,
+						    di_from->inst_id);
 
 			di_from = di_to;
 		}
@@ -633,8 +635,8 @@ int setup_pd_annotations(void)
 	char **pds, **pdtok, **keyval, **ann_descr;
 
 	/* Set up custom list of PDs and annotations to show. */
-	if (opt_pd_annotation) {
-		pds = g_strsplit(opt_pd_annotation, ",", 0);
+	if (opt_pd_annotations) {
+		pds = g_strsplit(opt_pd_annotations, ",", 0);
 		for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
 			ann = 0;
 			keyval = g_strsplit(*pdtok, "=", 0);
@@ -1192,7 +1194,7 @@ int main(int argc, char **argv)
 		if (register_pds(NULL, opt_pds) != 0)
 			return 1;
 		if (srd_pd_output_callback_add(SRD_OUTPUT_ANN,
-				show_pd_annotation, NULL) != SRD_OK)
+				show_pd_annotations, NULL) != SRD_OK)
 			return 1;
 		if (setup_pd_stack() != 0)
 			return 1;
