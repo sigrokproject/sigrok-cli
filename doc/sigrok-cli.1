@@ -232,7 +232,9 @@ as SCK, and probe 0 as CS# signal.
 .BR "\-s, \-\-protocol\-decoder\-stack " <stack>
 This option allows the user to specify a protocol decoder stack, i.e.
 the way in which one protocol decoder's output gets piped into another
-protocol decoder.
+protocol decoder. If not specified, the stack will be set up in the same
+order in which the protocol decoders were given with the --protocol-decoders
+option.
 .sp
 The decoders are specified by their ID, as shown in the
 .B \-\-version
@@ -267,6 +269,32 @@ must be given using the
 option (you cannot specify them in the
 .B \-s
 option).
+.TP
+.BR "\-\-protocol\-decoder\-annotation " <annotations>
+By default, only the stack's topmost protocol decoder's annotation output is
+shown. With this option another decoder's annotation can be selected for
+display, by specifying its id:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
+.br
+.B "              \-\-protocol\-decoder\-annotation i2c"
+.sp
+If a protocol decoder has multiple annotation formats, you can also specify
+which of them to show by specifying its short description like this:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
+.br
+.B "              \-\-protocol\-decoder\-annotation i2c=rawhex"
+.sp
+You can also select multiple protocol decoders, with an optional selected
+annotation format each, by separating them with commas:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
+.br
+.B "              \-\-protocol\-decoder\-annotation i2c=rawhex,edid"
 .TP
 .BR "\-\-time " <ms>
 Sample for
