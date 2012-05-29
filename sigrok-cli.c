@@ -90,7 +90,7 @@ static GOptionEntry optargs[] = {
 			"Protocol decoders to run", NULL},
 	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
 			"Protocol decoder stack", NULL},
-	{"protocol-decoder-annotation", 0, 0, G_OPTION_ARG_STRING, &opt_pd_annotation,
+	{"protocol-decoder-annotation", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotation,
 			"Protocol decoder annotation to show", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
 			"How long to sample (ms)", NULL},
