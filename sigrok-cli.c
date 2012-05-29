@@ -669,6 +669,52 @@ int setup_pd_annotations(void)
 	return 0;
 }
 
+int setup_output_format(void)
+{
+	GHashTable *fmtargs;
+	GHashTableIter iter;
+	gpointer key, value;
+	struct sr_output_format **outputs;
+	int i;
+	char *fmtspec;
+
+	if (!opt_output_format) {
+		opt_output_format = DEFAULT_OUTPUT_FORMAT;
+		/* we'll need to remember this so when saving to a file
+		 * later, sigrok session format will be used.
+		 */
+		default_output_format = TRUE;
+	}
+	fmtargs = parse_generic_arg(opt_output_format);
+	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
+	if (!fmtspec) {
+		g_critical("Invalid output format.");
+		return 1;
+	}
+	outputs = sr_output_list();
+	for (i = 0; outputs[i]; i++) {
+		if (strcmp(outputs[i]->id, fmtspec))
+			continue;
+		g_hash_table_remove(fmtargs, "sigrok_key");
+		output_format = outputs[i];
+		g_hash_table_iter_init(&iter, fmtargs);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			/* only supporting one parameter per output module
+			 * for now, and only its value */
+			output_format_param = g_strdup(value);
+			break;
+		}
+		break;
+	}
+	if (!output_format) {
+		g_critical("Invalid output format %s.", opt_output_format);
+		return 1;
+	}
+	g_hash_table_destroy(fmtargs);
+
+	return 0;
+}
+
 void show_pd_annotation(struct srd_proto_data *pdata, void *cb_data)
 {
 	int i;
@@ -1114,12 +1160,6 @@ int main(int argc, char **argv)
 {
 	GOptionContext *context;
 	GError *error;
-	GHashTable *fmtargs;
-	GHashTableIter iter;
-	gpointer key, value;
-	struct sr_output_format **outputs;
-	int i;
-	char *fmtspec;
 
 	g_log_set_default_handler(logger, NULL);
 
@@ -1157,39 +1197,8 @@ int main(int argc, char **argv)
 			return 1;
 	}
 
-	if (!opt_output_format) {
-		opt_output_format = DEFAULT_OUTPUT_FORMAT;
-		/* we'll need to remember this so when saving to a file
-		 * later, sigrok session format will be used.
-		 */
-		default_output_format = TRUE;
-	}
-	fmtargs = parse_generic_arg(opt_output_format);
-	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
-	if (!fmtspec) {
-		g_critical("Invalid output format.");
+	if (setup_output_format() != 0)
 		return 1;
-	}
-	outputs = sr_output_list();
-	for (i = 0; outputs[i]; i++) {
-		if (strcmp(outputs[i]->id, fmtspec))
-			continue;
-		g_hash_table_remove(fmtargs, "sigrok_key");
-		output_format = outputs[i];
-		g_hash_table_iter_init(&iter, fmtargs);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			/* only supporting one parameter per output module
-			 * for now, and only its value */
-			output_format_param = g_strdup(value);
-			break;
-		}
-		break;
-	}
-	if (!output_format) {
-		g_critical("Invalid output format %s.", opt_output_format);
-		return 1;
-	}
-	g_hash_table_destroy(fmtargs);
 
 	if (opt_version)
 		show_version();
