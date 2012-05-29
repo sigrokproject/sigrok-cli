@@ -43,7 +43,7 @@ static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
 static char *input_format_param = NULL;
-static GData *pd_ann_visible = NULL;
+static GHashTable *pd_ann_visible = NULL;
 
 static gboolean opt_version = FALSE;
 static gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
@@ -56,6 +56,7 @@ static gchar *opt_probes = NULL;
 static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
 static gchar *opt_pd_stack = NULL;
+static gchar *opt_pd_annotation = NULL;
 static gchar *opt_input_format = NULL;
 static gchar *opt_output_format = NULL;
 static gchar *opt_time = NULL;
@@ -89,6 +90,8 @@ static GOptionEntry optargs[] = {
 			"Protocol decoders to run", NULL},
 	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
 			"Protocol decoder stack", NULL},
+	{"protocol-decoder-annotation", 0, 0, G_OPTION_ARG_STRING, &opt_pd_annotation,
+			"Protocol decoder annotation to show", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
 			"How long to sample (ms)", NULL},
 	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples,
@@ -519,12 +522,12 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 	/* Avoid compiler warnings. */
 	(void)dev;
 
-	g_datalist_init(&pd_ann_visible);
-	pdtokens = g_strsplit(pdstring, ",", -1);
-	pd_opthash = NULL;
 	ret = 0;
+	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
+			g_free, NULL);
 	pd_name = NULL;
-
+	pd_opthash = NULL;
+	pdtokens = g_strsplit(pdstring, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(pd_opthash = parse_generic_arg(*pdtok))) {
 			g_critical("Invalid protocol decoder option '%s'.", *pdtok);
@@ -543,7 +546,13 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 			ret = 1;
 			goto err_out;
 		}
-		g_datalist_set_data(&pd_ann_visible, di->inst_id, pd_name);
+
+		/* If no annotation list was specified, add them all in now.
+		 * This will be pared down later to leave only the last PD
+		 * in the stack.
+		 */
+		if (!opt_pd_annotation)
+			g_hash_table_insert(pd_ann_visible, g_strdup(di->inst_id), NULL);
 
 		/* Any keys left in the options hash are probes, where the key
 		 * is the probe name as specified in the decoder class, and the
@@ -567,23 +576,119 @@ err_out:
 	return ret;
 }
 
+int setup_pd_stack(void)
+{
+	struct srd_decoder_inst *di_from, *di_to;
+	int ret, i;
+	char **pds;
+
+	/* Set up the protocol decoder stack. */
+	pds = g_strsplit(opt_pds, ",", 0);
+	if (g_strv_length(pds) > 1) {
+		if (opt_pd_stack) {
+			/* A stack setup was specified, use that. */
+			g_strfreev(pds);
+			pds = g_strsplit(opt_pd_stack, ",", 0);
+			if (g_strv_length(pds) < 2) {
+				g_strfreev(pds);
+				g_critical("Specify at least two protocol decoders to stack.");
+				return 1;
+			}
+		}
+
+		if (!(di_from = srd_inst_find_by_id(pds[0]))) {
+			g_critical("Cannot stack protocol decoder '%s': "
+					"instance not found.", pds[0]);
+			return 1;
+		}
+		for (i = 1; pds[i]; i++) {
+			if (!(di_to = srd_inst_find_by_id(pds[i]))) {
+				g_critical("Cannot stack protocol decoder '%s': "
+						"instance not found.", pds[i]);
+				return 1;
+			}
+			if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
+				return 1;
+
+			/* Don't show annotation from this PD. Only the last PD in
+			 * the stack will be left on the annotation list (unless
+			 * the annotation list was specifically provided).
+			 */
+			if (!opt_pd_annotation)
+				g_hash_table_remove(pd_ann_visible, di_from->inst_id);
+
+			di_from = di_to;
+		}
+	}
+	g_strfreev(pds);
+
+	return 0;
+}
+
+int setup_pd_annotations(void)
+{
+	GSList *l;
+	struct srd_decoder *dec;
+	int ann;
+	char **pds, **pdtok, **keyval, **ann_descr;
+
+	/* Set up custom list of PDs and annotations to show. */
+	if (opt_pd_annotation) {
+		pds = g_strsplit(opt_pd_annotation, ",", 0);
+		for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
+			ann = 0;
+			keyval = g_strsplit(*pdtok, "=", 0);
+			if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
+				g_critical("Protocol decoder '%s' not found.", keyval[0]);
+				return 1;
+			}
+			if (!dec->annotations) {
+				g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
+				return 1;
+			}
+			if (g_strv_length(keyval) == 2) {
+				for (l = dec->annotations; l; l = l->next, ann++) {
+					ann_descr = l->data;
+					if (!canon_cmp(ann_descr[0], keyval[1]))
+						/* Found it. */
+						break;
+				}
+				if (!l) {
+					g_critical("Annotation '%s' not found "
+							"for protocol decoder '%s'.", keyval[1], keyval[0]);
+					return 1;
+				}
+			}
+			g_debug("cli: showing protocol decoder annotation %d from '%s'", ann, keyval[0]);
+			g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]), GINT_TO_POINTER(ann));
+			g_strfreev(keyval);
+		}
+		g_strfreev(pds);
+	}
+
+	return 0;
+}
+
 void show_pd_annotation(struct srd_proto_data *pdata, void *cb_data)
 {
 	int i;
 	char **annotations;
+	gpointer ann_format;
 
 	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
 
-	if (pdata->ann_format != 0) {
-		/* CLI only shows the default annotation format. */
+	if (!pd_ann_visible)
 		return;
-	}
 
-	if (!g_datalist_get_data(&pd_ann_visible, pdata->pdo->di->inst_id)) {
+	if (!g_hash_table_lookup_extended(pd_ann_visible, pdata->pdo->di->inst_id,
+			NULL, &ann_format))
 		/* Not in the list of PDs whose annotations we're showing. */
 		return;
-	}
+
+	if (pdata->ann_format != GPOINTER_TO_INT(ann_format))
+		/* We don't want this particular format from the PD. */
+		return;
 
 	annotations = pdata->data;
 	if (opt_loglevel > SR_LOG_WARN)
@@ -1013,9 +1118,8 @@ int main(int argc, char **argv)
 	GHashTableIter iter;
 	gpointer key, value;
 	struct sr_output_format **outputs;
-	struct srd_decoder_inst *di_from, *di_to;
-	int i, ret;
-	char *fmtspec, **pds;
+	int i;
+	char *fmtspec;
 
 	g_log_set_default_handler(logger, NULL);
 
@@ -1029,71 +1133,28 @@ int main(int argc, char **argv)
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrok. */
-	if (sr_log_loglevel_set(opt_loglevel) != SR_OK) {
-		g_critical("sr_log_loglevel_set(%d) failed.", opt_loglevel);
+	if (sr_log_loglevel_set(opt_loglevel) != SR_OK)
 		return 1;
-	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
-	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK) {
-		g_critical("srd_log_loglevel_set(%d) failed.", opt_loglevel);
+	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK)
 		return 1;
-	}
 
 	if (sr_init() != SR_OK)
 		return 1;
 
 	if (opt_pds) {
-		if (srd_init(NULL) != SRD_OK) {
-			g_critical("Failed to initialize sigrokdecode.");
+		if (srd_init(NULL) != SRD_OK)
 			return 1;
-		}
-		if (register_pds(NULL, opt_pds) != 0) {
-			g_critical("Failed to register protocol decoders.");
+		if (register_pds(NULL, opt_pds) != 0)
 			return 1;
-		}
 		if (srd_pd_output_callback_add(SRD_OUTPUT_ANN,
-				show_pd_annotation, NULL) != SRD_OK) {
-			g_critical("Failed to register protocol decoder callback.");
+				show_pd_annotation, NULL) != SRD_OK)
 			return 1;
-		}
-
-		pds = g_strsplit(opt_pds, ",", 0);
-		if (g_strv_length(pds) > 1) {
-			if (opt_pd_stack) {
-				/* A stack setup was specified, use that. */
-				g_strfreev(pds);
-				pds = g_strsplit(opt_pd_stack, ",", 0);
-				if (g_strv_length(pds) < 2) {
-					g_strfreev(pds);
-					g_critical("Specify at least two protocol decoders to stack.");
-					return 1;
-				}
-			}
-
-			if (!(di_from = srd_inst_find_by_id(pds[0]))) {
-				g_critical("Cannot stack protocol decoder '%s': "
-						"instance not found.", pds[0]);
-				return 1;
-			}
-			for (i = 1; pds[i]; i++) {
-				if (!(di_to = srd_inst_find_by_id(pds[i]))) {
-					g_critical("Cannot stack protocol decoder '%s': "
-							"instance not found.", pds[i]);
-					return 1;
-				}
-				if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
-					return ret;
-
-				/* Don't show annotation from this PD. Only the last PD in
-				 * the stack will be left on the annotation list.
-				 */
-				g_datalist_remove_data(&pd_ann_visible, di_from->inst_id);
-
-				di_from = di_to;
-			}
-		}
-		g_strfreev(pds);
+		if (setup_pd_stack() != 0)
+			return 1;
+		if (setup_pd_annotations() != 0)
+			return 1;
 	}
 
 	if (!opt_output_format) {
@@ -1128,6 +1189,7 @@ int main(int argc, char **argv)
 		g_critical("Invalid output format %s.", opt_output_format);
 		return 1;
 	}
+	g_hash_table_destroy(fmtargs);
 
 	if (opt_version)
 		show_version();
@@ -1148,7 +1210,6 @@ int main(int argc, char **argv)
 		srd_exit();
 
 	g_option_context_free(context);
-	g_hash_table_destroy(fmtargs);
 	sr_exit();
 
 	return 0;
