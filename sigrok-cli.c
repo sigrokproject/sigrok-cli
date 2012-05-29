@@ -992,7 +992,7 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 	 * All messages, warnings, errors etc. go to stderr (not stdout) in
 	 * order to not mess up the CLI tool data output, e.g. VCD output.
 	 */
-	if (log_level & (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING)
+	if (log_level & (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING)
 			|| opt_loglevel > SR_LOG_WARN) {
 		fprintf(stderr, "%s\n", message);
 		fflush(stderr);
