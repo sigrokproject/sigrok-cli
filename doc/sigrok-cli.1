@@ -1,8 +1,8 @@
-.TH SIGROK\-CLI 1 "March 18, 2012"
+.TH SIGROK\-CLI 1 "May 29, 2012"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok logic analyzer software
 .SH "SYNOPSIS"
-.B sigrok\-cli \fR[\fB\-hVlDdiIoOptwas\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR list] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
+.B sigrok\-cli \fR[\fB\-hVlDdiIoOptwas\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR decoderlist] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-\-protocol\-decoder\-annotation\fR annlist] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
 .SH "DESCRIPTION"
 .B sigrok\-cli
 is a cross-platform command line utility for the
@@ -233,7 +233,8 @@ as SCK, and probe 0 as CS# signal.
 This option allows the user to specify a protocol decoder stack, i.e.
 the way in which one protocol decoder's output gets piped into another
 protocol decoder. If not specified, the stack will be set up in the same
-order in which the protocol decoders were given with the --protocol-decoders
+order in which the protocol decoders were given with the
+.B \-\-protocol-decoders
 option.
 .sp
 The decoders are specified by their ID, as shown in the
@@ -273,7 +274,7 @@ option).
 .BR "\-\-protocol\-decoder\-annotation " <annotations>
 By default, only the stack's topmost protocol decoder's annotation output is
 shown. With this option another decoder's annotation can be selected for
-display, by specifying its id:
+display, by specifying its ID:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
