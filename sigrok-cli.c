@@ -615,7 +615,7 @@ int setup_pd_stack(void)
 			 * the stack will be left on the annotation list (unless
 			 * the annotation list was specifically provided).
 			 */
-			if (!opt_pd_annotation)
+			if (!opt_pd_annotations)
 				g_hash_table_remove(pd_ann_visible,
 						    di_from->inst_id);
 
@@ -717,7 +717,7 @@ int setup_output_format(void)
 	return 0;
 }
 
-void show_pd_annotation(struct srd_proto_data *pdata, void *cb_data)
+void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	int i;
 	char **annotations;
