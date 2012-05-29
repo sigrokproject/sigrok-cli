@@ -181,3 +181,36 @@ struct sr_dev *parse_devstring(const char *devstring)
 
 	return dev;
 }
+
+char *strcanon(char *str)
+{
+	int p0, p1;
+	char *s;
+
+	/* Returns newly allocated string. */
+	s = g_ascii_strdown(str, -1);
+	for (p0 = p1 = 0; str[p0]; p0++) {
+		if ((s[p0] >= 'a' && s[p0] <= 'z')
+				|| (s[p0] >= '0' && s[p0] <= '9'))
+			s[p1++] = s[p0];
+	}
+	s[p1] = '\0';
+
+	return s;
+}
+
+
+int canon_cmp(char *str1, char *str2)
+{
+	int ret;
+	char *s1, *s2;
+
+	s1 = strcanon(str1);
+	s2 = strcanon(str2);
+	ret = g_ascii_strcasecmp(s1, s2);
+	g_free(s2);
+	g_free(s1);
+
+	return ret;
+}
+
