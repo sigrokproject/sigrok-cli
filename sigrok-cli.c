@@ -67,7 +67,7 @@ static GOptionEntry optargs[] = {
 	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
 			"Show version and support list", NULL},
 	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
-			"Select libsigrok/libsigrokdecode loglevel", NULL},
+			"Set libsigrok/libsigrokdecode loglevel", NULL},
 	{"list-devices", 'D', 0, G_OPTION_ARG_NONE, &opt_list_devs,
 			"Scan for devices", NULL},
 	{"device", 'd', 0, G_OPTION_ARG_STRING, &opt_dev,
