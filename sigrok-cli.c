@@ -513,6 +513,7 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 {
 	GHashTable *pd_opthash;
 	struct srd_decoder_inst *di;
+	int ret;
 	char **pdtokens, **pdtok, *pd_name;
 
 	/* Avoid compiler warnings. */
@@ -521,6 +522,7 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 	g_datalist_init(&pd_ann_visible);
 	pdtokens = g_strsplit(pdstring, ",", -1);
 	pd_opthash = NULL;
+	ret = 0;
 	pd_name = NULL;
 
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
@@ -533,10 +535,12 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 		g_hash_table_remove(pd_opthash, "sigrok_key");
 		if (srd_decoder_load(pd_name) != SRD_OK) {
 			g_critical("Failed to load protocol decoder %s.", pd_name);
+			ret = 1;
 			goto err_out;
 		}
 		if (!(di = srd_inst_new(pd_name, pd_opthash))) {
 			g_critical("Failed to instantiate protocol decoder %s.", pd_name);
+			ret = 1;
 			goto err_out;
 		}
 		g_datalist_set_data(&pd_ann_visible, di->inst_id, pd_name);
@@ -545,8 +549,10 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 		 * is the probe name as specified in the decoder class, and the
 		 * value is the probe number i.e. the order in which the PD's
 		 * incoming samples are arranged. */
-		if (srd_inst_probe_set_all(di, pd_opthash) != SRD_OK)
+		if (srd_inst_probe_set_all(di, pd_opthash) != SRD_OK) {
+			ret = 1;
 			goto err_out;
+		}
 		g_hash_table_destroy(pd_opthash);
 		pd_opthash = NULL;
 	}
@@ -558,7 +564,7 @@ err_out:
 	if (pd_name)
 		g_free(pd_name);
 
-	return 0;
+	return ret;
 }
 
 void show_pd_annotation(struct srd_proto_data *pdata, void *cb_data)
