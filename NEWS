@@ -1,3 +1,21 @@
+0.3.1 (2012-05-30)
+------------------
+
+ * Add a ChangeLog file to the tarball.
+ * -V option: If "-l 3" or higher is used, the PD description is shown, too.
+ * -a option: Print optional/required PD probes. Example: sigrok-cli -a uart.
+ * Fix compiling with "Homebrew" (Mac OS X).
+ * Stacking order doesn't have to be specified if it's the same as the
+   PD list. Example: sigrok-cli -i <file.sr> -a i2c,edid -s i2c,edid.
+   The -s option is no longer required in this special case.
+ * Only output module or PD output goes to stdout, everything else to stderr.
+ * Improved error handling: Stop sigrok-cli upon various PD related errors.
+ * New -A | --protocol-decoder-annotations option which allows the user to
+   select which annotation types (and from which PD in the stack) to show.
+ * Update the manpage.
+ * Fix a Makefile.am bug which caused the generated ChangeLog files being
+   accidentally deleted upon 'make distclean'.
+
 0.3.0 (2012-04-17)
 ------------------
 
