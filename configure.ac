@@ -20,7 +20,7 @@
 # We require at least autoconf 2.63 (AC_INIT format changed there).
 AC_PREREQ([2.63])
 
-AC_INIT([sigrok-cli], [0.3.0], [sigrok-devel@lists.sourceforge.net],
+AC_INIT([sigrok-cli], [0.3.1], [sigrok-devel@lists.sourceforge.net],
         [sigrok-cli], [http://www.sigrok.org])
 
 AC_CONFIG_SRCDIR([sigrok-cli.c])
