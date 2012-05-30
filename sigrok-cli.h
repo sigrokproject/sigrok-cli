@@ -29,8 +29,8 @@ char **sr_parse_triggerstring(struct sr_dev *dev, const char *triggerstring);
 GHashTable *parse_generic_arg(const char *arg);
 struct sr_dev *parse_devstring(const char *devstring);
 uint64_t sr_parse_timestring(const char *timestring);
-char *strcanon(char *str);
-int canon_cmp(char *str1, char *str2);
+char *strcanon(const char *str);
+int canon_cmp(const char *str1, const char *str2);
 
 /* anykey.c */
 void add_anykey(void);

@@ -182,7 +182,7 @@ struct sr_dev *parse_devstring(const char *devstring)
 	return dev;
 }
 
-char *strcanon(char *str)
+char *strcanon(const char *str)
 {
 	int p0, p1;
 	char *s;
@@ -199,8 +199,7 @@ char *strcanon(char *str)
 	return s;
 }
 
-
-int canon_cmp(char *str1, char *str2)
+int canon_cmp(const char *str1, const char *str2)
 {
 	int ret;
 	char *s1, *s2;
@@ -213,4 +212,3 @@ int canon_cmp(char *str1, char *str2)
 
 	return ret;
 }
-
