@@ -745,7 +745,7 @@ int setup_pd_stack(void)
 {
 	struct srd_decoder_inst *di_from, *di_to;
 	int ret, i;
-	char **pds;
+	char **pds, **ids;
 
 	/* Set up the protocol decoder stack. */
 	pds = g_strsplit(opt_pds, ",", 0);
@@ -761,17 +761,26 @@ int setup_pd_stack(void)
 			}
 		}
 
-		if (!(di_from = srd_inst_find_by_id(pds[0]))) {
+		/* First PD goes at the bottom of the stack. */
+		ids = g_strsplit(pds[0], ":", 0);
+		if (!(di_from = srd_inst_find_by_id(ids[0]))) {
+			g_strfreev(ids);
 			g_critical("Cannot stack protocol decoder '%s': "
 					"instance not found.", pds[0]);
 			return 1;
 		}
+		g_strfreev(ids);
+
+		/* Every subsequent PD goes on top. */
 		for (i = 1; pds[i]; i++) {
-			if (!(di_to = srd_inst_find_by_id(pds[i]))) {
+			ids = g_strsplit(pds[i], ":", 0);
+			if (!(di_to = srd_inst_find_by_id(ids[0]))) {
+				g_strfreev(ids);
 				g_critical("Cannot stack protocol decoder '%s': "
 						"instance not found.", pds[i]);
 				return 1;
 			}
+			g_strfreev(ids);
 			if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
 				return 1;
 
