@@ -622,9 +622,6 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 				outfile = g_fopen(opt_output_file, "wb");
 			}
 		}
-//		if (opt_pds)
-//			srd_session_start(num_enabled_probes, unitsize,
-//					meta_logic->samplerate);
 		break;
 
 	case SR_DF_ANALOG:
