@@ -923,6 +923,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	for (i = 0; annotations[i]; i++)
 		printf("\"%s\" ", annotations[i]);
 	printf("\n");
+	fflush(stdout);
 }
 
 static int select_probes(struct sr_dev *dev)
