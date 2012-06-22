@@ -55,7 +55,7 @@ PKG_PROG_PKG_CONFIG([0.22])
 
 # Checks for libraries.
 
-AM_PATH_GLIB_2_0([2.22.0],
+AM_PATH_GLIB_2_0([2.28.0],
         [CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
 PKG_CHECK_MODULES([libsigrok], [libsigrok >= 0.2.0],
