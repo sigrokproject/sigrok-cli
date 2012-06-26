@@ -583,6 +583,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 				o->format->data(o, filter_out, filter_out_len, &output_buf, &output_len);
 			if (output_buf) {
 				fwrite(output_buf, 1, output_len, outfile);
+				fflush(outfile);
 				g_free(output_buf);
 			}
 		}
@@ -638,6 +639,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 					&output_buf, &output_len);
 			if (output_buf) {
 				fwrite(output_buf, 1, output_len, outfile);
+				fflush(outfile);
 				g_free(output_buf);
 			}
 		}
@@ -652,6 +654,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 					 &output_len);
 			if (output_buf) {
 				fwrite(output_buf, 1, output_len, outfile);
+				fflush(outfile);
 				g_free(output_buf);
 			}
 		}
@@ -664,6 +667,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 					 &output_len);
 			if (output_buf) {
 				fwrite(output_buf, 1, output_len, outfile);
+				fflush(outfile);
 				g_free(output_buf);
 			}
 		}
