@@ -43,7 +43,6 @@ static uint64_t limit_frames = 0;
 static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
-static char *input_format_param = NULL;
 static GHashTable *pd_ann_visible = NULL;
 
 static gboolean opt_version = FALSE;
@@ -991,7 +990,7 @@ static struct sr_input_format *determine_input_file_format(
 	/* If the user specified -I / --input-format, use that one. */
 	if (opt) {
 		for (i = 0; inputs[i]; i++) {
-			if (strcasecmp(inputs[i]->id, opt_input_format))
+			if (strcasecmp(inputs[i]->id, opt))
 				continue;
 			g_debug("Using user-specified input file format '%s'.",
 					inputs[i]->id);
@@ -1000,7 +999,7 @@ static struct sr_input_format *determine_input_file_format(
 
 		/* The user specified an unknown input format, return NULL. */
 		g_critical("Error: specified input file format '%s' is "
-			"unknown.", opt_input_format);
+			"unknown.", opt);
 		return NULL;
 	}
 
@@ -1024,14 +1023,25 @@ static struct sr_input_format *determine_input_file_format(
 
 static void load_input_file_format(void)
 {
+	GHashTable *fmtargs = NULL;
 	struct stat st;
 	struct sr_input *in;
 	struct sr_input_format *input_format;
+	char *fmtspec = NULL;
+
+	if (opt_input_format) {
+		fmtargs = parse_generic_arg(opt_input_format);
+		fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
+	}
 
 	if (!(input_format = determine_input_file_format(opt_input_file,
-						   opt_input_format)))
+						   fmtspec))) {
 		/* The exact cause was already logged. */
 		return;
+	}
+;
+	if (fmtargs)
+		g_hash_table_remove(fmtargs, "sigrok_key");
 
 	if (stat(opt_input_file, &st) == -1) {
 		g_critical("Failed to load %s: %s", opt_input_file,
@@ -1045,7 +1055,7 @@ static void load_input_file_format(void)
 		exit(1);
 	}
 	in->format = input_format;
-	in->param = input_format_param;
+	in->param = fmtargs;
 	if (in->format->init) {
 		if (in->format->init(in) != SR_OK) {
 			g_critical("Input format init failed.");
@@ -1070,6 +1080,9 @@ static void load_input_file_format(void)
 			g_critical("Failed to save session.");
 	}
 	sr_session_destroy();
+
+	if (fmtargs)
+		g_hash_table_destroy(fmtargs);
 }
 
 static void load_input_file(void)

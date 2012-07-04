@@ -76,7 +76,12 @@ the input file.
 When loading an input file, assume it's in the specified format. If this
 option is not supplied (in addition to
 .BR \-\-input\-file ),
-sigrok-cli attempts to autodetect the file format of the input file.
+sigrok-cli attempts to autodetect the file format of the input file. Use the
+.B \-V
+option to see a list of available input formats. The format name may
+optionally be followed by a colon-separated list of options, where each
+option takes the form
+.BR "key=value" .
 .TP
 .BR "\-o, \-\-output\-file " <filename>
 Save output to a file instead of writing it to stdout. The default format
