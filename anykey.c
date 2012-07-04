@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <glib.h>
-#include <sigrok.h>
+#include <libsigrok/libsigrok.h>
 #include "sigrok-cli.h"
 
 #ifdef _WIN32

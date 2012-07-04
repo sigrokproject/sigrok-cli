@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <glib.h>
-#include <sigrok.h>
+#include <libsigrok/libsigrok.h>
 #include "sigrok-cli.h"
 
 char **parse_probestring(int max_probes, const char *probestring)

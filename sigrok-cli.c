@@ -30,7 +30,7 @@
 #include <errno.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <sigrok.h>
+#include <libsigrok/libsigrok.h>
 #include "sigrok-cli.h"
 #include "config.h"
 
