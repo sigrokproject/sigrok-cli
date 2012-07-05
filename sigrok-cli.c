@@ -485,7 +485,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		if (opt_continuous)
 			g_warning("Device stopped after %" PRIu64 " samples.",
 			       received_samples);
-		sr_session_halt();
+		sr_session_stop();
 		if (outfile && outfile != stdout)
 			fclose(outfile);
 		g_free(o);
@@ -576,7 +576,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		if (opt_pds) {
 			if (srd_session_send(received_samples, (uint8_t*)filter_out,
 					filter_out_len) != SRD_OK)
-				sr_session_halt();
+				sr_session_stop();
 		} else {
 			output_len = 0;
 			if (o->format->data && packet->type == o->format->df_type)
