@@ -700,7 +700,7 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 	pd_opthash = NULL;
 	pdtokens = g_strsplit(pdstring, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
-		if (!(pd_opthash = parse_generic_arg(*pdtok))) {
+		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
 			g_critical("Invalid protocol decoder option '%s'.", *pdtok);
 			goto err_out;
 		}
@@ -868,7 +868,7 @@ int setup_output_format(void)
 		default_output_format = TRUE;
 	}
 
-	fmtargs = parse_generic_arg(opt_output_format);
+	fmtargs = parse_generic_arg(opt_output_format, TRUE);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec) {
 		g_critical("Invalid output format.");
