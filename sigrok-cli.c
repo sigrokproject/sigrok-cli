@@ -61,6 +61,7 @@ static gchar *opt_pd_stack = NULL;
 static gchar *opt_pd_annotations = NULL;
 static gchar *opt_input_format = NULL;
 static gchar *opt_output_format = NULL;
+static gchar *opt_show = NULL;
 static gchar *opt_time = NULL;
 static gchar *opt_samples = NULL;
 static gchar *opt_frames = NULL;
@@ -97,6 +98,8 @@ static GOptionEntry optargs[] = {
 			"Protocol decoder stack", NULL},
 	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotations,
 			"Protocol decoder annotation(s) to show", NULL},
+	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
+			"Show device detail", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
 			"How long to sample (ms)", NULL},
 	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples,
@@ -246,11 +249,8 @@ static void show_version(void)
 	printf("\n");
 }
 
-static void print_dev_line(const struct sr_dev *dev)
+static void print_dev_line(const struct sr_dev_inst *sdi)
 {
-	const struct sr_dev_inst *sdi;
-
-	sr_dev_info_get(dev, SR_DI_INST, (const void **)&sdi);
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
@@ -258,62 +258,68 @@ static void print_dev_line(const struct sr_dev *dev)
 		printf("%s ", sdi->model);
 	if (sdi->version && sdi->version[0])
 		printf("%s ", sdi->version);
-	if (dev->probes)
-		printf("with %d probes", g_slist_length(dev->probes));
+	if (sdi->probes)
+		printf("with %d probes", g_slist_length(sdi->probes));
 	printf("\n");
 }
 
 static void show_dev_list(void)
 {
-	struct sr_dev *dev, *demo_dev;
-	GSList *devs, *l;
-	int devcnt;
+	struct sr_dev_inst *sdi;
+	GSList *devices, *l;
 
-	devcnt = 0;
-	devs = sr_dev_list();
-
-	if (g_slist_length(devs) == 0)
+	if (!(devices = device_scan()))
 		return;
 
-	printf("The following devices were found:\nID    Device\n");
-	demo_dev = NULL;
-	for (l = devs; l; l = l->next) {
-		dev = l->data;
-		if (sr_dev_has_hwcap(dev, SR_HWCAP_DEMO_DEV)) {
-			demo_dev = dev;
-			continue;
-		}
-		printf("%-3d   ", devcnt++);
-		print_dev_line(dev);
+	printf("The following devices were found:\n");
+	for (l = devices; l; l = l->next) {
+		sdi = l->data;
+		print_dev_line(sdi);
 	}
-	if (demo_dev) {
-		printf("demo  ");
-		print_dev_line(demo_dev);
-	}
+	g_slist_free(devices);
+
 }
 
 static void show_dev_detail(void)
 {
-	struct sr_dev *dev;
+	struct sr_dev_inst *sdi;
 	const struct sr_hwcap_option *hwo;
 	const struct sr_samplerates *samplerates;
 	struct sr_rational *rationals;
+	GSList *devices;
 	uint64_t *integers;
-	const int *hwcaps;
-	int cap, i;
+	const int *hwopts, *hwcaps;
+	int cap, num_devices, n, i;
 	char *s, *title;
 	const char *charopts, **stropts;
 
-	dev = parse_devstring(opt_dev);
-	if (!dev) {
-		printf("No such device. Use -D to list all devices.\n");
+	if (!(devices = device_scan())) {
+		g_critical("No devices found.");
 		return;
 	}
 
-	print_dev_line(dev);
+	num_devices = g_slist_length(devices);
+	if (num_devices > 1) {
+		if (!opt_dev) {
+			g_critical("%d devices found. Use --list-devices to show them, "
+					"and --device to select one.", num_devices);
+			return;
+		}
+		/* opt_dev is NULL if not specified, which is fine. */
+		n = strtol(opt_dev, NULL, 10);
+		if (n >= num_devices) {
+			g_critical("%d devices found, numbered starting from 0.",
+					num_devices);
+			return;
+		}
+		sdi = g_slist_nth_data(devices, n);
+	} else
+		sdi = g_slist_nth_data(devices, 0);
 
-	if (sr_dev_info_get(dev, SR_DI_TRIGGER_TYPES,
-					(const void **)&charopts) == SR_OK) {
+	print_dev_line(sdi);
+
+	if (sr_info_get(sdi->driver, SR_DI_TRIGGER_TYPES, (const void **)&charopts,
+			sdi) == SR_OK && charopts) {
 		printf("Supported triggers: ");
 		while (*charopts) {
 			printf("%c ", *charopts);
@@ -322,8 +328,22 @@ static void show_dev_detail(void)
 		printf("\n");
 	}
 
-	title = "Supported options:\n";
-	hwcaps = dev->driver->hwcap_get_all();
+	if ((sr_info_get(sdi->driver, SR_DI_HWOPTS, (const void **)&hwopts,
+			NULL) == SR_OK) && hwopts) {
+		printf("Supported driver options:\n");
+		for (i = 0; hwopts[i]; i++) {
+			if (!(hwo = sr_drvopt_get(hwopts[i])))
+				continue;
+			printf("    %s\n", hwo->shortname);
+		}
+	}
+
+	title = "Supported device options:\n";
+	if ((sr_info_get(sdi->driver, SR_DI_HWCAPS, (const void **)&hwcaps,
+			NULL) != SR_OK) || !hwcaps)
+		/* Driver supports no device instance options. */
+		return;
+
 	for (cap = 0; hwcaps[cap]; cap++) {
 		if (!(hwo = sr_hw_hwcap_get(hwcaps[cap])))
 			continue;
@@ -336,8 +356,8 @@ static void show_dev_detail(void)
 		if (hwo->hwcap == SR_HWCAP_PATTERN_MODE) {
 			/* Pattern generator modes */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_PATTERNS,
-					(const void **)&stropts) == SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_PATTERNS,
+					(const void **)&stropts, sdi) == SR_OK) {
 				printf(" - supported patterns:\n");
 				for (i = 0; stropts[i]; i++)
 					printf("      %s\n", stropts[i]);
@@ -348,8 +368,8 @@ static void show_dev_detail(void)
 		} else if (hwo->hwcap == SR_HWCAP_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_SAMPLERATES,
-					(const void **)&samplerates) != SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_SAMPLERATES,
+					(const void **)&samplerates, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -378,8 +398,8 @@ static void show_dev_detail(void)
 		} else if (hwo->hwcap == SR_HWCAP_BUFFERSIZE) {
 			/* Supported buffer sizes */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_BUFFERSIZES,
-					(const void **)&integers) != SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_BUFFERSIZES,
+					(const void **)&integers, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -390,8 +410,8 @@ static void show_dev_detail(void)
 		} else if (hwo->hwcap == SR_HWCAP_TIMEBASE) {
 			/* Supported time bases */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_TIMEBASES,
-					(const void **)&rationals) != SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_TIMEBASES,
+					(const void **)&rationals, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -403,8 +423,8 @@ static void show_dev_detail(void)
 		} else if (hwo->hwcap == SR_HWCAP_TRIGGER_SOURCE) {
 			/* Supported trigger sources */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_TRIGGER_SOURCES,
-					(const void **)&stropts) != SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_TRIGGER_SOURCES,
+					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -415,8 +435,8 @@ static void show_dev_detail(void)
 		} else if (hwo->hwcap == SR_HWCAP_FILTER) {
 			/* Supported trigger sources */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_FILTERS,
-					(const void **)&stropts) != SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_FILTERS,
+					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -427,8 +447,8 @@ static void show_dev_detail(void)
 		} else if (hwo->hwcap == SR_HWCAP_VDIV) {
 			/* Supported volts/div values */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_VDIVS,
-					(const void **)&rationals) != SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_VDIVS,
+					(const void **)&rationals, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -439,8 +459,8 @@ static void show_dev_detail(void)
 		} else if (hwo->hwcap == SR_HWCAP_COUPLING) {
 			/* Supported coupling settings */
 			printf("    %s", hwo->shortname);
-			if (sr_dev_info_get(dev, SR_DI_COUPLING,
-					(const void **)&stropts) != SR_OK) {
+			if (sr_info_get(sdi->driver, SR_DI_COUPLING,
+					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -453,6 +473,7 @@ static void show_dev_detail(void)
 			printf("    %s\n", hwo->shortname);
 		}
 	}
+
 }
 
 static void show_pd_detail(void)
@@ -1526,14 +1547,14 @@ int main(int argc, char **argv)
 		show_version();
 	else if (opt_list_devs)
 		show_dev_list();
+	else if (opt_show)
+		show_dev_detail();
+	else if (opt_pds)
+		show_pd_detail();
 	else if (opt_input_file)
 		load_input_file();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)
 		run_session();
-	else if (opt_dev)
-		show_dev_detail();
-	else if (opt_pds)
-		show_pd_detail();
 	else
 		printf("%s", g_option_context_get_help(context, TRUE, NULL));
 
