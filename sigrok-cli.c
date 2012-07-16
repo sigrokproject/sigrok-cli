@@ -36,6 +36,7 @@
 
 #define DEFAULT_OUTPUT_FORMAT "bits:width=64"
 
+extern struct sr_hwcap_option sr_drvopts[];
 extern struct sr_hwcap_option sr_hwcap_options[];
 
 static uint64_t limit_samples = 0;
@@ -51,6 +52,7 @@ static gboolean opt_list_devs = FALSE;
 static gboolean opt_wait_trigger = FALSE;
 static gchar *opt_input_file = NULL;
 static gchar *opt_output_file = NULL;
+static gchar *opt_drv = NULL;
 static gchar *opt_dev = NULL;
 static gchar *opt_probes = NULL;
 static gchar *opt_triggers = NULL;
@@ -71,6 +73,8 @@ static GOptionEntry optargs[] = {
 			"Set libsigrok/libsigrokdecode loglevel", NULL},
 	{"list-devices", 'D', 0, G_OPTION_ARG_NONE, &opt_list_devs,
 			"Scan for devices", NULL},
+	{"driver", 0, 0, G_OPTION_ARG_STRING, &opt_drv,
+			"Use only this driver", NULL},
 	{"device", 'd', 0, G_OPTION_ARG_STRING, &opt_dev,
 			"Use specified device", NULL},
 	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file,
@@ -103,6 +107,94 @@ static GOptionEntry optargs[] = {
 			"Sample continuously", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
+
+
+/* Convert driver options hash to GSList of struct sr_hwopt. */
+static GSList *hash_to_hwopt(GHashTable *hash)
+{
+	struct sr_hwcap_option *ho;
+	struct sr_hwopt *hwopt;
+	GList *gl, *keys;
+	GSList *opts;
+	char *key, *value;
+
+	keys = g_hash_table_get_keys(hash);
+	opts = NULL;
+	for (gl = keys; gl; gl = gl->next) {
+		key = gl->data;
+		for (ho = sr_drvopts; ho->shortname; ho++) {
+			if (!strcmp(key, ho->shortname)) {
+				hwopt = g_try_malloc(sizeof(struct sr_hwopt));
+				hwopt->hwopt = ho->hwcap;
+				value = g_hash_table_lookup(hash, key);
+				hwopt->value = g_strdup(value);
+				opts = g_slist_append(opts, hwopt);
+				break;
+			}
+		}
+		if (!ho->shortname) {
+			g_critical("Unknown option %s", key);
+			return NULL;
+		}
+	}
+	g_list_free(keys);
+
+	return opts;
+}
+
+static GSList *device_scan(void)
+{
+	struct sr_dev_driver **drivers, *driver;
+	GHashTable *drvargs;
+	GSList *drvopts, *devices, *tmpdevs, *l;
+	int i;
+	char *drvname;
+
+	if (opt_drv) {
+		drvargs = parse_generic_arg(opt_drv, TRUE);
+		drvname = g_strdup(g_hash_table_lookup(drvargs, "sigrok_key"));
+		g_hash_table_remove(drvargs, "sigrok_key");
+		driver = NULL;
+		drivers = sr_driver_list();
+		for (i = 0; drivers[i]; i++) {
+			if (strcmp(drivers[i]->name, drvname))
+				continue;
+			driver = drivers[i];
+		}
+		if (!driver) {
+			g_critical("Driver %s not found.", drvname);
+			return NULL;
+		}
+		g_free(drvname);
+		if (sr_driver_init(driver) != SR_OK) {
+			g_critical("Failed to initialize driver.");
+			return NULL;
+		}
+		drvopts = NULL;
+		if (g_hash_table_size(drvargs) > 0)
+			if (!(drvopts = hash_to_hwopt(drvargs)))
+				/* Unknown options, already logged. */
+				return NULL;
+		devices = sr_driver_scan(driver, drvopts);
+	} else {
+		/* No driver specified, let them all scan on their own. */
+		devices = NULL;
+		drivers = sr_driver_list();
+		for (i = 0; drivers[i]; i++) {
+			driver = drivers[i];
+			if (sr_driver_init(driver) != SR_OK) {
+				g_critical("Failed to initialize driver.");
+				return NULL;
+			}
+			tmpdevs = sr_driver_scan(driver, NULL);
+			for (l = tmpdevs; l; l = l->next)
+				devices = g_slist_append(devices, l->data);
+			g_slist_free(tmpdevs);
+		}
+	}
+
+	return devices;
+}
 
 static void show_version(void)
 {
