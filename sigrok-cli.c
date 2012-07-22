@@ -532,7 +532,8 @@ static void show_pd_detail(void)
 	g_strfreev(pdtokens);
 }
 
-static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
+static void datafeed_in(const struct sr_dev_inst *sdi,
+		struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
 	static int logic_probelist[SR_MAX_NUM_PROBES] = { 0 };
@@ -566,7 +567,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 			exit(1);
 		}
 		o->format = output_format;
-		o->dev = dev;
+		o->sdi = (struct sr_dev_inst *)sdi;
 		o->param = output_format_param;
 		if (o->format->init) {
 			if (o->format->init(o) != SR_OK) {
@@ -617,7 +618,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		meta_logic = packet->payload;
 		num_enabled_probes = 0;
 		for (i = 0; i < meta_logic->num_probes; i++) {
-			probe = g_slist_nth_data(dev->probes, i);
+			probe = g_slist_nth_data(sdi->probes, i);
 			if (probe->enabled)
 				logic_probelist[num_enabled_probes++] = probe->index;
 		}
@@ -711,7 +712,7 @@ static void datafeed_in(struct sr_dev *dev, struct sr_datafeed_packet *packet)
 		num_analog_probes = meta_analog->num_probes;
 		num_enabled_analog_probes = 0;
 		for (i = 0; i < num_analog_probes; i++) {
-			probe = g_slist_nth_data(dev->probes, i);
+			probe = g_slist_nth_data(sdi->probes, i);
 			if (probe->enabled)
 				analog_probelist[num_enabled_analog_probes++] = probe;
 		}
@@ -1042,9 +1043,8 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	fflush(stdout);
 }
 
-static int select_probes(struct sr_dev *dev)
+static int select_probes(struct sr_dev_inst *sdi)
 {
-	struct sr_probe *probe;
 	char **probelist;
 	int max_probes, i;
 
@@ -1055,7 +1055,7 @@ static int select_probes(struct sr_dev *dev)
 	 * This only works because a device by default initializes
 	 * and enables all its probes.
 	 */
-	max_probes = g_slist_length(dev->probes);
+	max_probes = g_slist_length(sdi->probes);
 	probelist = parse_probestring(max_probes, opt_probes);
 	if (!probelist) {
 		return SR_ERR;
@@ -1063,11 +1063,10 @@ static int select_probes(struct sr_dev *dev)
 
 	for (i = 0; i < max_probes; i++) {
 		if (probelist[i]) {
-			sr_dev_probe_name_set(dev, i + 1, probelist[i]);
+			sr_dev_probe_name_set(sdi, i, probelist[i]);
 			g_free(probelist[i]);
 		} else {
-			probe = sr_dev_probe_find(dev, i + 1);
-			probe->enabled = FALSE;
+			sr_dev_probe_enable(sdi, i, FALSE);
 		}
 	}
 	g_free(probelist);
@@ -1176,12 +1175,12 @@ static void load_input_file_format(void)
 		}
 	}
 
-	if (select_probes(in->vdev) > 0)
+	if (select_probes(in->sdi) > 0)
             return;
 
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
-	if (sr_session_dev_add(in->vdev) != SR_OK) {
+	if (sr_session_dev_add(in->sdi) != SR_OK) {
 		g_critical("Failed to use device.");
 		sr_session_destroy();
 		return;
@@ -1214,7 +1213,7 @@ static void load_input_file(void)
 	}
 }
 
-static int set_dev_options(struct sr_dev *dev, GHashTable *args)
+static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 {
 	GHashTableIter iter;
 	gpointer key, value;
@@ -1224,6 +1223,7 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 	struct sr_rational tmp_rat;
 	gboolean tmp_bool;
 	gboolean found;
+	void *val;
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
@@ -1237,48 +1237,44 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 				return SR_ERR;
 			}
 			found = TRUE;
+			val = NULL;
 			switch (sr_hwcap_options[i].type) {
 			case SR_T_UINT64:
 				ret = sr_parse_sizestring(value, &tmp_u64);
 				if (ret != SR_OK)
 					break;
-				ret = dev->driver->dev_config_set(dev->driver_index,
-					sr_hwcap_options[i].hwcap, &tmp_u64);
+				val = &tmp_u64;
 				break;
 			case SR_T_CHAR:
-				ret = dev->driver->dev_config_set(dev->driver_index,
-					sr_hwcap_options[i].hwcap, value);
+				val = value;
 				break;
 			case SR_T_BOOL:
 				if (!value)
 					tmp_bool = TRUE;
 				else 
 					tmp_bool = sr_parse_boolstring(value);
-				ret = dev->driver->dev_config_set(dev->driver_index,
-						sr_hwcap_options[i].hwcap, 
-						GINT_TO_POINTER(tmp_bool));
+				val = &tmp_bool;
 				break;
 			case SR_T_FLOAT:
 				tmp_float = strtof(value, NULL);
-				ret = dev->driver->dev_config_set(dev->driver_index,
-						sr_hwcap_options[i].hwcap, &tmp_float);
+				val = &tmp_float;
 				break;
 			case SR_T_RATIONAL_PERIOD:
 				if ((ret = sr_parse_period(value, &tmp_rat)) != SR_OK)
 					break;
-				ret = dev->driver->dev_config_set(dev->driver_index,
-						sr_hwcap_options[i].hwcap, &tmp_rat);
+				val = &tmp_rat;
 				break;
 			case SR_T_RATIONAL_VOLT:
 				if ((ret = sr_parse_voltage(value, &tmp_rat)) != SR_OK)
 					break;
-				ret = dev->driver->dev_config_set(dev->driver_index,
-						sr_hwcap_options[i].hwcap, &tmp_rat);
+				val = &tmp_rat;
 				break;
 			default:
 				ret = SR_ERR;
 			}
-
+			if (val)
+				ret = sdi->driver->dev_config_set(sdi,
+						sr_hwcap_options[i].hwcap, val);
 			if (ret != SR_OK) {
 				g_critical("Failed to set device option '%s'.", (char *)key);
 				return ret;
@@ -1295,131 +1291,135 @@ static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 	return SR_OK;
 }
 
-static void run_session(void)
+static int set_limit_time(const struct sr_dev_inst *sdi)
 {
-	struct sr_dev *dev;
-	GHashTable *devargs;
-	int num_devs, max_probes, i;
 	uint64_t time_msec;
-	char **probelist, *devspec;
+	uint64_t *samplerate;
 
-	devargs = NULL;
-	if (opt_dev) {
-		devargs = parse_generic_arg(opt_dev);
-		devspec = g_hash_table_lookup(devargs, "sigrok_key");
-		dev = parse_devstring(devspec);
-		if (!dev) {
-			g_critical("Device not found.");
-			return;
-		}
-		g_hash_table_remove(devargs, "sigrok_key");
-	} else {
-		num_devs = num_real_devs();
-		if (num_devs == 1) {
-			/* No device specified, but there is only one. */
-			devargs = NULL;
-			dev = parse_devstring("0");
-		} else if (num_devs == 0) {
-			g_critical("No devices found.");
-			return;
-		} else {
-			g_critical("%d devices found, please select one.", num_devs);
-			return;
+	time_msec = sr_parse_timestring(opt_time);
+	if (time_msec == 0) {
+		g_critical("Invalid time '%s'", opt_time);
+		sr_session_destroy();
+		return SR_ERR;
+	}
+
+	if (sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_LIMIT_MSEC)) {
+		if (sdi->driver->dev_config_set(sdi,
+			SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
+			g_critical("Failed to configure time limit.");
+			sr_session_destroy();
+			return SR_ERR;
 		}
 	}
+	else {
+		/* time limit set, but device doesn't support this...
+		 * convert to samples based on the samplerate.
+		 */
+		limit_samples = 0;
+		if (sr_dev_has_hwcap(sdi, SR_HWCAP_SAMPLERATE)) {
+			sr_info_get(sdi->driver, SR_DI_CUR_SAMPLERATE,
+					(const void **)&samplerate, sdi);
+			limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
+		}
+		if (limit_samples == 0) {
+			g_critical("Not enough time at this samplerate.");
+			sr_session_destroy();
+			return SR_ERR;
+		}
+
+		if (sdi->driver->dev_config_set(sdi,
+			SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK) {
+			g_critical("Failed to configure time-based sample limit.");
+			sr_session_destroy();
+			return SR_ERR;
+		}
+	}
+
+	return SR_OK;
+}
+
+static void run_session(void)
+{
+	GSList *devices, *l;
+	GHashTable *devargs;
+	struct sr_dev_inst *sdi;
+	int max_probes, i;
+	char **probelist;
 
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
 
-	if (sr_session_dev_add(dev) != SR_OK) {
-		g_critical("Failed to use device.");
-		sr_session_destroy();
-		return;
-	}
+	devices = device_scan();
+	for (l = devices; l; l = l->next) {
+		sdi = l->data;
+		printf("found %s %s\n", sdi->vendor, sdi->model);
 
-	if (devargs) {
-		if (set_dev_options(dev, devargs) != SR_OK) {
-			sr_session_destroy();
-			return;
-		}
-		g_hash_table_destroy(devargs);
-	}
-
-	if (select_probes(dev) != SR_OK)
-            return;
-
-	if (opt_continuous) {
-		if (!sr_driver_hwcap_exists(dev->driver, SR_HWCAP_CONTINUOUS)) {
-			g_critical("This device does not support continuous sampling.");
-			sr_session_destroy();
-			return;
-		}
-	}
-
-	if (opt_triggers) {
-		probelist = sr_parse_triggerstring(dev, opt_triggers);
-		if (!probelist) {
-			sr_session_destroy();
-			return;
-		}
-
-		max_probes = g_slist_length(dev->probes);
-		for (i = 0; i < max_probes; i++) {
-			if (probelist[i]) {
-				sr_dev_trigger_set(dev, i + 1, probelist[i]);
-				g_free(probelist[i]);
+		devargs = NULL;
+		if (opt_dev) {
+			/* TODO: this applies the same options to every device */
+			devargs = parse_generic_arg(opt_dev, FALSE);
+			if (devargs) {
+				if (set_dev_options(sdi, devargs) != SR_OK) {
+					return;
+				}
+				g_hash_table_destroy(devargs);
 			}
 		}
-		g_free(probelist);
+
+		if (sr_session_dev_add(sdi) != SR_OK) {
+			g_critical("Failed to use device.");
+			sr_session_destroy();
+			return;
+		}
+
+		if (select_probes(sdi) != SR_OK)
+			return;
+
+		if (opt_continuous) {
+			if (!sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_CONTINUOUS)) {
+				g_critical("This device does not support continuous sampling.");
+				sr_session_destroy();
+				return;
+			}
+		}
+
+		if (opt_triggers) {
+			probelist = sr_parse_triggerstring(sdi, opt_triggers);
+			if (!probelist) {
+				sr_session_destroy();
+				return;
+			}
+
+			max_probes = g_slist_length(sdi->probes);
+			for (i = 0; i < max_probes; i++) {
+				if (probelist[i]) {
+					sr_dev_trigger_set(sdi, i, probelist[i]);
+					g_free(probelist[i]);
+				}
+			}
+			g_free(probelist);
+		}
+
+		if (sdi->driver->dev_config_set(sdi, SR_HWCAP_PROBECONFIG,
+				(char *)sdi->probes) != SR_OK) {
+			g_critical("Failed to configure probes.");
+			sr_session_destroy();
+			return;
+		}
+
 	}
 
 	if (opt_time) {
-		time_msec = sr_parse_timestring(opt_time);
-		if (time_msec == 0) {
-			g_critical("Invalid time '%s'", opt_time);
+		if (set_limit_time(sdi) != SR_OK) {
 			sr_session_destroy();
 			return;
-		}
-
-		if (sr_driver_hwcap_exists(dev->driver, SR_HWCAP_LIMIT_MSEC)) {
-			if (dev->driver->dev_config_set(dev->driver_index,
-			    SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
-				g_critical("Failed to configure time limit.");
-				sr_session_destroy();
-				return;
-			}
-		}
-		else {
-			/* time limit set, but device doesn't support this...
-			 * convert to samples based on the samplerate.
-			 */
-			limit_samples = 0;
-			if (sr_dev_has_hwcap(dev, SR_HWCAP_SAMPLERATE)) {
-				const uint64_t *samplerate;
-
-				sr_dev_info_get(dev, SR_DI_CUR_SAMPLERATE,
-						(const void **)&samplerate);
-				limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
-			}
-			if (limit_samples == 0) {
-				g_critical("Not enough time at this samplerate.");
-				sr_session_destroy();
-				return;
-			}
-
-			if (dev->driver->dev_config_set(dev->driver_index,
-			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK) {
-				g_critical("Failed to configure time-based sample limit.");
-				sr_session_destroy();
-				return;
-			}
 		}
 	}
 
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-			|| (dev->driver->dev_config_set(dev->driver_index,
-			    SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK)) {
+				|| (sdi->driver->dev_config_set(sdi, SR_HWCAP_LIMIT_SAMPLES,
+						&limit_samples) != SR_OK)) {
 			g_critical("Failed to configure sample limit.");
 			sr_session_destroy();
 			return;
@@ -1428,19 +1428,12 @@ static void run_session(void)
 
 	if (opt_frames) {
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)
-			|| (dev->driver->dev_config_set(dev->driver_index,
+				|| (sdi->driver->dev_config_set(sdi,
 			    SR_HWCAP_LIMIT_FRAMES, &limit_frames) != SR_OK)) {
 			printf("Failed to configure frame limit.\n");
 			sr_session_destroy();
 			return;
 		}
-	}
-
-	if (dev->driver->dev_config_set(dev->driver_index,
-		  SR_HWCAP_PROBECONFIG, (char *)dev->probes) != SR_OK) {
-		g_critical("Failed to configure probes.");
-		sr_session_destroy();
-		return;
 	}
 
 	if (sr_session_start() != SR_OK) {
@@ -1462,6 +1455,8 @@ static void run_session(void)
 			g_critical("Failed to save session.");
 	}
 	sr_session_destroy();
+	g_slist_free(devices);
+
 }
 
 static void logger(const gchar *log_domain, GLogLevelFlags log_level,
