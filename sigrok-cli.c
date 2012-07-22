@@ -1214,23 +1214,6 @@ static void load_input_file(void)
 	}
 }
 
-int num_real_devs(void)
-{
-	struct sr_dev *dev;
-	GSList *devs, *l;
-	int num_devs;
-
-	num_devs = 0;
-	devs = sr_dev_list();
-	for (l = devs; l; l = l->next) {
-		dev = l->data;
-		if (!sr_dev_has_hwcap(dev, SR_HWCAP_DEMO_DEV))
-			num_devs++;
-	}
-
-	return num_devs;
-}
-
 static int set_dev_options(struct sr_dev *dev, GHashTable *args)
 {
 	GHashTableIter iter;

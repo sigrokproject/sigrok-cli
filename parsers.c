@@ -126,66 +126,6 @@ GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 	return hash;
 }
 
-struct sr_dev *parse_devstring(const char *devstring)
-{
-	struct sr_dev *dev, *d;
-	struct sr_dev_driver **drivers;
-	GSList *devs, *l;
-	int i, num_devs, dev_num, dev_cnt;
-	char *tmp;
-
-	if (!devstring)
-		return NULL;
-
-	dev = NULL;
-	dev_num = strtol(devstring, &tmp, 10);
-	if (tmp != devstring) {
-		/* argument is numeric, meaning a device ID. Make all drivers
-		 * scan for devices.
-		 */
-		num_devs = num_real_devs();
-		if (dev_num < 0 || dev_num >= num_devs)
-			return NULL;
-
-		dev_cnt = 0;
-		devs = sr_dev_list();
-		for (l = devs; l; l = l->next) {
-			d = l->data;
-			if (sr_dev_has_hwcap(d, SR_HWCAP_DEMO_DEV))
-				continue;
-			if (dev_cnt == dev_num) {
-				if (dev_num == dev_cnt) {
-					dev = d;
-					break;
-				}
-			}
-			dev_cnt++;
-		}
-	} else {
-		/* select device by driver -- only initialize that driver,
-		 * no need to let them all scan
-		 */
-		dev = NULL;
-		drivers = sr_driver_list();
-		for (i = 0; drivers[i]; i++) {
-			if (strcmp(drivers[i]->name, devstring))
-				continue;
-			num_devs = sr_driver_init(drivers[i]);
-			if (num_devs == 1) {
-				devs = sr_dev_list();
-				dev = devs->data;
-			} else if (num_devs > 1) {
-				printf("driver '%s' found %d devices, select by ID instead.\n",
-						devstring, num_devs);
-			}
-			/* fall through: selected driver found no devices */
-			break;
-		}
-	}
-
-	return dev;
-}
-
 char *strcanon(const char *str)
 {
 	int p0, p1;
