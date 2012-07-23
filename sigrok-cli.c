@@ -1341,73 +1341,74 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 
 static void run_session(void)
 {
-	GSList *devices, *l;
+	GSList *devices;
 	GHashTable *devargs;
 	struct sr_dev_inst *sdi;
 	int max_probes, i;
-	char **probelist;
+	char **triggerlist;
+
+	devices = device_scan();
+	if (!devices) {
+		g_critical("No devices found.");
+		return;
+	}
+	if (g_slist_length(devices) > 1) {
+		g_critical("sigrok-cli only supports one device for capturing.");
+		return;
+	}
+	sdi = devices->data;
 
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
 
-	devices = device_scan();
-	for (l = devices; l; l = l->next) {
-		sdi = l->data;
-		printf("found %s %s\n", sdi->vendor, sdi->model);
-
-		devargs = NULL;
-		if (opt_dev) {
-			/* TODO: this applies the same options to every device */
-			devargs = parse_generic_arg(opt_dev, FALSE);
-			if (devargs) {
-				if (set_dev_options(sdi, devargs) != SR_OK) {
-					return;
-				}
-				g_hash_table_destroy(devargs);
-			}
+	if (opt_dev) {
+		if ((devargs = parse_generic_arg(opt_dev, FALSE))) {
+			if (set_dev_options(sdi, devargs) != SR_OK)
+				return;
+			g_hash_table_destroy(devargs);
 		}
+	}
 
-		if (sr_session_dev_add(sdi) != SR_OK) {
-			g_critical("Failed to use device.");
+	if (sr_session_dev_add(sdi) != SR_OK) {
+		g_critical("Failed to use device.");
+		sr_session_destroy();
+		return;
+	}
+
+	if (select_probes(sdi) != SR_OK) {
+		g_critical("Failed to set probes.");
+		sr_session_destroy();
+		return;
+	}
+
+	if (opt_triggers) {
+		if (!(triggerlist = sr_parse_triggerstring(sdi, opt_triggers))) {
 			sr_session_destroy();
 			return;
 		}
-
-		if (select_probes(sdi) != SR_OK)
-			return;
-
-		if (opt_continuous) {
-			if (!sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_CONTINUOUS)) {
-				g_critical("This device does not support continuous sampling.");
-				sr_session_destroy();
-				return;
+		max_probes = g_slist_length(sdi->probes);
+		for (i = 0; i < max_probes; i++) {
+			if (triggerlist[i]) {
+				sr_dev_trigger_set(sdi, i, triggerlist[i]);
+				g_free(triggerlist[i]);
 			}
 		}
+		g_free(triggerlist);
+	}
 
-		if (opt_triggers) {
-			probelist = sr_parse_triggerstring(sdi, opt_triggers);
-			if (!probelist) {
-				sr_session_destroy();
-				return;
-			}
+	if (sdi->driver->dev_config_set(sdi, SR_HWCAP_PROBECONFIG,
+			(char *)sdi->probes) != SR_OK) {
+		g_critical("Failed to configure probes.");
+		sr_session_destroy();
+		return;
+	}
 
-			max_probes = g_slist_length(sdi->probes);
-			for (i = 0; i < max_probes; i++) {
-				if (probelist[i]) {
-					sr_dev_trigger_set(sdi, i, probelist[i]);
-					g_free(probelist[i]);
-				}
-			}
-			g_free(probelist);
-		}
-
-		if (sdi->driver->dev_config_set(sdi, SR_HWCAP_PROBECONFIG,
-				(char *)sdi->probes) != SR_OK) {
-			g_critical("Failed to configure probes.");
+	if (opt_continuous) {
+		if (!sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_CONTINUOUS)) {
+			g_critical("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
 		}
-
 	}
 
 	if (opt_time) {
