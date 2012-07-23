@@ -45,6 +45,7 @@ static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
 static GHashTable *pd_ann_visible = NULL;
+static struct sr_datastore *singleds = NULL;
 
 static gboolean opt_version = FALSE;
 static gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
@@ -486,7 +487,7 @@ static void show_pd_detail(void)
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(dec = srd_decoder_get_by_id(*pdtok))) {
-			printf("Protocol decoder %s not found.\n", *pdtok);
+			g_critical("Protocol decoder %s not found.", *pdtok);
 			return;
 		}
 		printf("ID: %s\nName: %s\nLong name: %s\nDescription: %s\n",
@@ -536,7 +537,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
-	static int logic_probelist[SR_MAX_NUM_PROBES] = { 0 };
+	static int logic_probelist[SR_MAX_NUM_PROBES] = { -1 };
 	static struct sr_probe *analog_probelist[SR_MAX_NUM_PROBES];
 	static uint64_t received_samples = 0;
 	static int unitsize = 0;
@@ -633,9 +634,9 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 				 * dump everything in the datastore as it comes in,
 				 * and save from there after the session. */
 				outfile = NULL;
-				ret = sr_datastore_new(unitsize, &(dev->datastore));
+				ret = sr_datastore_new(unitsize, &singleds);
 				if (ret != SR_OK) {
-					printf("Failed to create datastore.\n");
+					g_critical("Failed to create datastore.");
 					exit(1);
 				}
 			} else {
@@ -664,8 +665,8 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			break;
 
 		ret = sr_filter_probes(sample_size, unitsize, logic_probelist,
-					   logic->data, logic->length,
-					   &filter_out, &filter_out_len);
+				logic->data, logic->length,
+				&filter_out, &filter_out_len);
 		if (ret != SR_OK)
 			break;
 
@@ -678,9 +679,9 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 				limit_samples * sample_size))
 			filter_out_len = limit_samples * sample_size - received_samples;
 
-		if (dev->datastore)
-			sr_datastore_put(dev->datastore, filter_out,
-					 filter_out_len, sample_size, logic_probelist);
+		if (singleds)
+			sr_datastore_put(singleds, filter_out,
+					filter_out_len, sample_size, logic_probelist);
 
 		if (opt_output_file && default_output_format)
 			/* saving to a session file, don't need to do anything else
@@ -725,9 +726,9 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 				 * dump everything in the datastore as it comes in,
 				 * and save from there after the session. */
 				outfile = NULL;
-				ret = sr_datastore_new(unitsize, &(dev->datastore));
+				ret = sr_datastore_new(unitsize, &singleds);
 				if (ret != SR_OK) {
-					printf("Failed to create datastore.\n");
+					g_critical("Failed to create datastore.");
 					exit(1);
 				}
 			} else {
@@ -1189,7 +1190,7 @@ static void load_input_file_format(void)
 
 	input_format->loadfile(in, opt_input_file);
 	if (opt_output_file && default_output_format) {
-		if (sr_session_save(opt_output_file) != SR_OK)
+		if (sr_session_save(opt_output_file, in->sdi, singleds) != SR_OK)
 			g_critical("Failed to save session.");
 	}
 	sr_session_destroy();
@@ -1432,7 +1433,7 @@ static void run_session(void)
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)
 				|| (sdi->driver->dev_config_set(sdi,
 			    SR_HWCAP_LIMIT_FRAMES, &limit_frames) != SR_OK)) {
-			printf("Failed to configure frame limit.\n");
+			g_critical("Failed to configure frame limit.");
 			sr_session_destroy();
 			return;
 		}
@@ -1453,7 +1454,7 @@ static void run_session(void)
 		clear_anykey();
 
 	if (opt_output_file && default_output_format) {
-		if (sr_session_save(opt_output_file) != SR_OK)
+		if (sr_session_save(opt_output_file, sdi, singleds) != SR_OK)
 			g_critical("Failed to save session.");
 	}
 	sr_session_destroy();
