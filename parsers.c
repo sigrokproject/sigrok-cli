@@ -51,7 +51,7 @@ char **parse_probestring(int max_probes, const char *probestring)
 
 			b = strtol(range[0], NULL, 10);
 			e = strtol(range[1], NULL, 10);
-			if (b < 1 || e > max_probes || b >= e) {
+			if (b < 0 || e >= max_probes || b >= e) {
 				g_critical("Invalid probe range '%s'.", tokens[i]);
 				error = TRUE;
 				break;
@@ -59,24 +59,24 @@ char **parse_probestring(int max_probes, const char *probestring)
 
 			while (b <= e) {
 				snprintf(str, 7, "%d", b);
-				probelist[b - 1] = g_strdup(str);
+				probelist[b] = g_strdup(str);
 				b++;
 			}
 		} else {
 			tmp = strtol(tokens[i], NULL, 10);
-			if (tmp < 1 || tmp > max_probes) {
+			if (tmp < 0 || tmp >= max_probes) {
 				g_critical("Invalid probe %d.", tmp);
 				error = TRUE;
 				break;
 			}
 
 			if ((name = strchr(tokens[i], '='))) {
-				probelist[tmp - 1] = g_strdup(++name);
-				if (strlen(probelist[tmp - 1]) > SR_MAX_PROBENAME_LEN)
-					probelist[tmp - 1][SR_MAX_PROBENAME_LEN] = 0;
+				probelist[tmp] = g_strdup(++name);
+				if (strlen(probelist[tmp]) > SR_MAX_PROBENAME_LEN)
+					probelist[tmp][SR_MAX_PROBENAME_LEN] = 0;
 			} else {
 				snprintf(str, 7, "%d", tmp);
-				probelist[tmp - 1] = g_strdup(str);
+				probelist[tmp] = g_strdup(str);
 			}
 		}
 	}

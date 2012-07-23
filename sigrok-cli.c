@@ -622,6 +622,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			if (probe->enabled)
 				logic_probelist[num_enabled_probes++] = probe->index;
 		}
+		logic_probelist[num_enabled_probes] = -1;
 		/* How many bytes we need to store num_enabled_probes bits */
 		unitsize = (num_enabled_probes + 7) / 8;
 
