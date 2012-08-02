@@ -599,7 +599,6 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		if (opt_continuous)
 			g_warning("Device stopped after %" PRIu64 " samples.",
 			       received_samples);
-		sr_session_stop();
 		if (outfile && outfile != stdout)
 			fclose(outfile);
 		g_free(o);
