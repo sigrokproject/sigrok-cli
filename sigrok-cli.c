@@ -1143,7 +1143,7 @@ static void load_input_file_format(void)
 	char *fmtspec = NULL;
 
 	if (opt_input_format) {
-		fmtargs = parse_generic_arg(opt_input_format);
+		fmtargs = parse_generic_arg(opt_input_format, TRUE);
 		fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	}
 
@@ -1152,7 +1152,7 @@ static void load_input_file_format(void)
 		/* The exact cause was already logged. */
 		return;
 	}
-;
+
 	if (fmtargs)
 		g_hash_table_remove(fmtargs, "sigrok_key");
 
