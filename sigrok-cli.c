@@ -346,7 +346,7 @@ static void show_dev_detail(void)
 		return;
 
 	for (cap = 0; hwcaps[cap]; cap++) {
-		if (!(hwo = sr_hw_hwcap_get(hwcaps[cap])))
+		if (!(hwo = sr_devopt_get(hwcaps[cap])))
 			continue;
 
 		if (title) {
