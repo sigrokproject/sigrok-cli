@@ -1348,18 +1348,18 @@ static void run_session(void)
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
 
+	if (sr_session_dev_add(sdi) != SR_OK) {
+		g_critical("Failed to use device.");
+		sr_session_destroy();
+		return;
+	}
+
 	if (opt_dev) {
 		if ((devargs = parse_generic_arg(opt_dev, FALSE))) {
 			if (set_dev_options(sdi, devargs) != SR_OK)
 				return;
 			g_hash_table_destroy(devargs);
 		}
-	}
-
-	if (sr_session_dev_add(sdi) != SR_OK) {
-		g_critical("Failed to use device.");
-		sr_session_destroy();
-		return;
 	}
 
 	if (select_probes(sdi) != SR_OK) {
