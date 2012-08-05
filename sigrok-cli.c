@@ -1267,7 +1267,7 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			ret = SR_ERR;
 		}
 		if (val)
-			ret = sdi->driver->dev_config_set(sdi, hwo->hwcap, val);
+			ret = sr_dev_config_set(sdi, hwo->hwcap, val);
 		if (ret != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
@@ -1292,8 +1292,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	}
 
 	if (sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_LIMIT_MSEC)) {
-		if (sdi->driver->dev_config_set(sdi,
-			SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
+		if (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			sr_session_destroy();
 			return SR_ERR;
@@ -1315,8 +1314,8 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 
-		if (sdi->driver->dev_config_set(sdi,
-			SR_HWCAP_LIMIT_SAMPLES, &limit_samples) != SR_OK) {
+		if (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_SAMPLES,
+					&limit_samples) != SR_OK) {
 			g_critical("Failed to configure time-based sample limit.");
 			sr_session_destroy();
 			return SR_ERR;
@@ -1383,7 +1382,7 @@ static void run_session(void)
 		g_free(triggerlist);
 	}
 
-	if (sdi->driver->dev_config_set(sdi, SR_HWCAP_PROBECONFIG,
+	if (sr_dev_config_set(sdi, SR_HWCAP_PROBECONFIG,
 			(char *)sdi->probes) != SR_OK) {
 		g_critical("Failed to configure probes.");
 		sr_session_destroy();
@@ -1407,7 +1406,7 @@ static void run_session(void)
 
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-				|| (sdi->driver->dev_config_set(sdi, SR_HWCAP_LIMIT_SAMPLES,
+				|| (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_SAMPLES,
 						&limit_samples) != SR_OK)) {
 			g_critical("Failed to configure sample limit.");
 			sr_session_destroy();
@@ -1417,8 +1416,8 @@ static void run_session(void)
 
 	if (opt_frames) {
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)
-				|| (sdi->driver->dev_config_set(sdi,
-			    SR_HWCAP_LIMIT_FRAMES, &limit_frames) != SR_OK)) {
+				|| (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_FRAMES,
+						&limit_frames) != SR_OK)) {
 			g_critical("Failed to configure frame limit.");
 			sr_session_destroy();
 			return;
