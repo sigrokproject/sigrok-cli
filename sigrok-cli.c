@@ -1382,13 +1382,6 @@ static void run_session(void)
 		g_free(triggerlist);
 	}
 
-	if (sr_dev_config_set(sdi, SR_HWCAP_PROBECONFIG,
-			(char *)sdi->probes) != SR_OK) {
-		g_critical("Failed to configure probes.");
-		sr_session_destroy();
-		return;
-	}
-
 	if (opt_continuous) {
 		if (!sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_CONTINUOUS)) {
 			g_critical("This device does not support continuous sampling.");
