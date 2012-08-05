@@ -36,9 +36,6 @@
 
 #define DEFAULT_OUTPUT_FORMAT "bits:width=64"
 
-extern struct sr_hwcap_option sr_drvopts[];
-extern struct sr_hwcap_option sr_hwcap_options[];
-
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;
 static struct sr_output_format *output_format = NULL;
@@ -116,7 +113,7 @@ static GOptionEntry optargs[] = {
 /* Convert driver options hash to GSList of struct sr_hwopt. */
 static GSList *hash_to_hwopt(GHashTable *hash)
 {
-	struct sr_hwcap_option *ho;
+	const struct sr_hwcap_option *hwo;
 	struct sr_hwopt *hwopt;
 	GList *gl, *keys;
 	GSList *opts;
@@ -126,20 +123,16 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 	opts = NULL;
 	for (gl = keys; gl; gl = gl->next) {
 		key = gl->data;
-		for (ho = sr_drvopts; ho->shortname; ho++) {
-			if (!strcmp(key, ho->shortname)) {
-				hwopt = g_try_malloc(sizeof(struct sr_hwopt));
-				hwopt->hwopt = ho->hwcap;
-				value = g_hash_table_lookup(hash, key);
-				hwopt->value = g_strdup(value);
-				opts = g_slist_append(opts, hwopt);
-				break;
-			}
-		}
-		if (!ho->shortname) {
+		if (!(hwo = sr_drvopt_name_get(key))) {
 			g_critical("Unknown option %s", key);
 			return NULL;
 		}
+		hwopt = g_try_malloc(sizeof(struct sr_hwopt));
+		hwopt->hwopt = hwo->hwcap;
+		value = g_hash_table_lookup(hash, key);
+		hwopt->value = g_strdup(value);
+		opts = g_slist_append(opts, hwopt);
+		break;
 	}
 	g_list_free(keys);
 
@@ -1216,77 +1209,71 @@ static void load_input_file(void)
 
 static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 {
+	const struct sr_hwcap_option *hwo;
 	GHashTableIter iter;
 	gpointer key, value;
-	int ret, i;
+	int ret;
 	float tmp_float;
 	uint64_t tmp_u64;
 	struct sr_rational tmp_rat;
 	gboolean tmp_bool;
-	gboolean found;
 	void *val;
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		found = FALSE;
-		for (i = 0; sr_hwcap_options[i].hwcap; i++) {
-			if (strcmp(sr_hwcap_options[i].shortname, key))
-				continue;
-			if ((value == NULL) && 
-			    (sr_hwcap_options[i].type != SR_T_BOOL)) {
-				g_critical("Option '%s' needs a value.", (char *)key);
-				return SR_ERR;
-			}
-			found = TRUE;
-			val = NULL;
-			switch (sr_hwcap_options[i].type) {
-			case SR_T_UINT64:
-				ret = sr_parse_sizestring(value, &tmp_u64);
-				if (ret != SR_OK)
-					break;
-				val = &tmp_u64;
-				break;
-			case SR_T_CHAR:
-				val = value;
-				break;
-			case SR_T_BOOL:
-				if (!value)
-					tmp_bool = TRUE;
-				else 
-					tmp_bool = sr_parse_boolstring(value);
-				val = &tmp_bool;
-				break;
-			case SR_T_FLOAT:
-				tmp_float = strtof(value, NULL);
-				val = &tmp_float;
-				break;
-			case SR_T_RATIONAL_PERIOD:
-				if ((ret = sr_parse_period(value, &tmp_rat)) != SR_OK)
-					break;
-				val = &tmp_rat;
-				break;
-			case SR_T_RATIONAL_VOLT:
-				if ((ret = sr_parse_voltage(value, &tmp_rat)) != SR_OK)
-					break;
-				val = &tmp_rat;
-				break;
-			default:
-				ret = SR_ERR;
-			}
-			if (val)
-				ret = sdi->driver->dev_config_set(sdi,
-						sr_hwcap_options[i].hwcap, val);
-			if (ret != SR_OK) {
-				g_critical("Failed to set device option '%s'.", (char *)key);
-				return ret;
-			}
-			else
-				break;
-		}
-		if (!found) {
+		if (!(hwo = sr_devopt_name_get(key))) {
 			g_critical("Unknown device option '%s'.", (char *) key);
 			return SR_ERR;
 		}
+
+		if ((value == NULL) &&
+			(hwo->type != SR_T_BOOL)) {
+			g_critical("Option '%s' needs a value.", (char *)key);
+			return SR_ERR;
+		}
+		val = NULL;
+		switch (hwo->type) {
+		case SR_T_UINT64:
+			ret = sr_parse_sizestring(value, &tmp_u64);
+			if (ret != SR_OK)
+				break;
+			val = &tmp_u64;
+			break;
+		case SR_T_CHAR:
+			val = value;
+			break;
+		case SR_T_BOOL:
+			if (!value)
+				tmp_bool = TRUE;
+			else
+				tmp_bool = sr_parse_boolstring(value);
+			val = &tmp_bool;
+			break;
+		case SR_T_FLOAT:
+			tmp_float = strtof(value, NULL);
+			val = &tmp_float;
+			break;
+		case SR_T_RATIONAL_PERIOD:
+			if ((ret = sr_parse_period(value, &tmp_rat)) != SR_OK)
+				break;
+			val = &tmp_rat;
+			break;
+		case SR_T_RATIONAL_VOLT:
+			if ((ret = sr_parse_voltage(value, &tmp_rat)) != SR_OK)
+				break;
+			val = &tmp_rat;
+			break;
+		default:
+			ret = SR_ERR;
+		}
+		if (val)
+			ret = sdi->driver->dev_config_set(sdi, hwo->hwcap, val);
+		if (ret != SR_OK) {
+			g_critical("Failed to set device option '%s'.", (char *)key);
+			return ret;
+		}
+		else
+			break;
 	}
 
 	return SR_OK;
