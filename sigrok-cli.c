@@ -1506,10 +1506,10 @@ int main(int argc, char **argv)
 		show_version();
 	else if (opt_list_devs)
 		show_dev_list();
+	else if (opt_pds && opt_show)
+		show_pd_detail();
 	else if (opt_show)
 		show_dev_detail();
-	else if (opt_pds)
-		show_pd_detail();
 	else if (opt_input_file)
 		load_input_file();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)
