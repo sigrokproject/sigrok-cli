@@ -132,7 +132,6 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 		value = g_hash_table_lookup(hash, key);
 		hwopt->value = g_strdup(value);
 		opts = g_slist_append(opts, hwopt);
-		break;
 	}
 	g_list_free(keys);
 
