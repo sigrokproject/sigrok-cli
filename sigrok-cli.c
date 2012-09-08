@@ -545,6 +545,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	int num_enabled_probes, sample_size, ret, i;
 	uint64_t output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
+	GString *out;
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -593,6 +594,9 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			       received_samples);
 		if (outfile && outfile != stdout)
 			fclose(outfile);
+
+		if (o->format->cleanup)
+			o->format->cleanup(o);
 		g_free(o);
 		o = NULL;
 		break;
@@ -781,6 +785,14 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 
 	default:
 		g_message("received unknown packet type %d", packet->type);
+	}
+
+	if (o && o->format->recv) {
+		out = o->format->recv(o, sdi, packet);
+		if (out && out->len) {
+			fwrite(out->str, 1, out->len, outfile);
+			fflush(outfile);
+		}
 	}
 
 }
