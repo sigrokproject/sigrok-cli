@@ -244,6 +244,8 @@ static void show_version(void)
 
 static void print_dev_line(const struct sr_dev_inst *sdi)
 {
+	struct sr_probe *probe;
+	GSList *l;
 
 	if (sdi->vendor && sdi->vendor[0])
 		printf("%s ", sdi->vendor);
@@ -251,9 +253,19 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 		printf("%s ", sdi->model);
 	if (sdi->version && sdi->version[0])
 		printf("%s ", sdi->version);
-	if (sdi->probes)
-		printf("with %d probes", g_slist_length(sdi->probes));
-	printf("\n");
+	if (sdi->probes) {
+		if (g_slist_length(sdi->probes) == 1) {
+			probe = sdi->probes->data;
+			printf("with 1 probe: %s\n", probe->name);
+		} else {
+			printf("with %d probes:\n", g_slist_length(sdi->probes));
+			for (l = sdi->probes; l; l = l->next) {
+				probe = l->data;
+				printf("      %s\n", probe->name);
+			}
+		}
+	} else
+		printf("\n");
 }
 
 static void show_dev_list(void)
