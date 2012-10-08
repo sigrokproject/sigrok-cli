@@ -3,8 +3,8 @@ README
 -------------------------------------------------------------------------------
 
 The sigrok project aims at creating a portable, cross-platform,
-Free/Libre/Open-Source logic analyzer software that supports various
-logic analyzer hardware products.
+Free/Libre/Open-Source signal analysis software suite that supports various
+device types.
 
 sigrok-cli is a command-line tool written in C, which uses both libsigrok
 and libsigrokdecode to provide the basic sigrok functionality from the
@@ -37,8 +37,8 @@ Building and installing
 
 In order to get the sigrok-cli source code and build it, run:
 
- $ git clone git://sigrok.git.sourceforge.net/gitroot/sigrok/sigrok
- $ cd sigrok/sigrok-cli
+ $ git clone git://sigrok.org/sigrok-cli
+ $ cd sigrok-cli
  $ ./autogen.sh
  $ ./configure
  $ make
