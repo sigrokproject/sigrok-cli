@@ -4,7 +4,7 @@ README
 
 The sigrok project aims at creating a portable, cross-platform,
 Free/Libre/Open-Source signal analysis software suite that supports various
-device types.
+device types (such as logic analyzers, oscilloscopes, multimeters, and more).
 
 sigrok-cli is a command-line tool written in C, which uses both libsigrok
 and libsigrokdecode to provide the basic sigrok functionality from the
@@ -14,7 +14,7 @@ command-line. Among other things, it's useful for scripting purposes.
 Status
 ------
 
-The sigrok-cli project, while still in development, is pretty stable/usable.
+sigrok-cli is in a usable state and has had official tarball releases.
 
 
 Requirements
@@ -73,5 +73,5 @@ You can find the sigrok developers in the #sigrok IRC channel on Freenode.
 Website
 -------
 
-http://sigrok.org
+ http://sigrok.org/wiki/Sigrok-cli
 
