@@ -24,7 +24,7 @@
 int num_real_devs(void);
 
 /* parsers.c */
-char **parse_probestring(int max_probes, const char *probestring);
+GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring);
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first);
 struct sr_dev *parse_devstring(const char *devstring);
 uint64_t sr_parse_timestring(const char *timestring);

@@ -25,73 +25,124 @@
 #include <libsigrok/libsigrok.h>
 #include "sigrok-cli.h"
 
-char **parse_probestring(int max_probes, const char *probestring)
+struct sr_probe *find_probe(GSList *probelist, const char *probename)
 {
-	int tmp, b, e, i;
-	char **tokens, **range, **probelist, *name, str[8];
-	gboolean error;
+	struct sr_probe *probe;
+	GSList *l;
 
-	error = FALSE;
-	range = NULL;
-	if (!(probelist = g_try_malloc0(max_probes * sizeof(char *)))) {
-		/* TODO: Handle errors. */
+	probe = NULL;
+	for (l = probelist; l; l = l->next) {
+		probe = l->data;
+		if (!strcmp(probe->name, probename))
+			break;
 	}
-	tokens = g_strsplit(probestring, ",", max_probes);
+	probe = l ? l->data : NULL;
 
+	return probe;
+}
+
+GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
+{
+	struct sr_probe *probe;
+	GSList *probelist;
+	int ret, n, b, e, i;
+	char **tokens, **range, **names, *eptr, str[8];
+
+	if (!probestring || !probestring[0])
+		/* All probes are enabled by default by the driver. */
+		return NULL;
+
+	ret = SR_OK;
+	range = NULL;
+	probelist = NULL;
+	tokens = g_strsplit(probestring, ",", 0);
 	for (i = 0; tokens[i]; i++) {
+		if (tokens[i][0] == '\0') {
+			g_critical("Invalid empty probe.");
+			ret = SR_ERR;
+			break;
+		}
 		if (strchr(tokens[i], '-')) {
-			/* A range of probes in the form 1-5. */
+			/* A range of probes in the form a-b. This will only work
+			 * if the probes are named as numbers -- so every probe
+			 * in the range must exist as a probe name string in the
+			 * device. */
 			range = g_strsplit(tokens[i], "-", 2);
 			if (!range[0] || !range[1] || range[2]) {
 				/* Need exactly two arguments. */
 				g_critical("Invalid probe syntax '%s'.", tokens[i]);
-				error = TRUE;
+				ret = SR_ERR;
 				break;
 			}
 
-			b = strtol(range[0], NULL, 10);
+			b = strtol(range[0], &eptr, 10);
+			if (eptr == range[0] || *eptr != '\0') {
+				g_critical("Invalid probe '%s'.", range[0]);
+				ret = SR_ERR;
+				break;
+			}
 			e = strtol(range[1], NULL, 10);
-			if (b < 0 || e >= max_probes || b >= e) {
+			if (eptr == range[1] || *eptr != '\0') {
+				g_critical("Invalid probe '%s'.", range[1]);
+				ret = SR_ERR;
+				break;
+			}
+			if (b < 0 || b >= e) {
 				g_critical("Invalid probe range '%s'.", tokens[i]);
-				error = TRUE;
+				ret = SR_ERR;
 				break;
 			}
 
 			while (b <= e) {
-				snprintf(str, 7, "%d", b);
-				probelist[b] = g_strdup(str);
+				n = snprintf(str, 8, "%d", b);
+				if (n < 0 || n > 8) {
+					g_critical("Invalid probe '%d'.", b);
+					ret = SR_ERR;
+					break;
+				}
+				probe = find_probe(sdi->probes, str);
+				if (!probe) {
+					g_critical("unknown probe '%d'.", b);
+					ret = SR_ERR;
+					break;
+				}
+				probelist = g_slist_append(probelist, probe);
 				b++;
 			}
+			if (ret != SR_OK)
+				break;
 		} else {
-			tmp = strtol(tokens[i], NULL, 10);
-			if (tmp < 0 || tmp >= max_probes) {
-				g_critical("Invalid probe %d.", tmp);
-				error = TRUE;
+			names = g_strsplit(tokens[i], "=", 2);
+			if (!names[0] || (names[1] && names[2])) {
+				/* Need one or two arguments. */
+				g_critical("Invalid probe '%s'.", tokens[i]);
+				ret = SR_ERR;
 				break;
 			}
 
-			if ((name = strchr(tokens[i], '='))) {
-				probelist[tmp] = g_strdup(++name);
-				if (strlen(probelist[tmp]) > SR_MAX_PROBENAME_LEN)
-					probelist[tmp][SR_MAX_PROBENAME_LEN] = 0;
-			} else {
-				snprintf(str, 7, "%d", tmp);
-				probelist[tmp] = g_strdup(str);
+			probe = find_probe(sdi->probes, names[0]);
+			if (!probe) {
+				g_critical("unknown probe '%s'.", names[0]);
+				ret = SR_ERR;
+				break;
 			}
+			if (names[1]) {
+				/* Rename probe. */
+				g_free(probe->name);
+				probe->name = g_strdup(names[1]);
+			}
+			probelist = g_slist_append(probelist, probe);
 		}
 	}
+	if (range)
+		g_strfreev(range);
 
-	if (error) {
-		for (i = 0; i < max_probes; i++)
-			if (probelist[i])
-				g_free(probelist[i]);
-		g_free(probelist);
+	if (ret != SR_OK) {
+		g_slist_free(probelist);
 		probelist = NULL;
 	}
 
 	g_strfreev(tokens);
-	if (range)
-		g_strfreev(range);
 
 	return probelist;
 }

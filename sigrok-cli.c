@@ -1062,31 +1062,23 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 
 static int select_probes(struct sr_dev_inst *sdi)
 {
-	char **probelist;
-	int max_probes, i;
+	struct sr_probe *probe;
+	GSList *selected_probes, *l;
 
 	if (!opt_probes)
 		return SR_OK;
 
-	/*
-	 * This only works because a device by default initializes
-	 * and enables all its probes.
-	 */
-	max_probes = g_slist_length(sdi->probes);
-	probelist = parse_probestring(max_probes, opt_probes);
-	if (!probelist) {
+	if (!(selected_probes = parse_probestring(sdi, opt_probes)))
 		return SR_ERR;
-	}
 
-	for (i = 0; i < max_probes; i++) {
-		if (probelist[i]) {
-			sr_dev_probe_name_set(sdi, i, probelist[i]);
-			g_free(probelist[i]);
-		} else {
-			sr_dev_probe_enable(sdi, i, FALSE);
-		}
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		if (g_slist_find(selected_probes, probe))
+			probe->enabled = TRUE;
+		else
+			probe->enabled = FALSE;
 	}
-	g_free(probelist);
+	g_slist_free(selected_probes);
 
 	return SR_OK;
 }
