@@ -256,16 +256,16 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 	if (sdi->probes) {
 		if (g_slist_length(sdi->probes) == 1) {
 			probe = sdi->probes->data;
-			printf("with 1 probe: %s\n", probe->name);
+			printf("with 1 probe: %s", probe->name);
 		} else {
-			printf("with %d probes:\n", g_slist_length(sdi->probes));
+			printf("with %d probes:", g_slist_length(sdi->probes));
 			for (l = sdi->probes; l; l = l->next) {
 				probe = l->data;
-				printf("      %s\n", probe->name);
+				printf(" %s", probe->name);
 			}
 		}
-	} else
-		printf("\n");
+	}
+	printf("\n");
 }
 
 static void show_dev_list(void)
