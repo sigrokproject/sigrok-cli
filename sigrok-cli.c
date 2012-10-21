@@ -36,6 +36,8 @@
 
 #define DEFAULT_OUTPUT_FORMAT "bits:width=64"
 
+static struct sr_context *sr_ctx = NULL;
+
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;
 static struct sr_output_format *output_format = NULL;
@@ -162,7 +164,7 @@ static GSList *device_scan(void)
 			return NULL;
 		}
 		g_free(drvname);
-		if (sr_driver_init(driver) != SR_OK) {
+		if (sr_driver_init(sr_ctx, driver) != SR_OK) {
 			g_critical("Failed to initialize driver.");
 			return NULL;
 		}
@@ -178,7 +180,7 @@ static GSList *device_scan(void)
 		drivers = sr_driver_list();
 		for (i = 0; drivers[i]; i++) {
 			driver = drivers[i];
-			if (sr_driver_init(driver) != SR_OK) {
+			if (sr_driver_init(sr_ctx, driver) != SR_OK) {
 				g_critical("Failed to initialize driver.");
 				return NULL;
 			}
@@ -1476,7 +1478,6 @@ int main(int argc, char **argv)
 	int ret = 1;
 	GOptionContext *context;
 	GError *error;
-	struct sr_context *sr_ctx = NULL;
 
 	g_log_set_default_handler(logger, NULL);
 
