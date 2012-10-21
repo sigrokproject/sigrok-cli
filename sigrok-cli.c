@@ -1478,6 +1478,7 @@ int main(int argc, char **argv)
 	int ret = 1;
 	GOptionContext *context;
 	GError *error;
+	struct sr_context *sr_ctx = NULL;
 
 	g_log_set_default_handler(logger, NULL);
 
@@ -1487,19 +1488,19 @@ int main(int argc, char **argv)
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_critical("%s", error->message);
-		goto done_noexit;
+		goto done;
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrok. */
 	if (sr_log_loglevel_set(opt_loglevel) != SR_OK)
-		goto done_noexit;
+		goto done;
 
 	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
 	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK)
-		goto done_noexit;
+		goto done;
 
-	if (sr_init() != SR_OK)
-		goto done_noexit;
+	if (sr_init(&sr_ctx) != SR_OK)
+		goto done;
 
 	if (opt_pds) {
 		if (srd_init(NULL) != SRD_OK)
@@ -1539,9 +1540,9 @@ int main(int argc, char **argv)
 	ret = 0;
 
 done:
-	sr_exit();
+	if (sr_ctx)
+		sr_exit(sr_ctx);
 
-done_noexit:
 	g_option_context_free(context);
 
 	return ret;
