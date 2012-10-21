@@ -1475,6 +1475,7 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 
 int main(int argc, char **argv)
 {
+	int ret = 1;
 	GOptionContext *context;
 	GError *error;
 
@@ -1486,36 +1487,36 @@ int main(int argc, char **argv)
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_critical("%s", error->message);
-		return 1;
+		goto done_noexit;
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrok. */
 	if (sr_log_loglevel_set(opt_loglevel) != SR_OK)
-		return 1;
+		goto done_noexit;
 
 	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
 	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK)
-		return 1;
+		goto done_noexit;
 
 	if (sr_init() != SR_OK)
-		return 1;
+		goto done_noexit;
 
 	if (opt_pds) {
 		if (srd_init(NULL) != SRD_OK)
-			return 1;
+			goto done;
 		if (register_pds(NULL, opt_pds) != 0)
-			return 1;
+			goto done;
 		if (srd_pd_output_callback_add(SRD_OUTPUT_ANN,
 				show_pd_annotations, NULL) != SRD_OK)
-			return 1;
+			goto done;
 		if (setup_pd_stack() != 0)
-			return 1;
+			goto done;
 		if (setup_pd_annotations() != 0)
-			return 1;
+			goto done;
 	}
 
 	if (setup_output_format() != 0)
-		return 1;
+		goto done;
 
 	if (opt_version)
 		show_version();
@@ -1535,8 +1536,13 @@ int main(int argc, char **argv)
 	if (opt_pds)
 		srd_exit();
 
+	ret = 0;
+
+done:
 	sr_exit();
+
+done_noexit:
 	g_option_context_free(context);
 
-	return 0;
+	return ret;
 }
