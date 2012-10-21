@@ -1535,8 +1535,8 @@ int main(int argc, char **argv)
 	if (opt_pds)
 		srd_exit();
 
-	g_option_context_free(context);
 	sr_exit();
+	g_option_context_free(context);
 
 	return 0;
 }
