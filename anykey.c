@@ -38,7 +38,6 @@ static struct termios term_orig;
 
 static int received_anykey(int fd, int revents, void *cb_data)
 {
-	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
 	(void)cb_data;

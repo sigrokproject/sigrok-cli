@@ -821,7 +821,6 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 	int ret;
 	char **pdtokens, **pdtok, *pd_name;
 
-	/* Avoid compiler warnings. */
 	(void)dev;
 
 	ret = 0;
@@ -1458,7 +1457,6 @@ static void run_session(void)
 static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 		   const gchar *message, gpointer cb_data)
 {
-	/* Avoid compiler warnings. */
 	(void)log_domain;
 	(void)cb_data;
 
