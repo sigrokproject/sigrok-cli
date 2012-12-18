@@ -540,7 +540,7 @@ static void show_pd_detail(void)
 }
 
 static void datafeed_in(const struct sr_dev_inst *sdi,
-		struct sr_datafeed_packet *packet)
+		const struct sr_datafeed_packet *packet)
 {
 	static struct sr_output *o = NULL;
 	static int logic_probelist[SR_MAX_NUM_PROBES] = { -1 };
@@ -551,10 +551,10 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	static FILE *outfile = NULL;
 	static int num_analog_probes = 0;
 	struct sr_probe *probe;
-	struct sr_datafeed_logic *logic;
-	struct sr_datafeed_meta_logic *meta_logic;
-	struct sr_datafeed_analog *analog;
-	struct sr_datafeed_meta_analog *meta_analog;
+	const struct sr_datafeed_logic *logic;
+	const struct sr_datafeed_meta_logic *meta_logic;
+	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_meta_analog *meta_analog;
 	static int num_enabled_analog_probes = 0;
 	int num_enabled_probes, sample_size, ret, i;
 	uint64_t output_len, filter_out_len;
