@@ -54,6 +54,7 @@ GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
 
 	ret = SR_OK;
 	range = NULL;
+	names = NULL;
 	probelist = NULL;
 	tokens = g_strsplit(probestring, ",", 0);
 	for (i = 0; tokens[i]; i++) {
@@ -136,6 +137,9 @@ GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
 	}
 	if (range)
 		g_strfreev(range);
+
+	if (names)
+		g_strfreev(names);
 
 	if (ret != SR_OK) {
 		g_slist_free(probelist);
