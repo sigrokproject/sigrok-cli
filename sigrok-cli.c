@@ -140,6 +140,12 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 	return opts;
 }
 
+static void free_hwopt(struct sr_hwopt *hwopt)
+{
+	g_free((void *)hwopt->value);
+	g_free(hwopt);
+}
+
 static GSList *device_scan(void)
 {
 	struct sr_dev_driver **drivers, *driver;
@@ -174,6 +180,7 @@ static GSList *device_scan(void)
 				/* Unknown options, already logged. */
 				return NULL;
 		devices = sr_driver_scan(driver, drvopts);
+		g_slist_free_full(drvopts, (GDestroyNotify)free_hwopt);
 	} else {
 		/* No driver specified, let them all scan on their own. */
 		devices = NULL;
