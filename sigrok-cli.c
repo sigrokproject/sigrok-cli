@@ -440,7 +440,7 @@ static void show_dev_detail(void)
 				printf("      %s\n", stropts[i]);
 
 		} else if (hwo->hwcap == SR_HWCAP_FILTER) {
-			/* Supported trigger sources */
+			/* Supported filters */
 			printf("    %s", hwo->shortname);
 			if (sr_info_get(sdi->driver, SR_DI_FILTERS,
 					(const void **)&stropts, sdi) != SR_OK) {
