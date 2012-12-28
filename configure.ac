@@ -38,7 +38,8 @@ AH_TOP([#ifndef SIGROK_CLI_CONFIG_H
 #define SIGROK_CLI_CONFIG_H    /* To stop multiple inclusions. */])
 AH_BOTTOM([#endif /* SIGROK_CLI_CONFIG_H */])
 
-CFLAGS="-g -Wall -Wextra"
+# Enable more compiler warnings via -Wall and -Wextra.
+CFLAGS="$CFLAGS -Wall -Wextra"
 
 # Checks for programs.
 AC_PROG_CC
