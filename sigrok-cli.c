@@ -1288,8 +1288,6 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
 		}
-		else
-			break;
 	}
 
 	return SR_OK;
