@@ -544,18 +544,14 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 {
 	static struct sr_output *o = NULL;
 	static int logic_probelist[SR_MAX_NUM_PROBES] = { -1 };
-	static struct sr_probe *analog_probelist[SR_MAX_NUM_PROBES];
 	static uint64_t received_samples = 0;
 	static int unitsize = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
-	static int num_analog_probes = 0;
 	struct sr_probe *probe;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_meta_logic *meta_logic;
 	const struct sr_datafeed_analog *analog;
-	const struct sr_datafeed_meta_analog *meta_analog;
-	static int num_enabled_analog_probes = 0;
 	int num_enabled_probes, sample_size, ret, i;
 	uint64_t output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
@@ -719,14 +715,6 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 
 	case SR_DF_META_ANALOG:
 		g_message("cli: Received SR_DF_META_ANALOG");
-		meta_analog = packet->payload;
-		num_analog_probes = meta_analog->num_probes;
-		num_enabled_analog_probes = 0;
-		for (i = 0; i < num_analog_probes; i++) {
-			probe = g_slist_nth_data(sdi->probes, i);
-			if (probe->enabled)
-				analog_probelist[num_enabled_analog_probes++] = probe;
-		}
 
 		outfile = stdout;
 		if (opt_output_file) {
