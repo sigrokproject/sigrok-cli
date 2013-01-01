@@ -196,7 +196,7 @@ static GSList *device_scan(void)
 
 static void show_version(void)
 {
-	GSList *l;
+	const GSList *l;
 	struct sr_dev_driver **drivers;
 	struct sr_input_format **inputs;
 	struct sr_output_format **outputs;
