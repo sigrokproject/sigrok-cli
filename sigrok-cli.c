@@ -44,7 +44,7 @@ static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
 static GHashTable *pd_ann_visible = NULL;
-static struct sr_datastore *singleds = NULL;
+static GByteArray *savebuf;
 
 static gboolean opt_version = FALSE;
 static gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
@@ -546,21 +546,38 @@ static void show_pd_detail(void)
 	g_strfreev(pdtokens);
 }
 
+static GArray *get_enabled_logic_probes(const struct sr_dev_inst *sdi)
+{
+	struct sr_probe *probe;
+	GArray *probes;
+	GSList *l;
+
+	probes = g_array_new(FALSE, FALSE, sizeof(int));
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
+		if (probe->enabled != TRUE)
+			continue;
+		g_array_append_val(probes, probe->index);
+	}
+
+	return probes;
+}
+
 static void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet)
 {
+	const struct sr_datafeed_logic *logic;
+	const struct sr_datafeed_analog *analog;
 	static struct sr_output *o = NULL;
-	static int logic_probelist[SR_MAX_NUM_PROBES] = { -1 };
+	static GArray *logic_probelist = NULL;
 	static uint64_t received_samples = 0;
 	static int unitsize = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
-	struct sr_probe *probe;
-	const struct sr_datafeed_logic *logic;
-	const struct sr_datafeed_meta_logic *meta_logic;
-	const struct sr_datafeed_analog *analog;
-	int num_enabled_probes, sample_size, ret, i;
-	uint64_t output_len, filter_out_len;
+	int sample_size, ret;
+	uint64_t *samplerate, output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
 	GString *out;
 
@@ -586,6 +603,38 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 				exit(1);
 			}
 		}
+
+		/* Prepare non-stdout output. */
+		outfile = stdout;
+		if (opt_output_file) {
+			if (default_output_format) {
+				/* output file is in session format, so we'll
+				 * keep a copy of everything as it comes in
+				 * and save from there after the session. */
+				outfile = NULL;
+				savebuf = g_byte_array_new();
+			} else {
+				/* saving to a file in whatever format was set
+				 * with --format, so all we need is a filehandle */
+				outfile = g_fopen(opt_output_file, "wb");
+			}
+		}
+
+		/* Prepare for logic data. */
+		logic_probelist = get_enabled_logic_probes(sdi);
+		/* How many bytes we need to store the packed samples. */
+		unitsize = (logic_probelist->len + 7) / 8;
+
+		if (opt_pds && logic_probelist->len) {
+			if (sr_info_get(sdi->driver, SR_DI_CUR_SAMPLERATE,
+					(const void **)&samplerate, sdi) != SR_OK) {
+				g_critical("Unable to initialize protocol "
+						"decoders: no samplerate found.");
+				break;
+			}
+			srd_session_start(logic_probelist->len, unitsize,
+					*samplerate);
+		}
 		break;
 
 	case SR_DF_END:
@@ -609,9 +658,18 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		if (opt_continuous)
 			g_warning("Device stopped after %" PRIu64 " samples.",
 			       received_samples);
+
 		if (outfile && outfile != stdout)
 			fclose(outfile);
 
+		if (opt_output_file && default_output_format) {
+			if (sr_session_save(opt_output_file, sdi, savebuf->data,
+					unitsize, savebuf->len / unitsize) != SR_OK)
+				g_critical("Failed to save session.");
+			g_byte_array_free(savebuf, FALSE);
+		}
+
+		g_array_free(logic_probelist, TRUE);
 		if (o->format->cleanup)
 			o->format->cleanup(o);
 		g_free(o);
@@ -624,42 +682,6 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			o->format->event(o, SR_DF_TRIGGER, &output_buf,
 					 &output_len);
 		triggered = 1;
-		break;
-
-	case SR_DF_META_LOGIC:
-		g_message("cli: Received SR_DF_META_LOGIC");
-		meta_logic = packet->payload;
-		num_enabled_probes = 0;
-		for (i = 0; i < meta_logic->num_probes; i++) {
-			probe = g_slist_nth_data(sdi->probes, i);
-			if (probe->enabled)
-				logic_probelist[num_enabled_probes++] = probe->index;
-		}
-		logic_probelist[num_enabled_probes] = -1;
-		/* How many bytes we need to store num_enabled_probes bits */
-		unitsize = (num_enabled_probes + 7) / 8;
-
-		outfile = stdout;
-		if (opt_output_file) {
-			if (default_output_format) {
-				/* output file is in session format, which means we'll
-				 * dump everything in the datastore as it comes in,
-				 * and save from there after the session. */
-				outfile = NULL;
-				ret = sr_datastore_new(unitsize, &singleds);
-				if (ret != SR_OK) {
-					g_critical("Failed to create datastore.");
-					exit(1);
-				}
-			} else {
-				/* saving to a file in whatever format was set
-				 * with --format, so all we need is a filehandle */
-				outfile = g_fopen(opt_output_file, "wb");
-			}
-		}
-		if (opt_pds)
-			srd_session_start(num_enabled_probes, unitsize,
-					meta_logic->samplerate);
 		break;
 
 	case SR_DF_LOGIC:
@@ -682,7 +704,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		if (ret != SR_OK)
 			break;
 
-		/* what comes out of the filter is guaranteed to be packed into the
+		/* What comes out of the filter is guaranteed to be packed into the
 		 * minimum size needed to support the number of samples at this sample
 		 * size. however, the driver may have submitted too much -- cut off
 		 * the buffer of the last packet according to the sample limit.
@@ -691,56 +713,29 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 				limit_samples * sample_size))
 			filter_out_len = limit_samples * sample_size - received_samples;
 
-		if (singleds)
-			sr_datastore_put(singleds, filter_out,
-					filter_out_len, sample_size, logic_probelist);
-
-		if (opt_output_file && default_output_format)
-			/* saving to a session file, don't need to do anything else
-			 * to this data for now. */
-			goto cleanup;
-
-		if (opt_pds) {
-			if (srd_session_send(received_samples, (uint8_t*)filter_out,
-					filter_out_len) != SRD_OK)
-				sr_session_stop();
+		if (opt_output_file && default_output_format) {
+			/* Saving to a session file. */
+			g_byte_array_append(savebuf, filter_out, filter_out_len);
 		} else {
-			output_len = 0;
-			if (o->format->data && packet->type == o->format->df_type)
-				o->format->data(o, filter_out, filter_out_len, &output_buf, &output_len);
-			if (output_buf) {
-				fwrite(output_buf, 1, output_len, outfile);
-				fflush(outfile);
-				g_free(output_buf);
-			}
-		}
-
-		cleanup:
-		g_free(filter_out);
-		received_samples += logic->length / sample_size;
-		break;
-
-	case SR_DF_META_ANALOG:
-		g_message("cli: Received SR_DF_META_ANALOG");
-
-		outfile = stdout;
-		if (opt_output_file) {
-			if (default_output_format) {
-				/* output file is in session format, which means we'll
-				 * dump everything in the datastore as it comes in,
-				 * and save from there after the session. */
-				outfile = NULL;
-				ret = sr_datastore_new(unitsize, &singleds);
-				if (ret != SR_OK) {
-					g_critical("Failed to create datastore.");
-					exit(1);
-				}
+			if (opt_pds) {
+				if (srd_session_send(received_samples, (uint8_t*)filter_out,
+						filter_out_len) != SRD_OK)
+					sr_session_stop();
 			} else {
-				/* saving to a file in whatever format was set
-				 * with --format, so all we need is a filehandle */
-				outfile = g_fopen(opt_output_file, "wb");
+				output_len = 0;
+				if (o->format->data && packet->type == o->format->df_type)
+					o->format->data(o, filter_out, filter_out_len,
+							&output_buf, &output_len);
+				if (output_buf) {
+					fwrite(output_buf, 1, output_len, outfile);
+					fflush(outfile);
+					g_free(output_buf);
+				}
 			}
 		}
+		g_free(filter_out);
+
+		received_samples += logic->length / sample_size;
 		break;
 
 	case SR_DF_ANALOG:
@@ -793,7 +788,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 
 	default:
-		g_message("received unknown packet type %d", packet->type);
+		break;
 	}
 
 	if (o && o->format->recv) {
@@ -1181,7 +1176,7 @@ static void load_input_file_format(void)
 	}
 
 	if (select_probes(in->sdi) > 0)
-            return;
+		return;
 
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in);
@@ -1192,10 +1187,7 @@ static void load_input_file_format(void)
 	}
 
 	input_format->loadfile(in, opt_input_file);
-	if (opt_output_file && default_output_format) {
-		if (sr_session_save(opt_output_file, in->sdi, singleds) != SR_OK)
-			g_critical("Failed to save session.");
-	}
+
 	sr_session_destroy();
 
 	if (fmtargs)
@@ -1440,10 +1432,6 @@ static void run_session(void)
 	if (opt_continuous)
 		clear_anykey();
 
-	if (opt_output_file && default_output_format) {
-		if (sr_session_save(opt_output_file, sdi, singleds) != SR_OK)
-			g_critical("Failed to save session.");
-	}
 	sr_session_destroy();
 	g_slist_free(devices);
 
