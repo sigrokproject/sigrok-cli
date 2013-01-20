@@ -1,13 +1,10 @@
 .TH SIGROK\-CLI 1 "May 29, 2012"
 .SH "NAME"
-sigrok\-cli \- Command-line client for the sigrok logic analyzer software
+sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
-.B sigrok\-cli \fR[\fB\-hVlDdiIoOptwasA\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-l\fR|\fB\-\-loglevel\fR level] [\fB\-D\fR|\fB\-\-list\-devices\fR] [\fB\-d\fR|\fB\-\-device\fR device] [\fB\-i\fR|\fB\-\-input\-file\fR filename] [\fB\-I\fR|\fB\-\-input\-format\fR format] [\fB\-o\fR|\fB\-\-output\-file\fR filename] [\fB\-O\fR|\fB\-\-output-format\fR format] [\fB\-p\fR|\fB\-\-probes\fR probelist] [\fB\-t\fR|\fB\-\-triggers\fR triggerlist] [\fB\-w\fR|\fB\-\-wait\-trigger\fR] [\fB\-a\fR|\fB\-\-protocol\-decoders\fR decoderlist] [\fB\-s\fR|\fB\-\-protocol\-decoder\-stack\fR stack] [\fB\-A\fR|\fB\-\-protocol\-decoder\-annotations\fR annlist] [\fB\-\-time\fR ms] [\fB\-\-samples\fR numsamples] [\fB\-\-continuous\fR]
+.B sigrok\-cli [OPTIONS] [COMMAND]
 .SH "DESCRIPTION"
-.B sigrok\-cli
-is a cross-platform command line utility for the
-.B sigrok
-logic analyzer software.
+\fBsigrok\-cli\fP is a cross-platform command line utility for the \fBsigrok\fP software.
 .PP
 The command-line frontend for sigrok cannot display graphical output, but is
 still sufficient to run through the whole process of hardware initialization,
@@ -16,7 +13,7 @@ acquisition, protocol decoding and saving the session.
 It is useful for running on remote or embedded systems, netbooks, PDAs,
 and for various other use-cases. It can display samples on standard output or
 save them in various file formats.
-.SH "OPTIONS"
+.SH OPTIONS
 .TP
 .B "\-h, \-\-help"
 Show a help text and exit.
@@ -27,44 +24,34 @@ Show
 version, and information about supported hardware drivers, input file
 formats, output file formats, and protocol decoders.
 .TP
-.BR "\-l, \-\-loglevel " <level>
-Set the libsigrok and libsigrokdecode loglevel. At the moment
-.B sigrok-cli
-doesn't support setting the two loglevels independently. The higher the
-number, the more debug output will be printed. Valid loglevels are
-.BR 0 " (NONE),"
-.BR 1 " (ERR),"
-.BR 2 " (WARN),"
-.BR 3 " (INFO),"
-.BR 4 " (DBG), and"
-.BR 5 " (SPEW)."
-.TP
-.B "\-D, \-\-list\-devices"
-List all logic analyzer devices found on the system. This actively scans for
-devices (USB, serial port, and others).
+\fB\-\-driver\fP <drivername>
+A driver must always be selected. Use the \fB-V\fP option to get a list of available drivers. Drivers can take options, in the form \fBkey=value\fP separated by colons.
+.sp
+Drivers communicating with hardware via a serial port always need the port specified as the \fBconn\fP option. For example, to use the Openbench Logic Sniffer:
+.sp
+.RB "  $ " "sigrok\-cli \-\-driver=ols:conn=/dev/ttyACM0"
+.sp
+Some USB devices don't use a unique VendorID/ProductID combination, and thus need that specified as well. This also uses the \fBconn\fP option, using either \fBVendorID.ProductID\fP or \fBbus.address\fP:
+.sp
+.RB "  $ " "sigrok\-cli \-\-driver=nexus-osciprime:conn=04b4.8613"
 .TP
 .BR "\-d, \-\-device " <device>
-The device to use for acquisition. It can be specified by ID as reported by
-.BR "\-\-list\-devices" ,
-or by the name of the driver as reported by
-.BR \-\-version .
-.sp
-A device can optionally be followed by a colon-separated list of device
-options, where each option takes the form
+A colon-separated list of device options, where each option takes the form
 .BR key=value .
-For example, to set the samplerate on the first device you might specify
+For example, to set the samplerate on a device supported by the fx2lafw
+driver, you might specify
 .sp
-.RB "  $ " "sigrok\-cli \-d 0:samplerate=1m"
+.RB "  $ " "sigrok\-cli \-\-driver=fx2lafw \-\-device samplerate=1m"
 .sp
-Samplerate is an option common to most devices. The argument specifies the
-samplerate in Hz. You can also specify the samplerate in kHz, MHz or GHz.
+Samplerate is an option common to most logic analyzers. The argument specifies
+the samplerate in Hz. You can also specify the samplerate in kHz, MHz or GHz.
 The following are all equivalent:
 .sp
-.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1000000"
+.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-device samplerate=1000000"
 .sp
-.RB "  $ " "sigrok\-cli \-\-samples 100 \-d 0:samplerate=1m"
+.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-device samplerate=1m"
 .sp
-.RB "  $ " "sigrok\-cli \-\-samples 100 \-d ""0:samplerate=1 MHz""
+.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-device \(dqsamplerate=1 MHz\(dq"
 .TP
 .BR "\-i, \-\-input\-file " <filename>
 Load input from a file instead of a hardware device. If the
@@ -130,6 +117,8 @@ like this:
 .BR "\-p, \-\-probes " <probelist>
 A comma-separated list of probes to be used in the session.
 .sp
+Note that sigrok always names the probes according to how they're shown on the enclosure of the hardware. If your logic analyzer numbers the probes 0-15, that's how you must specify them with this option. An oscilloscope's probes would generally be referred to as "CH1", "CH2", and so on. Use the \fB\-\-show\fP option to see a list of probe names for your device.
+.sp
 The default is to use all the probes available on a device. You can name
 a probe like this:
 .BR "1=CLK" .
@@ -139,7 +128,7 @@ A range of probes can also be given, in the form
 Example:
 .sp
  $
-.B "sigrok\-cli \-\-samples 100 \-\-probes 1=CLK,2\-4,7"
+.B "sigrok\-cli \-\-driver fx2lafw \-\-samples 100 \-\-probes 1=CLK,2\-4,7"
 .br
  CLK:11111111 11111111 11111111 11111111 [...]
    2:11111111 11111111 11111111 11111111 [...]
@@ -181,16 +170,10 @@ effectively corresponds to
 .BR "c" :
 Any kind of change on a pin (either a rising or a falling edge).
 .sp
-Not every device supports all of these trigger types. Use the
-.B "\-d <device>"
-argument (with no other arguments) to see which triggers your device supports.
+Not every device supports all of these trigger types. Use the \fB\-\-show\fP command to see which triggers your device supports.
 .TP
 .BR "\-w, \-\-wait-trigger"
-Don't output any sample data (even if it's actually received from the logic
-analyzer) before the trigger condition is met. In other words, do not output
-any pre-trigger data. This option is useful if you don't care about the data
-that came before the trigger (but the logic analyzer hardware delivers this
-data to sigrok nonetheless).
+Don't output any sample data (even if it's actually received from the hardware) before the trigger condition is met. In other words, do not output any pre-trigger data. This option is useful if you don't care about the data that came before the trigger (but the hardware delivers this data to sigrok nonetheless).
 .TP
 .BR "\-a, \-\-protocol\-decoders " <list>
 This option allows the user to specify a comma-separated list of protocol
@@ -300,6 +283,42 @@ annotation format each, by separating them with commas:
 .br
 .B "              \-A i2c=rawhex,edid"
 .TP
+.BR "\-l, \-\-loglevel " <level>
+Set the libsigrok and libsigrokdecode loglevel. At the moment \fBsigrok-cli\fP doesn't support setting the two loglevels independently. The higher the
+number, the more debug output will be printed. Valid loglevels are:
+.sp
+\fB0\fP   None
+.br
+\fB1\fP   Error
+.br
+\fB2\fP   Warnings
+.br
+\fB3\fP   Informational
+.br
+\fB4\fP   Debug
+.br
+\fB5\fP   Spew
+.TP
+.B "\-\-show"
+.br
+Show information about the selected option. For example, to see options for a connected fx2lafw device:
+.sp
+ $
+.B "sigrok\-cli \-\-driver fx2lafw \-\-show
+.sp
+In order to properly get device options for your hardware, some drivers might need a serial port specified:
+.sp
+ $
+.B "sigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-show
+.sp
+To view the documentation for a protocol decoder:
+.sp
+ $
+.B "sigrok\-cli \-\-protocol-decoders i2c \-\-show
+.TP
+.B "\-D, \-\-list\-devices"
+List all devices found on the system. This actively scans for devices that can be detected automatically.
+.TP
 .BR "\-\-time " <ms>
 Sample for
 .B <ms>
@@ -316,24 +335,27 @@ samples, then quit.
 .TP
 .BR "\-\-continuous"
 Sample continuously until stopped. Not all devices support this.
-.SH "EXAMPLES"
-In order to get exactly 100 samples from the (only) detected logic analyzer
-hardware, run the following command:
+.SH EXAMPLES
+In order to get exactly 100 samples from the connected fx2lafw-supported logic analyzer hardware, run the following command:
 .TP
-.B "  sigrok\-cli \-\-samples 100"
+.B "  sigrok\-cli \-\-driver fx2lafw \-\-samples 100"
 .TP
 If you want to sample data for 3 seconds, use:
 .TP
-.B "  sigrok\-cli \-\-time 3000"
+.B "  sigrok\-cli \-\-driver fx2lafw \-\-time 3000"
 .TP
 Alternatively, you can also use:
 .TP
-.B "  sigrok\-cli \-\-time 3s"
+.B "  sigrok\-cli \-\-driver fx2lafw \-\-time 3s"
 .TP
-To capture data from 4 probes lasting 100ms at 10 MHz starting at the trigger condition 1:high, 2:rising, 3:low, 4:high, use:
+To capture data from the first 4 probes using the Openbench Logic Sniffer lasting 100ms at 10 MHz starting at the trigger condition
+0:high, 1:rising, 2:low, 3:high, use:
 .TP
-.B "  sigrok\-cli -d 0:samplerate=10m \-O bits \-p 1\-4 \-\-time 100 \\\\"
-.B "      \-\-wait\-trigger \-\-triggers 1=1,2=r,3=0,4=1 "
+.nf
+  \fBsigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-device samplerate=10m \\
+\fB\-\-output\-format bits \-\-probes 0\-3 \-\-time 100 \\
+\fB\-\-wait\-trigger \-\-triggers 0=1,1=r,2=0,3=1
+.fi
 .SH "EXIT STATUS"
 .B sigrok\-cli
 exits with 0 on success, 1 on most failures.
