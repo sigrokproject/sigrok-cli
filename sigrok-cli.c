@@ -568,8 +568,10 @@ static GArray *get_enabled_logic_probes(const struct sr_dev_inst *sdi)
 static void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet)
 {
+	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog *analog;
+	struct sr_config *src;
 	static struct sr_output *o = NULL;
 	static GArray *logic_probelist = NULL;
 	static uint64_t received_samples = 0;
@@ -580,6 +582,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	uint64_t *samplerate, output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
 	GString *out;
+	GSList *l;
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -674,6 +677,23 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			o->format->cleanup(o);
 		g_free(o);
 		o = NULL;
+		break;
+
+	case SR_DF_META:
+		g_debug("cli: received SR_DF_META");
+		meta = packet->payload;
+		for (l = meta->config; l; l = l->next) {
+			src = l->data;
+			switch (src->key) {
+			case SR_HWCAP_SAMPLERATE:
+				samplerate = (uint64_t *)src->value;
+				g_debug("cli: got samplerate %"PRIu64, *samplerate);
+				break;
+			default:
+				/* Unknown metadata is not an error. */
+				break;
+			}
+		}
 		break;
 
 	case SR_DF_TRIGGER:
