@@ -112,11 +112,11 @@ static GOptionEntry optargs[] = {
 };
 
 
-/* Convert driver options hash to GSList of struct sr_hwopt. */
+/* Convert driver options hash to GSList of struct sr_config. */
 static GSList *hash_to_hwopt(GHashTable *hash)
 {
-	const struct sr_hwcap_option *hwo;
-	struct sr_hwopt *hwopt;
+	const struct sr_config_info *srci;
+	struct sr_config *src;
 	GList *gl, *keys;
 	GSList *opts;
 	char *key, *value;
@@ -125,25 +125,25 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 	opts = NULL;
 	for (gl = keys; gl; gl = gl->next) {
 		key = gl->data;
-		if (!(hwo = sr_drvopt_name_get(key))) {
+		if (!(srci = sr_drvopt_name_get(key))) {
 			g_critical("Unknown option %s", key);
 			return NULL;
 		}
-		hwopt = g_try_malloc(sizeof(struct sr_hwopt));
-		hwopt->hwopt = hwo->hwcap;
+		src = g_try_malloc(sizeof(struct sr_config));
+		src->key = srci->key;
 		value = g_hash_table_lookup(hash, key);
-		hwopt->value = g_strdup(value);
-		opts = g_slist_append(opts, hwopt);
+		src->value = g_strdup(value);
+		opts = g_slist_append(opts, src);
 	}
 	g_list_free(keys);
 
 	return opts;
 }
 
-static void free_hwopt(struct sr_hwopt *hwopt)
+static void free_drvopts(struct sr_config *src)
 {
-	g_free((void *)hwopt->value);
-	g_free(hwopt);
+	g_free((void *)src->value);
+	g_free(src);
 }
 
 static GSList *device_scan(void)
@@ -180,7 +180,7 @@ static GSList *device_scan(void)
 				/* Unknown options, already logged. */
 				return NULL;
 		devices = sr_driver_scan(driver, drvopts);
-		g_slist_free_full(drvopts, (GDestroyNotify)free_hwopt);
+		g_slist_free_full(drvopts, (GDestroyNotify)free_drvopts);
 	} else {
 		/* No driver specified, let them all scan on their own. */
 		devices = NULL;
@@ -297,7 +297,7 @@ static void show_dev_list(void)
 static void show_dev_detail(void)
 {
 	struct sr_dev_inst *sdi;
-	const struct sr_hwcap_option *hwo;
+	const struct sr_config_info *srci;
 	const struct sr_samplerates *samplerates;
 	struct sr_rational *rationals;
 	GSList *devices;
@@ -346,9 +346,9 @@ static void show_dev_detail(void)
 			NULL) == SR_OK) && hwopts) {
 		printf("Supported driver options:\n");
 		for (i = 0; hwopts[i]; i++) {
-			if (!(hwo = sr_drvopt_get(hwopts[i])))
+			if (!(srci = sr_drvopt_get(hwopts[i])))
 				continue;
-			printf("    %s\n", hwo->shortname);
+			printf("    %s\n", srci->id);
 		}
 	}
 
@@ -359,7 +359,7 @@ static void show_dev_detail(void)
 		return;
 
 	for (cap = 0; hwcaps[cap]; cap++) {
-		if (!(hwo = sr_devopt_get(hwcaps[cap])))
+		if (!(srci = sr_devopt_get(hwcaps[cap])))
 			continue;
 
 		if (title) {
@@ -367,9 +367,9 @@ static void show_dev_detail(void)
 			title = NULL;
 		}
 
-		if (hwo->hwcap == SR_HWCAP_PATTERN_MODE) {
+		if (srci->key == SR_HWCAP_PATTERN_MODE) {
 			/* Pattern generator modes */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_PATTERNS,
 					(const void **)&stropts, sdi) == SR_OK) {
 				printf(" - supported patterns:\n");
@@ -379,9 +379,9 @@ static void show_dev_detail(void)
 				printf("\n");
 			}
 
-		} else if (hwo->hwcap == SR_HWCAP_SAMPLERATE) {
+		} else if (srci->key == SR_HWCAP_SAMPLERATE) {
 			/* Supported samplerates */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_SAMPLERATES,
 					(const void **)&samplerates, sdi) != SR_OK) {
 				printf("\n");
@@ -409,9 +409,9 @@ static void show_dev_detail(void)
 					printf("      %s\n", sr_samplerate_string(samplerates->list[i]));
 			}
 
-		} else if (hwo->hwcap == SR_HWCAP_BUFFERSIZE) {
+		} else if (srci->key == SR_HWCAP_BUFFERSIZE) {
 			/* Supported buffer sizes */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_BUFFERSIZES,
 					(const void **)&integers, sdi) != SR_OK) {
 				printf("\n");
@@ -421,9 +421,9 @@ static void show_dev_detail(void)
 			for (i = 0; integers[i]; i++)
 				printf("      %"PRIu64"\n", integers[i]);
 
-		} else if (hwo->hwcap == SR_HWCAP_TIMEBASE) {
+		} else if (srci->key == SR_HWCAP_TIMEBASE) {
 			/* Supported time bases */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_TIMEBASES,
 					(const void **)&rationals, sdi) != SR_OK) {
 				printf("\n");
@@ -434,9 +434,9 @@ static void show_dev_detail(void)
 				printf("      %s\n", sr_period_string(
 						rationals[i].p * rationals[i].q));
 
-		} else if (hwo->hwcap == SR_HWCAP_TRIGGER_SOURCE) {
+		} else if (srci->key == SR_HWCAP_TRIGGER_SOURCE) {
 			/* Supported trigger sources */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_TRIGGER_SOURCES,
 					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
@@ -446,9 +446,9 @@ static void show_dev_detail(void)
 			for (i = 0; stropts[i]; i++)
 				printf("      %s\n", stropts[i]);
 
-		} else if (hwo->hwcap == SR_HWCAP_FILTER) {
+		} else if (srci->key == SR_HWCAP_FILTER) {
 			/* Supported filters */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_FILTERS,
 					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
@@ -458,9 +458,9 @@ static void show_dev_detail(void)
 			for (i = 0; stropts[i]; i++)
 				printf("      %s\n", stropts[i]);
 
-		} else if (hwo->hwcap == SR_HWCAP_VDIV) {
+		} else if (srci->key == SR_HWCAP_VDIV) {
 			/* Supported volts/div values */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_VDIVS,
 					(const void **)&rationals, sdi) != SR_OK) {
 				printf("\n");
@@ -470,9 +470,9 @@ static void show_dev_detail(void)
 			for (i = 0; rationals[i].p && rationals[i].q; i++)
 				printf("      %s\n", sr_voltage_string(	&rationals[i]));
 
-		} else if (hwo->hwcap == SR_HWCAP_COUPLING) {
+		} else if (srci->key == SR_HWCAP_COUPLING) {
 			/* Supported coupling settings */
-			printf("    %s", hwo->shortname);
+			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_COUPLING,
 					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
@@ -484,7 +484,7 @@ static void show_dev_detail(void)
 
 		} else {
 			/* Everything else */
-			printf("    %s\n", hwo->shortname);
+			printf("    %s\n", srci->id);
 		}
 	}
 
@@ -1212,7 +1212,7 @@ static void load_input_file(void)
 
 static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 {
-	const struct sr_hwcap_option *hwo;
+	const struct sr_config_info *srci;
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
@@ -1224,18 +1224,18 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		if (!(hwo = sr_devopt_name_get(key))) {
+		if (!(srci = sr_devopt_name_get(key))) {
 			g_critical("Unknown device option '%s'.", (char *) key);
 			return SR_ERR;
 		}
 
 		if ((value == NULL) &&
-			(hwo->type != SR_T_BOOL)) {
+			(srci->datatype != SR_T_BOOL)) {
 			g_critical("Option '%s' needs a value.", (char *)key);
 			return SR_ERR;
 		}
 		val = NULL;
-		switch (hwo->type) {
+		switch (srci->datatype) {
 		case SR_T_UINT64:
 			ret = sr_parse_sizestring(value, &tmp_u64);
 			if (ret != SR_OK)
@@ -1270,7 +1270,7 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			ret = SR_ERR;
 		}
 		if (val)
-			ret = sr_dev_config_set(sdi, hwo->hwcap, val);
+			ret = sr_dev_config_set(sdi, srci->key, val);
 		if (ret != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
