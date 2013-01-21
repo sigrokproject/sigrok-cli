@@ -367,7 +367,7 @@ static void show_dev_detail(void)
 			title = NULL;
 		}
 
-		if (srci->key == SR_HWCAP_PATTERN_MODE) {
+		if (srci->key == SR_CONF_PATTERN_MODE) {
 			/* Pattern generator modes */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_PATTERNS,
@@ -379,7 +379,7 @@ static void show_dev_detail(void)
 				printf("\n");
 			}
 
-		} else if (srci->key == SR_HWCAP_SAMPLERATE) {
+		} else if (srci->key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_SAMPLERATES,
@@ -409,7 +409,7 @@ static void show_dev_detail(void)
 					printf("      %s\n", sr_samplerate_string(samplerates->list[i]));
 			}
 
-		} else if (srci->key == SR_HWCAP_BUFFERSIZE) {
+		} else if (srci->key == SR_CONF_BUFFERSIZE) {
 			/* Supported buffer sizes */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_BUFFERSIZES,
@@ -421,7 +421,7 @@ static void show_dev_detail(void)
 			for (i = 0; integers[i]; i++)
 				printf("      %"PRIu64"\n", integers[i]);
 
-		} else if (srci->key == SR_HWCAP_TIMEBASE) {
+		} else if (srci->key == SR_CONF_TIMEBASE) {
 			/* Supported time bases */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_TIMEBASES,
@@ -434,7 +434,7 @@ static void show_dev_detail(void)
 				printf("      %s\n", sr_period_string(
 						rationals[i].p * rationals[i].q));
 
-		} else if (srci->key == SR_HWCAP_TRIGGER_SOURCE) {
+		} else if (srci->key == SR_CONF_TRIGGER_SOURCE) {
 			/* Supported trigger sources */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_TRIGGER_SOURCES,
@@ -446,7 +446,7 @@ static void show_dev_detail(void)
 			for (i = 0; stropts[i]; i++)
 				printf("      %s\n", stropts[i]);
 
-		} else if (srci->key == SR_HWCAP_FILTER) {
+		} else if (srci->key == SR_CONF_FILTER) {
 			/* Supported filters */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_FILTERS,
@@ -458,7 +458,7 @@ static void show_dev_detail(void)
 			for (i = 0; stropts[i]; i++)
 				printf("      %s\n", stropts[i]);
 
-		} else if (srci->key == SR_HWCAP_VDIV) {
+		} else if (srci->key == SR_CONF_VDIV) {
 			/* Supported volts/div values */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_VDIVS,
@@ -470,7 +470,7 @@ static void show_dev_detail(void)
 			for (i = 0; rationals[i].p && rationals[i].q; i++)
 				printf("      %s\n", sr_voltage_string(	&rationals[i]));
 
-		} else if (srci->key == SR_HWCAP_COUPLING) {
+		} else if (srci->key == SR_CONF_COUPLING) {
 			/* Supported coupling settings */
 			printf("    %s", srci->id);
 			if (sr_info_get(sdi->driver, SR_DI_COUPLING,
@@ -685,7 +685,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		for (l = meta->config; l; l = l->next) {
 			src = l->data;
 			switch (src->key) {
-			case SR_HWCAP_SAMPLERATE:
+			case SR_CONF_SAMPLERATE:
 				samplerate = (uint64_t *)src->value;
 				g_debug("cli: got samplerate %"PRIu64, *samplerate);
 				break;
@@ -1312,8 +1312,8 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_LIMIT_MSEC)) {
-		if (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_MSEC, &time_msec) != SR_OK) {
+	if (sr_driver_hwcap_exists(sdi->driver, SR_CONF_LIMIT_MSEC)) {
+		if (sr_dev_config_set(sdi, SR_CONF_LIMIT_MSEC, &time_msec) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			sr_session_destroy();
 			return SR_ERR;
@@ -1324,7 +1324,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		 * convert to samples based on the samplerate.
 		 */
 		limit_samples = 0;
-		if (sr_dev_has_hwcap(sdi, SR_HWCAP_SAMPLERATE)) {
+		if (sr_dev_has_hwcap(sdi, SR_CONF_SAMPLERATE)) {
 			sr_info_get(sdi->driver, SR_DI_CUR_SAMPLERATE,
 					(const void **)&samplerate, sdi);
 			limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
@@ -1335,7 +1335,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 
-		if (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_SAMPLES,
+		if (sr_dev_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
 					&limit_samples) != SR_OK) {
 			g_critical("Failed to configure time-based sample limit.");
 			sr_session_destroy();
@@ -1404,7 +1404,7 @@ static void run_session(void)
 	}
 
 	if (opt_continuous) {
-		if (!sr_driver_hwcap_exists(sdi->driver, SR_HWCAP_CONTINUOUS)) {
+		if (!sr_driver_hwcap_exists(sdi->driver, SR_CONF_CONTINUOUS)) {
 			g_critical("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
@@ -1420,7 +1420,7 @@ static void run_session(void)
 
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-				|| (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_SAMPLES,
+				|| (sr_dev_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
 						&limit_samples) != SR_OK)) {
 			g_critical("Failed to configure sample limit.");
 			sr_session_destroy();
@@ -1430,7 +1430,7 @@ static void run_session(void)
 
 	if (opt_frames) {
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)
-				|| (sr_dev_config_set(sdi, SR_HWCAP_LIMIT_FRAMES,
+				|| (sr_dev_config_set(sdi, SR_CONF_LIMIT_FRAMES,
 						&limit_frames) != SR_OK)) {
 			g_critical("Failed to configure frame limit.");
 			sr_session_destroy();
