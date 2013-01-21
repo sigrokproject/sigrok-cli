@@ -125,7 +125,7 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 	opts = NULL;
 	for (gl = keys; gl; gl = gl->next) {
 		key = gl->data;
-		if (!(srci = sr_drvopt_name_get(key))) {
+		if (!(srci = sr_config_info_name_get(key))) {
 			g_critical("Unknown option %s", key);
 			return NULL;
 		}
@@ -346,7 +346,7 @@ static void show_dev_detail(void)
 			NULL) == SR_OK) && hwopts) {
 		printf("Supported driver options:\n");
 		for (i = 0; hwopts[i]; i++) {
-			if (!(srci = sr_drvopt_get(hwopts[i])))
+			if (!(srci = sr_config_info_get(hwopts[i])))
 				continue;
 			printf("    %s\n", srci->id);
 		}
@@ -359,7 +359,7 @@ static void show_dev_detail(void)
 		return;
 
 	for (cap = 0; hwcaps[cap]; cap++) {
-		if (!(srci = sr_devopt_get(hwcaps[cap])))
+		if (!(srci = sr_config_info_get(hwcaps[cap])))
 			continue;
 
 		if (title) {
@@ -1244,7 +1244,7 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		if (!(srci = sr_devopt_name_get(key))) {
+		if (!(srci = sr_config_info_name_get(key))) {
 			g_critical("Unknown device option '%s'.", (char *) key);
 			return SR_ERR;
 		}
