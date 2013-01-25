@@ -370,7 +370,7 @@ static void show_dev_detail(void)
 		if (srci->key == SR_CONF_PATTERN_MODE) {
 			/* Pattern generator modes */
 			printf("    %s", srci->id);
-			if (sr_info_get(sdi->driver, SR_DI_PATTERNS,
+			if (sr_config_list(sdi->driver, SR_CONF_PATTERN_MODE,
 					(const void **)&stropts, sdi) == SR_OK) {
 				printf(" - supported patterns:\n");
 				for (i = 0; stropts[i]; i++)
