@@ -461,7 +461,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_VDIV) {
 			/* Supported volts/div values */
 			printf("    %s", srci->id);
-			if (sr_info_get(sdi->driver, SR_DI_VDIVS,
+			if (sr_config_list(sdi->driver, SR_CONF_VDIV,
 					(const void **)&rationals, sdi) != SR_OK) {
 				printf("\n");
 				continue;
