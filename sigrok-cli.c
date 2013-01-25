@@ -1312,7 +1312,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (sr_driver_hwcap_exists(sdi->driver, SR_CONF_LIMIT_MSEC)) {
+	if (sr_dev_has_option(sdi, SR_CONF_LIMIT_MSEC)) {
 		if (sr_config_set(sdi, SR_CONF_LIMIT_MSEC, &time_msec) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			sr_session_destroy();
@@ -1404,7 +1404,7 @@ static void run_session(void)
 	}
 
 	if (opt_continuous) {
-		if (!sr_driver_hwcap_exists(sdi->driver, SR_CONF_CONTINUOUS)) {
+		if (!sr_dev_has_option(sdi, SR_CONF_CONTINUOUS)) {
 			g_critical("This device does not support continuous sampling.");
 			sr_session_destroy();
 			return;
