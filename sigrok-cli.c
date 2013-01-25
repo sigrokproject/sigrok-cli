@@ -629,7 +629,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		unitsize = (logic_probelist->len + 7) / 8;
 
 		if (opt_pds && logic_probelist->len) {
-			if (sr_info_get(sdi->driver, SR_DI_CUR_SAMPLERATE,
+			if (sr_info_get(sdi->driver, SR_CONF_SAMPLERATE,
 					(const void **)&samplerate, sdi) != SR_OK) {
 				g_critical("Unable to initialize protocol "
 						"decoders: no samplerate found.");
@@ -1325,7 +1325,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		 */
 		limit_samples = 0;
 		if (sr_dev_has_hwcap(sdi, SR_CONF_SAMPLERATE)) {
-			sr_info_get(sdi->driver, SR_DI_CUR_SAMPLERATE,
+			sr_info_get(sdi->driver, SR_CONF_SAMPLERATE,
 					(const void **)&samplerate, sdi);
 			limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
 		}
