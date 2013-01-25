@@ -449,7 +449,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_FILTER) {
 			/* Supported filters */
 			printf("    %s", srci->id);
-			if (sr_info_get(sdi->driver, SR_DI_FILTERS,
+			if (sr_config_list(sdi->driver, SR_CONF_FILTER,
 					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
 				continue;
