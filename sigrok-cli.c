@@ -473,7 +473,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_COUPLING) {
 			/* Supported coupling settings */
 			printf("    %s", srci->id);
-			if (sr_info_get(sdi->driver, SR_DI_COUPLING,
+			if (sr_config_list(sdi->driver, SR_CONF_COUPLING,
 					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
 				continue;
