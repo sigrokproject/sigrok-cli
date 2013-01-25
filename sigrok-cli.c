@@ -424,7 +424,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_TIMEBASE) {
 			/* Supported time bases */
 			printf("    %s", srci->id);
-			if (sr_info_get(sdi->driver, SR_DI_TIMEBASES,
+			if (sr_config_list(sdi->driver, SR_CONF_TIMEBASE,
 					(const void **)&rationals, sdi) != SR_OK) {
 				printf("\n");
 				continue;
