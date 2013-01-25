@@ -1290,7 +1290,7 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			ret = SR_ERR;
 		}
 		if (val)
-			ret = sr_dev_config_set(sdi, srci->key, val);
+			ret = sr_config_set(sdi, srci->key, val);
 		if (ret != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
@@ -1313,7 +1313,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	}
 
 	if (sr_driver_hwcap_exists(sdi->driver, SR_CONF_LIMIT_MSEC)) {
-		if (sr_dev_config_set(sdi, SR_CONF_LIMIT_MSEC, &time_msec) != SR_OK) {
+		if (sr_config_set(sdi, SR_CONF_LIMIT_MSEC, &time_msec) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			sr_session_destroy();
 			return SR_ERR;
@@ -1335,7 +1335,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 
-		if (sr_dev_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
+		if (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
 					&limit_samples) != SR_OK) {
 			g_critical("Failed to configure time-based sample limit.");
 			sr_session_destroy();
@@ -1420,7 +1420,7 @@ static void run_session(void)
 
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-				|| (sr_dev_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
+				|| (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
 						&limit_samples) != SR_OK)) {
 			g_critical("Failed to configure sample limit.");
 			sr_session_destroy();
@@ -1430,7 +1430,7 @@ static void run_session(void)
 
 	if (opt_frames) {
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)
-				|| (sr_dev_config_set(sdi, SR_CONF_LIMIT_FRAMES,
+				|| (sr_config_set(sdi, SR_CONF_LIMIT_FRAMES,
 						&limit_frames) != SR_OK)) {
 			g_critical("Failed to configure frame limit.");
 			sr_session_destroy();
