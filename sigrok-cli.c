@@ -437,7 +437,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_TRIGGER_SOURCE) {
 			/* Supported trigger sources */
 			printf("    %s", srci->id);
-			if (sr_info_get(sdi->driver, SR_DI_TRIGGER_SOURCES,
+			if (sr_config_list(sdi->driver, SR_CONF_TRIGGER_SOURCE,
 					(const void **)&stropts, sdi) != SR_OK) {
 				printf("\n");
 				continue;
