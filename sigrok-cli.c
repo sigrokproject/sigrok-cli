@@ -1324,7 +1324,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		 * convert to samples based on the samplerate.
 		 */
 		limit_samples = 0;
-		if (sr_dev_has_hwcap(sdi, SR_CONF_SAMPLERATE)) {
+		if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
 			sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
 					(const void **)&samplerate, sdi);
 			limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
