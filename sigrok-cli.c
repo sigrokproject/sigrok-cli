@@ -353,7 +353,7 @@ static void show_dev_detail(void)
 	}
 
 	title = "Supported device options:\n";
-	if ((sr_info_get(sdi->driver, SR_DI_HWCAPS, (const void **)&hwcaps,
+	if ((sr_config_list(sdi->driver, SR_CONF_DEVICE_OPTIONS, (const void **)&hwcaps,
 			NULL) != SR_OK) || !hwcaps)
 		/* Driver supports no device instance options. */
 		return;
