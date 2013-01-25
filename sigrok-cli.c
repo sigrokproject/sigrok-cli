@@ -342,7 +342,7 @@ static void show_dev_detail(void)
 		printf("\n");
 	}
 
-	if ((sr_info_get(sdi->driver, SR_DI_HWOPTS, (const void **)&hwopts,
+	if ((sr_config_list(sdi->driver, SR_CONF_SCAN_OPTIONS, (const void **)&hwopts,
 			NULL) == SR_OK) && hwopts) {
 		printf("Supported driver options:\n");
 		for (i = 0; hwopts[i]; i++) {
