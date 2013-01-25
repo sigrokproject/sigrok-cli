@@ -332,7 +332,7 @@ static void show_dev_detail(void)
 
 	print_dev_line(sdi);
 
-	if (sr_info_get(sdi->driver, SR_DI_TRIGGER_TYPES, (const void **)&charopts,
+	if (sr_config_list(sdi->driver, SR_CONF_TRIGGER_TYPE, (const void **)&charopts,
 			sdi) == SR_OK && charopts) {
 		printf("Supported triggers: ");
 		while (*charopts) {
