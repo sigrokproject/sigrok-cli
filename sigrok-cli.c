@@ -382,7 +382,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
-			if (sr_info_get(sdi->driver, SR_DI_SAMPLERATES,
+			if (sr_config_list(sdi->driver, SR_CONF_SAMPLERATE,
 					(const void **)&samplerates, sdi) != SR_OK) {
 				printf("\n");
 				continue;
