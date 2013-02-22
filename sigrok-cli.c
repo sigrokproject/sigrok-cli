@@ -1189,7 +1189,7 @@ static void load_input_file_format(void)
 	in->format = input_format;
 	in->param = fmtargs;
 	if (in->format->init) {
-		if (in->format->init(in) != SR_OK) {
+		if (in->format->init(in, opt_input_file) != SR_OK) {
 			g_critical("Input format init failed.");
 			exit(1);
 		}
