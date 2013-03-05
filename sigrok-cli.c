@@ -640,45 +640,6 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		}
 		break;
 
-	case SR_DF_END:
-		g_debug("cli: Received SR_DF_END");
-		if (!o) {
-			g_debug("cli: double end!");
-			break;
-		}
-		if (o->format->event) {
-			o->format->event(o, SR_DF_END, &output_buf, &output_len);
-			if (output_buf) {
-				if (outfile)
-					fwrite(output_buf, 1, output_len, outfile);
-				g_free(output_buf);
-				output_len = 0;
-			}
-		}
-		if (limit_samples && received_samples < limit_samples)
-			g_warning("Device only sent %" PRIu64 " samples.",
-			       received_samples);
-		if (opt_continuous)
-			g_warning("Device stopped after %" PRIu64 " samples.",
-			       received_samples);
-
-		if (outfile && outfile != stdout)
-			fclose(outfile);
-
-		if (opt_output_file && default_output_format) {
-			if (sr_session_save(opt_output_file, sdi, savebuf->data,
-					unitsize, savebuf->len / unitsize) != SR_OK)
-				g_critical("Failed to save session.");
-			g_byte_array_free(savebuf, FALSE);
-		}
-
-		g_array_free(logic_probelist, TRUE);
-		if (o->format->cleanup)
-			o->format->cleanup(o);
-		g_free(o);
-		o = NULL;
-		break;
-
 	case SR_DF_META:
 		g_debug("cli: received SR_DF_META");
 		meta = packet->payload;
@@ -816,6 +777,47 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		if (out && out->len) {
 			fwrite(out->str, 1, out->len, outfile);
 			fflush(outfile);
+		}
+	}
+
+	/* SR_DF_END needs to be handled after the output module's recv()
+	 * is called, so it can properly clean up that module etc. */
+	if (packet->type == SR_DF_END) {
+		g_debug("cli: Received SR_DF_END");
+
+		if (o->format->event) {
+			o->format->event(o, SR_DF_END, &output_buf, &output_len);
+			if (output_buf) {
+				if (outfile)
+					fwrite(output_buf, 1, output_len, outfile);
+				g_free(output_buf);
+				output_len = 0;
+			}
+		}
+
+		if (limit_samples && received_samples < limit_samples)
+			g_warning("Device only sent %" PRIu64 " samples.",
+			       received_samples);
+
+		if (opt_continuous)
+			g_warning("Device stopped after %" PRIu64 " samples.",
+			       received_samples);
+
+		g_array_free(logic_probelist, TRUE);
+
+		if (o->format->cleanup)
+			o->format->cleanup(o);
+		g_free(o);
+		o = NULL;
+
+		if (outfile && outfile != stdout)
+			fclose(outfile);
+
+		if (opt_output_file && default_output_format) {
+			if (sr_session_save(opt_output_file, sdi, savebuf->data,
+					unitsize, savebuf->len / unitsize) != SR_OK)
+				g_critical("Failed to save session.");
+			g_byte_array_free(savebuf, FALSE);
 		}
 	}
 
