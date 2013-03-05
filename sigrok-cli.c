@@ -746,7 +746,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 				if (o->format->data && packet->type == o->format->df_type)
 					o->format->data(o, filter_out, filter_out_len,
 							&output_buf, &output_len);
-				if (output_buf) {
+				if (output_len) {
 					fwrite(output_buf, 1, output_len, outfile);
 					fflush(outfile);
 					g_free(output_buf);
