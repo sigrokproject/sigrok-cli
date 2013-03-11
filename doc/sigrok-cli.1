@@ -398,12 +398,16 @@ will acquire 3000000 samples.
 .TP
 .BR "\-\-continuous"
 Sample continuously until stopped. Not all devices support this.
+.TP
+.BR "\-\-set"
+Set one or more variables specified with the --device option, without doing
+any acquisition.
 .SH EXAMPLES
 In order to get exactly 100 samples from the connected fx2lafw-supported logic analyzer hardware, run the following command:
 .TP
 .B "  sigrok\-cli \-\-driver fx2lafw \-\-samples 100"
 .TP
-If you want to sample data for 3 seconds, use:
+If you want to sample data for 3 seconds (3000 ms), use:
 .TP
 .B "  sigrok\-cli \-\-driver fx2lafw \-\-time 3000"
 .TP
@@ -415,9 +419,15 @@ To capture data from the first 4 probes using the Openbench Logic Sniffer lastin
 0:high, 1:rising, 2:low, 3:high, use:
 .TP
 .nf
-  \fBsigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-device samplerate=10m \\
-\fB\-\-output\-format bits \-\-probes 0\-3 \-\-time 100 \\
-\fB\-\-wait\-trigger \-\-triggers 0=1,1=r,2=0,3=1
+  \fBsigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-device samplerate=10m \\\fP
+\fB\-\-output\-format bits \-\-probes 0\-3 \-\-time 100 \\\fP
+\fB\-\-wait\-trigger \-\-triggers 0=1,1=r,2=0,3=1\fP
+.TP
+To turn on internal logging on a Lascar EL-USB series device:
+.TP
+\fBsigrok\-cli \-\-driver lascar\-el\-usb:conn=10c4.0002 \\\fP
+\fB\-\-device datalog=on --set\fP
+.TP
 .fi
 .SH "EXIT STATUS"
 .B sigrok\-cli

@@ -66,6 +66,7 @@ static gchar *opt_time = NULL;
 static gchar *opt_samples = NULL;
 static gchar *opt_frames = NULL;
 static gchar *opt_continuous = NULL;
+static gchar *opt_set = NULL;
 
 static GOptionEntry optargs[] = {
 	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
@@ -108,6 +109,7 @@ static GOptionEntry optargs[] = {
 			"Number of frames to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
 			"Sample continuously", NULL},
+	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
 
@@ -1292,6 +1294,40 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 	return SR_OK;
 }
 
+static void set_options(void)
+{
+	struct sr_dev_inst *sdi;
+	GSList *devices;
+	GHashTable *devargs;
+
+	if (!opt_dev) {
+		g_critical("No setting specified.");
+		return;
+	}
+
+	if (!(devargs = parse_generic_arg(opt_dev, FALSE)))
+		return;
+
+	if (!(devices = device_scan())) {
+		g_critical("No devices found.");
+		return;
+	}
+	sdi = devices->data;
+
+	sr_session_new();
+	if (sr_session_dev_add(sdi) != SR_OK) {
+		g_critical("Failed to use device.");
+		return;
+	}
+
+	set_dev_options(sdi, devargs);
+
+	sr_session_destroy();
+	g_slist_free(devices);
+	g_hash_table_destroy(devargs);
+
+}
+
 static int set_limit_time(const struct sr_dev_inst *sdi)
 {
 	uint64_t time_msec;
@@ -1521,6 +1557,8 @@ int main(int argc, char **argv)
 		show_dev_detail();
 	else if (opt_input_file)
 		load_input_file();
+	else if (opt_set)
+		set_options();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)
 		run_session();
 	else
