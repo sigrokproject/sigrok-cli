@@ -305,7 +305,7 @@ static void show_dev_detail(void)
 	GSList *devices;
 	uint64_t *integers;
 	const int *hwopts, *hwcaps;
-	int cap, num_devices, n, i;
+	int cap, num_devices, *tmp_bool, i;
 	char *s, *title;
 	const char *charopts, **stropts;
 
@@ -323,6 +323,14 @@ static void show_dev_detail(void)
 
 	sdi = devices->data;
 	print_dev_line(sdi);
+
+	/* This properly opens and initializes the device, so we can get
+	 * current settings. */
+	sr_session_new();
+	if (sr_session_dev_add(sdi) != SR_OK) {
+		g_critical("Failed to use device.");
+		return;
+	}
 
 	if (sr_config_list(sdi->driver, SR_CONF_TRIGGER_TYPE, (const void **)&charopts,
 			sdi) == SR_OK && charopts) {
@@ -474,11 +482,21 @@ static void show_dev_detail(void)
 			for (i = 0; stropts[i]; i++)
 				printf("      %s\n", stropts[i]);
 
+		} else if (srci->key == SR_CONF_DATALOG) {
+			/* Turning on/off internal data logging. */
+			printf("    %s\t(on/off", srci->id);
+			if (sr_config_get(sdi->driver, SR_CONF_DATALOG,
+						(const void **)&tmp_bool, sdi) == SR_OK) {
+				printf(", currently %s", *tmp_bool ? "on" : "off");
+			}
+			printf(")\n");
 		} else {
 			/* Everything else */
 			printf("    %s\n", srci->id);
 		}
 	}
+
+	sr_session_destroy();
 
 }
 
