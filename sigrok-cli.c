@@ -314,22 +314,12 @@ static void show_dev_detail(void)
 
 	num_devices = g_slist_length(devices);
 	if (num_devices > 1) {
-		if (!opt_dev) {
-			g_critical("%d devices found. Use --list-devices to show them, "
-					"and --device to select one.", num_devices);
-			return;
-		}
-		/* opt_dev is NULL if not specified, which is fine. */
-		n = strtol(opt_dev, NULL, 10);
-		if (n >= num_devices) {
-			g_critical("%d devices found, numbered starting from 0.",
-					num_devices);
-			return;
-		}
-		sdi = g_slist_nth_data(devices, n);
-	} else
-		sdi = g_slist_nth_data(devices, 0);
+		g_critical("%d devices found. Use --list-devices to show them, "
+				"and --device to select one.", num_devices);
+		return;
+	}
 
+	sdi = devices->data;
 	print_dev_line(sdi);
 
 	if (sr_config_list(sdi->driver, SR_CONF_TRIGGER_TYPE, (const void **)&charopts,
