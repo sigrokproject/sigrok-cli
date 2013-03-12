@@ -21,7 +21,7 @@
 AC_PREREQ([2.63])
 
 AC_INIT([sigrok-cli], [0.3.1], [sigrok-devel@lists.sourceforge.net],
-        [sigrok-cli], [http://www.sigrok.org])
+	[sigrok-cli], [http://www.sigrok.org])
 
 AC_CONFIG_SRCDIR([sigrok-cli.c])
 
@@ -55,17 +55,26 @@ LT_INIT
 PKG_PROG_PKG_CONFIG([0.22])
 
 # Checks for libraries.
+AC_ARG_WITH([libsigrokdecode],
+	AS_HELP_STRING([--with-libsigrokdecode],
+			[compile with libsigrokdecode support]),
+	[WITH_SRD=$enableval],[WITH_SRD=yes])
+AM_CONDITIONAL(WITH_SRD, test x$WITH_SRD = xyes)
 
 AM_PATH_GLIB_2_0([2.28.0],
-        [CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
+	[CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
 PKG_CHECK_MODULES([libsigrok], [libsigrok >= 0.2.0],
 	[CFLAGS="$CFLAGS $libsigrok_CFLAGS";
 	LIBS="$LIBS $libsigrok_LIBS"])
 
-PKG_CHECK_MODULES([libsigrokdecode], [libsigrokdecode >= 0.1.0],
-	[CFLAGS="$CFLAGS $libsigrokdecode_CFLAGS";
-	LIBS="$LIBS $libsigrokdecode_LIBS"])
+if test "x$WITH_SRD" = "xyes"; then
+	PKG_CHECK_MODULES([libsigrokdecode], [libsigrokdecode >= 0.1.0],
+		[CFLAGS="$CFLAGS $libsigrokdecode_CFLAGS";
+			LIBS="$LIBS $libsigrokdecode_LIBS";
+			AC_DEFINE(HAVE_SRD, [1], [libsigrokdecode is available.])]
+	)
+fi
 
 # Checks for header files.
 # These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
@@ -107,13 +116,17 @@ echo
 
 # Note: This only works for libs with pkg-config integration.
 for lib in "glib-2.0" "libsigrok" "libsigrokdecode"; do
-        if `$PKG_CONFIG --exists $lib`; then
-                ver=`$PKG_CONFIG --modversion $lib`
-                answer="yes ($ver)"
-        else
-                answer="no"
-        fi
-        echo "  - $lib: $answer"
+	if test "$lib" = "libsigrokdecode" -a "$WITH_SRD" != "yes" ; then
+		answer="no"
+	else
+		if `$PKG_CONFIG --exists $lib`; then
+			ver=`$PKG_CONFIG --modversion $lib`
+			answer="yes ($ver)"
+		else
+			answer="no"
+		fi
+	fi
+	echo "  - $lib: $answer"
 done
 
 echo

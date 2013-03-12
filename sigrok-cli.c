@@ -17,7 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+#ifdef HAVE_SRD
 #include <sigrokdecode.h> /* First, so we avoid a _POSIX_C_SOURCE warning. */
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,7 +35,6 @@
 #include <glib/gstdio.h>
 #include <libsigrok/libsigrok.h>
 #include "sigrok-cli.h"
-#include "config.h"
 
 #define DEFAULT_OUTPUT_FORMAT "bits:width=64"
 
@@ -43,7 +45,9 @@ static uint64_t limit_frames = 0;
 static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
+#ifdef HAVE_SRD
 static GHashTable *pd_ann_visible = NULL;
+#endif
 static GByteArray *savebuf;
 
 static gboolean opt_version = FALSE;
@@ -57,8 +61,10 @@ static gchar *opt_dev = NULL;
 static gchar *opt_probes = NULL;
 static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
+#ifdef HAVE_SRD
 static gchar *opt_pd_stack = NULL;
 static gchar *opt_pd_annotations = NULL;
+#endif
 static gchar *opt_input_format = NULL;
 static gchar *opt_output_format = NULL;
 static gchar *opt_show = NULL;
@@ -93,12 +99,14 @@ static GOptionEntry optargs[] = {
 			"Trigger configuration", NULL},
 	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger,
 			"Wait for trigger", NULL},
+#ifdef HAVE_SRD
 	{"protocol-decoders", 'a', 0, G_OPTION_ARG_STRING, &opt_pds,
 			"Protocol decoders to run", NULL},
 	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
 			"Protocol decoder stack", NULL},
 	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotations,
 			"Protocol decoder annotation(s) to show", NULL},
+#endif
 	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
 			"Show device detail", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
@@ -205,19 +213,23 @@ static GSList *device_scan(void)
 
 static void show_version(void)
 {
-	const GSList *l;
 	struct sr_dev_driver **drivers;
 	struct sr_input_format **inputs;
 	struct sr_output_format **outputs;
-	struct srd_decoder *dec;
 	int i;
+#ifdef HAVE_SRD
+	struct srd_decoder *dec;
+	const GSList *l;
+#endif
 
 	printf("sigrok-cli %s\n\n", VERSION);
 
 	printf("Using libsigrok %s (lib version %s).\n",
 	       sr_package_version_string_get(), sr_lib_version_string_get());
+#ifdef HAVE_SRD
 	printf("Using libsigrokdecode %s (lib version %s).\n\n",
 	       srd_package_version_string_get(), srd_lib_version_string_get());
+#endif
 
 	printf("Supported hardware drivers:\n");
 	drivers = sr_driver_list();
@@ -238,6 +250,7 @@ static void show_version(void)
 		printf("  %-20s %s\n", outputs[i]->id, outputs[i]->description);
 	printf("\n");
 
+#ifdef HAVE_SRD
 	if (srd_init(NULL) == SRD_OK) {
 		printf("Supported protocol decoders:\n");
 		srd_decoder_load_all();
@@ -251,6 +264,7 @@ static void show_version(void)
 		srd_exit();
 	}
 	printf("\n");
+#endif
 }
 
 static void print_dev_line(const struct sr_dev_inst *sdi)
@@ -500,6 +514,7 @@ static void show_dev_detail(void)
 
 }
 
+#ifdef HAVE_SRD
 static void show_pd_detail(void)
 {
 	GSList *l;
@@ -555,6 +570,7 @@ static void show_pd_detail(void)
 
 	g_strfreev(pdtokens);
 }
+#endif
 
 static GArray *get_enabled_logic_probes(const struct sr_dev_inst *sdi)
 {
@@ -638,6 +654,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		/* How many bytes we need to store the packed samples. */
 		unitsize = (logic_probelist->len + 7) / 8;
 
+#ifdef HAVE_SRD
 		if (opt_pds && logic_probelist->len) {
 			if (sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
 					(const void **)&samplerate, sdi) != SR_OK) {
@@ -648,6 +665,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			srd_session_start(logic_probelist->len, unitsize,
 					*samplerate);
 		}
+#endif
 		break;
 
 	case SR_DF_META:
@@ -709,9 +727,11 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			g_byte_array_append(savebuf, filter_out, filter_out_len);
 		} else {
 			if (opt_pds) {
+#ifdef HAVE_SRD
 				if (srd_session_send(received_samples, (uint8_t*)filter_out,
 						filter_out_len) != SRD_OK)
 					sr_session_stop();
+#endif
 			} else {
 				output_len = 0;
 				if (o->format->data && packet->type == o->format->df_type)
@@ -833,6 +853,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 
 }
 
+#ifdef HAVE_SRD
 /* Register the given PDs for this session.
  * Accepts a string of the form: "spi:sck=3:sdata=4,spi:sck=3:sdata=5"
  * That will instantiate two SPI decoders on the clock but different data
@@ -1005,6 +1026,38 @@ int setup_pd_annotations(void)
 	return 0;
 }
 
+void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
+{
+	int i;
+	char **annotations;
+	gpointer ann_format;
+
+	/* 'cb_data' is not used in this specific callback. */
+	(void)cb_data;
+
+	if (!pd_ann_visible)
+		return;
+
+	if (!g_hash_table_lookup_extended(pd_ann_visible, pdata->pdo->di->inst_id,
+			NULL, &ann_format))
+		/* Not in the list of PDs whose annotations we're showing. */
+		return;
+
+	if (pdata->ann_format != GPOINTER_TO_INT(ann_format))
+		/* We don't want this particular format from the PD. */
+		return;
+
+	annotations = pdata->data;
+	if (opt_loglevel > SR_LOG_WARN)
+		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
+	printf("%s: ", pdata->pdo->proto_id);
+	for (i = 0; annotations[i]; i++)
+		printf("\"%s\" ", annotations[i]);
+	printf("\n");
+	fflush(stdout);
+}
+#endif
+
 int setup_output_format(void)
 {
 	GHashTable *fmtargs;
@@ -1050,37 +1103,6 @@ int setup_output_format(void)
 	g_hash_table_destroy(fmtargs);
 
 	return 0;
-}
-
-void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
-{
-	int i;
-	char **annotations;
-	gpointer ann_format;
-
-	/* 'cb_data' is not used in this specific callback. */
-	(void)cb_data;
-
-	if (!pd_ann_visible)
-		return;
-
-	if (!g_hash_table_lookup_extended(pd_ann_visible, pdata->pdo->di->inst_id,
-			NULL, &ann_format))
-		/* Not in the list of PDs whose annotations we're showing. */
-		return;
-
-	if (pdata->ann_format != GPOINTER_TO_INT(ann_format))
-		/* We don't want this particular format from the PD. */
-		return;
-
-	annotations = pdata->data;
-	if (opt_loglevel > SR_LOG_WARN)
-		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
-	printf("%s: ", pdata->pdo->proto_id);
-	for (i = 0; annotations[i]; i++)
-		printf("\"%s\" ", annotations[i]);
-	printf("\n");
-	fflush(stdout);
 }
 
 static int select_probes(struct sr_dev_inst *sdi)
@@ -1541,11 +1563,12 @@ int main(int argc, char **argv)
 	if (sr_log_loglevel_set(opt_loglevel) != SR_OK)
 		goto done;
 
-	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
-	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK)
+	if (sr_init(&sr_ctx) != SR_OK)
 		goto done;
 
-	if (sr_init(&sr_ctx) != SR_OK)
+#ifdef HAVE_SRD
+	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
+	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK)
 		goto done;
 
 	if (opt_pds) {
@@ -1561,6 +1584,7 @@ int main(int argc, char **argv)
 		if (setup_pd_annotations() != 0)
 			goto done;
 	}
+#endif
 
 	if (setup_output_format() != 0)
 		goto done;
@@ -1569,8 +1593,10 @@ int main(int argc, char **argv)
 		show_version();
 	else if (opt_list_devs)
 		show_dev_list();
+#ifdef HAVE_SRD
 	else if (opt_pds && opt_show)
 		show_pd_detail();
+#endif
 	else if (opt_show)
 		show_dev_detail();
 	else if (opt_input_file)
@@ -1582,8 +1608,10 @@ int main(int argc, char **argv)
 	else
 		printf("%s", g_option_context_get_help(context, TRUE, NULL));
 
+#ifdef HAVE_SRD
 	if (opt_pds)
 		srd_exit();
+#endif
 
 	ret = 0;
 
