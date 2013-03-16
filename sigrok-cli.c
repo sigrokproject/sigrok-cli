@@ -676,7 +676,11 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			switch (src->key) {
 			case SR_CONF_SAMPLERATE:
 				samplerate = (uint64_t *)src->value;
-				g_debug("cli: got samplerate %"PRIu64, *samplerate);
+				g_debug("cli: got samplerate %"PRIu64" Hz", *samplerate);
+				break;
+			case SR_CONF_SAMPLE_INTERVAL:
+				samplerate = (uint64_t *)src->value;
+				g_debug("cli: got sample interval %"PRIu64" ms", *samplerate);
 				break;
 			default:
 				/* Unknown metadata is not an error. */
