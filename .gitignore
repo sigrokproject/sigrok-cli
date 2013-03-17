@@ -18,6 +18,7 @@ missing
 stamp-h1
 autostuff/
 ChangeLog
+INSTALL
 
 # recursive autoconf leftovers
 .deps
