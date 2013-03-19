@@ -1490,42 +1490,33 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	uint64_t time_msec;
 	uint64_t *samplerate;
 
-	time_msec = sr_parse_timestring(opt_time);
-	if (time_msec == 0) {
+	if (!(time_msec = sr_parse_timestring(opt_time))) {
 		g_critical("Invalid time '%s'", opt_time);
-		sr_session_destroy();
 		return SR_ERR;
 	}
 
 	if (sr_dev_has_option(sdi, SR_CONF_LIMIT_MSEC)) {
 		if (sr_config_set(sdi, SR_CONF_LIMIT_MSEC, &time_msec) != SR_OK) {
 			g_critical("Failed to configure time limit.");
-			sr_session_destroy();
 			return SR_ERR;
 		}
-	}
-	else {
-		/* time limit set, but device doesn't support this...
-		 * convert to samples based on the samplerate.
-		 */
-		limit_samples = 0;
-		if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
-			sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
-					(const void **)&samplerate, sdi);
-			limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
-		}
+	} else if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
+		/* Convert to samples based on the samplerate.  */
+		sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
+				(const void **)&samplerate, sdi);
+		limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
 		if (limit_samples == 0) {
 			g_critical("Not enough time at this samplerate.");
-			sr_session_destroy();
 			return SR_ERR;
 		}
-
 		if (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
 					&limit_samples) != SR_OK) {
 			g_critical("Failed to configure time-based sample limit.");
-			sr_session_destroy();
 			return SR_ERR;
 		}
+	} else {
+		g_critical("This device does not support time limits.");
+		return SR_ERR;
 	}
 
 	return SR_OK;
