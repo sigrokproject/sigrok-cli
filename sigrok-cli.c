@@ -519,11 +519,15 @@ static void show_pd_detail(void)
 {
 	GSList *l;
 	struct srd_decoder *dec;
-	char **pdtokens, **pdtok, **ann, *doc;
+	struct srd_decoder_option *o;
+	char **pdtokens, **pdtok, *optsep, **ann, *val, *doc;
 	struct srd_probe *p;
 
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
+		/* Strip options. */
+		if ((optsep = strchr(*pdtok, ':')))
+			*optsep = '\0';
 		if (!(dec = srd_decoder_get_by_id(*pdtok))) {
 			g_critical("Protocol decoder %s not found.", *pdtok);
 			return;
@@ -540,7 +544,6 @@ static void show_pd_detail(void)
 		} else {
 			printf("None.\n");
 		}
-		/* TODO: Print supported decoder options. */
 		printf("Required probes:\n");
 		if (dec->probes) {
 			for (l = dec->probes; l; l = l->next) {
@@ -560,6 +563,15 @@ static void show_pd_detail(void)
 			}
 		} else {
 			printf("None.\n");
+		}
+		if (dec->options) {
+			printf("Options:\n");
+			for (l = dec->options; l; l = l->next) {
+				o = l->data;
+				val = g_variant_print(o->def, FALSE);
+				printf("- %s: %s (default %s)\n", o->id, o->desc, val);
+				g_free(val);
+			}
 		}
 		if ((doc = srd_decoder_doc_get(dec))) {
 			printf("Documentation:\n%s\n",
@@ -858,6 +870,88 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 }
 
 #ifdef HAVE_SRD
+static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
+		GHashTable **options)
+{
+	struct srd_decoder_option *o;
+	GSList *optl;
+	GVariant *gvar;
+	gint64 val_int;
+	int ret;
+	char *val_str, *conv;
+
+	ret = TRUE;
+	*options = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+
+	for (optl = dec->options; optl; optl = optl->next) {
+		o = optl->data;
+		if (!(val_str = g_hash_table_lookup(hash, o->id)))
+			/* Not specified. */
+			continue;
+		if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_STRING)) {
+			gvar = g_variant_new_string(val_str);
+		} else if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_INT64)) {
+			val_int = strtoll(val_str, &conv, 10);
+			if (!conv || conv == val_str) {
+				g_critical("Protocol decoder '%s' option '%s' "
+						"requires a number.", dec->name, o->id);
+				ret = FALSE;
+				break;
+			}
+			gvar = g_variant_new_int64(val_int);
+		} else {
+			g_critical("Unsupported type for option '%s' (%s)",
+					o->id, g_variant_get_type_string(o->def));
+			ret = FALSE;
+			break;
+		}
+		g_variant_ref_sink(gvar);
+		g_hash_table_insert(*options, g_strdup(o->id), gvar);
+		g_hash_table_remove(hash, o->id);
+	}
+
+	return ret;
+}
+
+static int probes_to_gvar(struct srd_decoder *dec, GHashTable *hash,
+		GHashTable **probes)
+{
+	struct srd_probe *p;
+	GSList *all_probes, *l;
+	GVariant *gvar;
+	gint32 val_int;
+	int ret;
+	char *val_str, *conv;
+
+	ret = TRUE;
+	*probes = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+
+	all_probes = g_slist_copy(dec->probes);
+	all_probes = g_slist_concat(all_probes, dec->opt_probes);
+	for (l = all_probes; l; l = l->next) {
+		p = l->data;
+		if (!(val_str = g_hash_table_lookup(hash, p->id)))
+			/* Not specified. */
+			continue;
+		val_int = strtoll(val_str, &conv, 10);
+		if (!conv || conv == val_str) {
+			g_critical("Protocol decoder '%s' probes '%s' "
+					"is not a number.", dec->name, p->id);
+			ret = FALSE;
+			break;
+		}
+		gvar = g_variant_new_int32(val_int);
+		g_variant_ref_sink(gvar);
+		g_hash_table_insert(*probes, g_strdup(p->id), gvar);
+		g_hash_table_remove(hash, p->id);
+	}
+	g_slist_free(all_probes);
+
+	return ret;
+}
+
 /* Register the given PDs for this session.
  * Accepts a string of the form: "spi:sck=3:sdata=4,spi:sck=3:sdata=5"
  * That will instantiate two SPI decoders on the clock but different data
@@ -865,7 +959,9 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
  */
 static int register_pds(struct sr_dev *dev, const char *pdstring)
 {
-	GHashTable *pd_opthash;
+	struct srd_decoder *dec;
+	GHashTable *pd_opthash, *options, *probes;
+	GList *leftover, *l;
 	struct srd_decoder_inst *di;
 	int ret;
 	char **pdtokens, **pdtok, *pd_name;
@@ -876,12 +972,12 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
 			g_free, NULL);
 	pd_name = NULL;
-	pd_opthash = NULL;
+	pd_opthash = options = probes = NULL;
 	pdtokens = g_strsplit(pdstring, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
 			g_critical("Invalid protocol decoder option '%s'.", *pdtok);
-			goto err_out;
+			break;
 		}
 
 		pd_name = g_strdup(g_hash_table_lookup(pd_opthash, "sigrok_key"));
@@ -889,12 +985,31 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 		if (srd_decoder_load(pd_name) != SRD_OK) {
 			g_critical("Failed to load protocol decoder %s.", pd_name);
 			ret = 1;
-			goto err_out;
+			break;
 		}
-		if (!(di = srd_inst_new(pd_name, pd_opthash))) {
+		dec = srd_decoder_get_by_id(pd_name);
+
+		/* Convert decoder option and probe values to GVariant. */
+		if (!opts_to_gvar(dec, pd_opthash, &options)) {
+			ret = 1;
+			break;
+		}
+		if (!probes_to_gvar(dec, pd_opthash, &probes)) {
+			ret = 1;
+			break;
+		}
+		if (g_hash_table_size(pd_opthash) > 0) {
+			leftover = g_hash_table_get_keys(pd_opthash);
+			for (l = leftover; l; l = l->next)
+				g_critical("Unknown option or probe '%s'", (char *)l->data);
+			g_list_free(leftover);
+			break;
+		}
+
+		if (!(di = srd_inst_new(pd_name, options))) {
 			g_critical("Failed to instantiate protocol decoder %s.", pd_name);
 			ret = 1;
-			goto err_out;
+			break;
 		}
 
 		/* If no annotation list was specified, add them all in now.
@@ -905,22 +1020,20 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 			g_hash_table_insert(pd_ann_visible,
 					    g_strdup(di->inst_id), NULL);
 
-		/* Any keys left in the options hash are probes, where the key
-		 * is the probe name as specified in the decoder class, and the
-		 * value is the probe number i.e. the order in which the PD's
-		 * incoming samples are arranged. */
-		if (srd_inst_probe_set_all(di, pd_opthash) != SRD_OK) {
+		/* Remap the probes if needed. */
+		if (srd_inst_probe_set_all(di, probes) != SRD_OK) {
 			ret = 1;
-			goto err_out;
+			break;
 		}
-		g_hash_table_destroy(pd_opthash);
-		pd_opthash = NULL;
 	}
 
-err_out:
 	g_strfreev(pdtokens);
 	if (pd_opthash)
 		g_hash_table_destroy(pd_opthash);
+	if (options)
+		g_hash_table_destroy(options);
+	if (probes)
+		g_hash_table_destroy(probes);
 	if (pd_name)
 		g_free(pd_name);
 
