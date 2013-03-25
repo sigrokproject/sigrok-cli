@@ -142,7 +142,7 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 		src = g_try_malloc(sizeof(struct sr_config));
 		src->key = srci->key;
 		value = g_hash_table_lookup(hash, key);
-		src->value = g_strdup(value);
+		src->data = g_variant_new_string(value);
 		opts = g_slist_append(opts, src);
 	}
 	g_list_free(keys);
@@ -152,7 +152,7 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 
 static void free_drvopts(struct sr_config *src)
 {
-	g_free((void *)src->value);
+	g_variant_unref(src->data);
 	g_free(src);
 }
 
@@ -314,13 +314,14 @@ static void show_dev_detail(void)
 {
 	struct sr_dev_inst *sdi;
 	const struct sr_config_info *srci;
-	const struct sr_samplerates *samplerates;
 	struct sr_rational *rationals;
 	GSList *devices;
-	uint64_t *integers;
-	const int *hwopts, *hwcaps;
-	int cap, num_devices, *tmp_bool, i;
-	char *s, *title;
+	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
+	gsize num_opts, num_elements;
+	const uint64_t *integers;
+	const int32_t *opts;
+	unsigned int num_devices, tmp_bool, o, i;
+	char *s;
 	const char *charopts, **stropts;
 
 	if (!(devices = device_scan())) {
@@ -346,49 +347,57 @@ static void show_dev_detail(void)
 		return;
 	}
 
-	if (sr_config_list(sdi->driver, SR_CONF_TRIGGER_TYPE, (const void **)&charopts,
-			sdi) == SR_OK && charopts) {
-		printf("Supported triggers: ");
-		while (*charopts) {
-			printf("%c ", *charopts);
-			charopts++;
-		}
-		printf("\n");
-	}
-
-	if ((sr_config_list(sdi->driver, SR_CONF_SCAN_OPTIONS, (const void **)&hwopts,
-			NULL) == SR_OK) && hwopts) {
+	if ((sr_config_list(sdi->driver, SR_CONF_SCAN_OPTIONS, &gvar_opts,
+			NULL) == SR_OK)) {
+		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
+				sizeof(int32_t));
 		printf("Supported driver options:\n");
-		for (i = 0; hwopts[i]; i++) {
-			if (!(srci = sr_config_info_get(hwopts[i])))
+		for (i = 0; i < num_elements; i++) {
+			if (!(srci = sr_config_info_get(opts[i])))
 				continue;
 			printf("    %s\n", srci->id);
 		}
+		g_variant_unref(gvar_opts);
 	}
 
-	title = "Supported device options:\n";
-	if ((sr_config_list(sdi->driver, SR_CONF_DEVICE_OPTIONS, (const void **)&hwcaps,
-			NULL) != SR_OK) || !hwcaps)
+	if ((sr_config_list(sdi->driver, SR_CONF_DEVICE_OPTIONS, &gvar_opts,
+			sdi) != SR_OK))
 		/* Driver supports no device instance options. */
 		return;
 
-	for (cap = 0; hwcaps[cap]; cap++) {
-		if (!(srci = sr_config_info_get(hwcaps[cap])))
+	printf("Supported device options:\n");
+	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(int32_t));
+	for (o = 0; o < num_opts; o++) {
+		if (!(srci = sr_config_info_get(opts[o])))
 			continue;
 
-		if (title) {
-			printf("%s", title);
-			title = NULL;
-		}
+		if (srci->key == SR_CONF_TRIGGER_TYPE) {
+			if (sr_config_list(sdi->driver, srci->key, &gvar,
+					sdi) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			charopts = g_variant_get_string(gvar, NULL);
+			printf("    Supported triggers: ");
+			while (*charopts) {
+				printf("%c ", *charopts);
+				charopts++;
+			}
+			printf("\n");
+			g_variant_unref(gvar);
 
-		if (srci->key == SR_CONF_PATTERN_MODE) {
+		} else if (srci->key == SR_CONF_PATTERN_MODE) {
+			/* TODO */
 			/* Pattern generator modes */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_PATTERN_MODE,
-					(const void **)&stropts, sdi) == SR_OK) {
+			if (sr_config_list(sdi->driver, srci->key, &gvar,
+					sdi) == SR_OK) {
+//				stropts = g_variant_get_fixed_array(gvar, &num_elements,
+//						sizeof
 				printf(" - supported patterns:\n");
 				for (i = 0; stropts[i]; i++)
 					printf("      %s\n", stropts[i]);
+				g_variant_unref(gvar);
 			} else {
 				printf("\n");
 			}
@@ -397,31 +406,38 @@ static void show_dev_detail(void)
 			/* Supported samplerates */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, SR_CONF_SAMPLERATE,
-					(const void **)&samplerates, sdi) != SR_OK) {
+					&gvar_dict, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
-			if (samplerates->step) {
+			if ((gvar_list = g_variant_lookup_value(gvar_dict,
+					"samplerates", G_VARIANT_TYPE("at")))) {
+				integers = g_variant_get_fixed_array(gvar_list,
+						&num_elements, sizeof(uint64_t));
+				printf(" - supported samplerates:\n");
+				for (i = 0; i < num_elements; i++)
+					printf("      %s\n", sr_samplerate_string(integers[i]));
+			} if ((gvar_list = g_variant_lookup_value(gvar_dict,
+					"samplerate-steps", G_VARIANT_TYPE("at")))) {
+				integers = g_variant_get_fixed_array(gvar_list,
+						&num_elements, sizeof(uint64_t));
 				/* low */
-				if (!(s = sr_samplerate_string(samplerates->low)))
+				if (!(s = sr_samplerate_string(integers[0])))
 					continue;
 				printf(" (%s", s);
 				g_free(s);
 				/* high */
-				if (!(s = sr_samplerate_string(samplerates->high)))
+				if (!(s = sr_samplerate_string(integers[1])))
 					continue;
 				printf(" - %s", s);
 				g_free(s);
 				/* step */
-				if (!(s = sr_samplerate_string(samplerates->step)))
+				if (!(s = sr_samplerate_string(integers[2])))
 					continue;
 				printf(" in steps of %s)\n", s);
 				g_free(s);
-			} else {
-				printf(" - supported samplerates:\n");
-				for (i = 0; samplerates->list[i]; i++)
-					printf("      %s\n", sr_samplerate_string(samplerates->list[i]));
 			}
+			g_variant_unref(gvar_dict);
 
 		} else if (srci->key == SR_CONF_BUFFERSIZE) {
 			/* Supported buffer sizes */
@@ -500,8 +516,9 @@ static void show_dev_detail(void)
 			/* Turning on/off internal data logging. */
 			printf("    %s\t(on/off", srci->id);
 			if (sr_config_get(sdi->driver, SR_CONF_DATALOG,
-						(const void **)&tmp_bool, sdi) == SR_OK) {
-				printf(", currently %s", *tmp_bool ? "on" : "off");
+					&gvar, sdi) == SR_OK) {
+				tmp_bool = g_variant_get_boolean(gvar);
+				printf(", currently %s", tmp_bool ? "on" : "off");
 			}
 			printf(")\n");
 		} else {
@@ -509,6 +526,7 @@ static void show_dev_detail(void)
 			printf("    %s\n", srci->id);
 		}
 	}
+	g_variant_unref(gvar_opts);
 
 	sr_session_destroy();
 
@@ -616,11 +634,12 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	static int unitsize = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
-	int sample_size, ret;
-	uint64_t *samplerate, output_len, filter_out_len;
-	uint8_t *output_buf, *filter_out;
-	GString *out;
 	GSList *l;
+	GString *out;
+	GVariant *gvar;
+	int sample_size, ret;
+	uint64_t samplerate, output_len, filter_out_len;
+	uint8_t *output_buf, *filter_out;
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -669,13 +688,14 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 #ifdef HAVE_SRD
 		if (opt_pds && logic_probelist->len) {
 			if (sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
-					(const void **)&samplerate, sdi) != SR_OK) {
+					&gvar, sdi) != SR_OK) {
 				g_critical("Unable to initialize protocol "
 						"decoders: no samplerate found.");
 				break;
 			}
-			srd_session_start(logic_probelist->len, unitsize,
-					*samplerate);
+			samplerate = g_variant_get_uint64(gvar);
+			g_variant_unref(gvar);
+			srd_session_start(logic_probelist->len, unitsize, samplerate);
 		}
 #endif
 		break;
@@ -687,12 +707,12 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			src = l->data;
 			switch (src->key) {
 			case SR_CONF_SAMPLERATE:
-				samplerate = (uint64_t *)src->value;
-				g_debug("cli: got samplerate %"PRIu64" Hz", *samplerate);
+				samplerate = g_variant_get_uint64(src->data);
+				g_debug("cli: got samplerate %"PRIu64" Hz", samplerate);
 				break;
 			case SR_CONF_SAMPLE_INTERVAL:
-				samplerate = (uint64_t *)src->value;
-				g_debug("cli: got sample interval %"PRIu64" ms", *samplerate);
+				samplerate = g_variant_get_uint64(src->data);
+				g_debug("cli: got sample interval %"PRIu64" ms", samplerate);
 				break;
 			default:
 				/* Unknown metadata is not an error. */
@@ -1487,8 +1507,9 @@ static void set_options(void)
 
 static int set_limit_time(const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
 	uint64_t time_msec;
-	uint64_t *samplerate;
+	uint64_t samplerate;
 
 	if (!(time_msec = sr_parse_timestring(opt_time))) {
 		g_critical("Invalid time '%s'", opt_time);
@@ -1496,21 +1517,23 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	}
 
 	if (sr_dev_has_option(sdi, SR_CONF_LIMIT_MSEC)) {
-		if (sr_config_set(sdi, SR_CONF_LIMIT_MSEC, &time_msec) != SR_OK) {
+		gvar = g_variant_new_uint64(time_msec);
+		if (sr_config_set(sdi, SR_CONF_LIMIT_MSEC, gvar) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			return SR_ERR;
 		}
 	} else if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
 		/* Convert to samples based on the samplerate.  */
-		sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
-				(const void **)&samplerate, sdi);
-		limit_samples = (*samplerate) * time_msec / (uint64_t)1000;
+		sr_config_get(sdi->driver, SR_CONF_SAMPLERATE, &gvar, sdi);
+		samplerate = g_variant_get_uint64(gvar);
+		g_variant_unref(gvar);
+		limit_samples = (samplerate) * time_msec / (uint64_t)1000;
 		if (limit_samples == 0) {
 			g_critical("Not enough time at this samplerate.");
 			return SR_ERR;
 		}
-		if (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
-					&limit_samples) != SR_OK) {
+		gvar = g_variant_new_uint64(limit_samples);
+		if (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
 			g_critical("Failed to configure time-based sample limit.");
 			return SR_ERR;
 		}
@@ -1526,6 +1549,7 @@ static void run_session(void)
 {
 	GSList *devices;
 	GHashTable *devargs;
+	GVariant *gvar;
 	struct sr_dev_inst *sdi;
 	int max_probes, i;
 	char **triggerlist;
@@ -1595,9 +1619,13 @@ static void run_session(void)
 	}
 
 	if (opt_samples) {
-		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)
-				|| (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES,
-						&limit_samples) != SR_OK)) {
+		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)) {
+			g_critical("Invalid sample limit '%s'.", opt_samples);
+			sr_session_destroy();
+			return;
+		}
+		gvar = g_variant_new_uint64(limit_samples);
+		if (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
 			g_critical("Failed to configure sample limit.");
 			sr_session_destroy();
 			return;
@@ -1605,9 +1633,12 @@ static void run_session(void)
 	}
 
 	if (opt_frames) {
-		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)
-				|| (sr_config_set(sdi, SR_CONF_LIMIT_FRAMES,
-						&limit_frames) != SR_OK)) {
+		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)) {
+			g_critical("Invalid sample limit '%s'.", opt_samples);
+			sr_session_destroy();
+			return;
+		}
+		if (sr_config_set(sdi, SR_CONF_LIMIT_FRAMES, gvar) != SR_OK) {
 			g_critical("Failed to configure frame limit.");
 			sr_session_destroy();
 			return;
