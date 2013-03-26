@@ -314,12 +314,11 @@ static void show_dev_detail(void)
 {
 	struct sr_dev_inst *sdi;
 	const struct sr_config_info *srci;
-	struct sr_rational *rationals;
 	GSList *devices;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
-	const uint64_t *integers;
-	const int32_t *opts;
+	const uint64_t *int64;
+	const int32_t *opts, *int32;
 	unsigned int num_devices, tmp_bool, o, i;
 	char *s;
 	const char *charopts, **stropts;
@@ -387,15 +386,13 @@ static void show_dev_detail(void)
 			g_variant_unref(gvar);
 
 		} else if (srci->key == SR_CONF_PATTERN_MODE) {
-			/* TODO */
 			/* Pattern generator modes */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, srci->key, &gvar,
 					sdi) == SR_OK) {
-//				stropts = g_variant_get_fixed_array(gvar, &num_elements,
-//						sizeof
 				printf(" - supported patterns:\n");
-				for (i = 0; stropts[i]; i++)
+				stropts = g_variant_get_strv(gvar, &num_elements);
+				for (i = 0; i < num_elements; i++)
 					printf("      %s\n", stropts[i]);
 				g_variant_unref(gvar);
 			} else {
@@ -412,30 +409,31 @@ static void show_dev_detail(void)
 			}
 			if ((gvar_list = g_variant_lookup_value(gvar_dict,
 					"samplerates", G_VARIANT_TYPE("at")))) {
-				integers = g_variant_get_fixed_array(gvar_list,
+				int64 = g_variant_get_fixed_array(gvar_list,
 						&num_elements, sizeof(uint64_t));
 				printf(" - supported samplerates:\n");
 				for (i = 0; i < num_elements; i++)
-					printf("      %s\n", sr_samplerate_string(integers[i]));
+					printf("      %s\n", sr_samplerate_string(int64[i]));
 			} if ((gvar_list = g_variant_lookup_value(gvar_dict,
 					"samplerate-steps", G_VARIANT_TYPE("at")))) {
-				integers = g_variant_get_fixed_array(gvar_list,
+				int64 = g_variant_get_fixed_array(gvar_list,
 						&num_elements, sizeof(uint64_t));
 				/* low */
-				if (!(s = sr_samplerate_string(integers[0])))
+				if (!(s = sr_samplerate_string(int64[0])))
 					continue;
 				printf(" (%s", s);
 				g_free(s);
 				/* high */
-				if (!(s = sr_samplerate_string(integers[1])))
+				if (!(s = sr_samplerate_string(int64[1])))
 					continue;
 				printf(" - %s", s);
 				g_free(s);
 				/* step */
-				if (!(s = sr_samplerate_string(integers[2])))
+				if (!(s = sr_samplerate_string(int64[2])))
 					continue;
 				printf(" in steps of %s)\n", s);
 				g_free(s);
+				g_variant_unref(gvar_list);
 			}
 			g_variant_unref(gvar_dict);
 
@@ -443,82 +441,100 @@ static void show_dev_detail(void)
 			/* Supported buffer sizes */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, SR_CONF_BUFFERSIZE,
-					(const void **)&integers, sdi) != SR_OK) {
+					&gvar_list, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
+			int64 = g_variant_get_fixed_array(gvar_list,
+					&num_elements, sizeof(uint64_t));
 			printf(" - supported buffer sizes:\n");
-			for (i = 0; integers[i]; i++)
-				printf("      %"PRIu64"\n", integers[i]);
+			for (i = 0; i < num_elements; i++)
+				printf("      %"PRIu64"\n", int64[i]);
+			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_TIMEBASE) {
 			/* Supported time bases */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, SR_CONF_TIMEBASE,
-					(const void **)&rationals, sdi) != SR_OK) {
+					&gvar_list, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 			printf(" - supported time bases:\n");
-			for (i = 0; rationals[i].p && rationals[i].q; i++)
+			int32 = g_variant_get_fixed_array(gvar_list,
+					&num_elements, sizeof(int32_t));
+			for (i = 0; i < num_elements / 2; i++)
 				printf("      %s\n", sr_period_string(
-						rationals[i].p * rationals[i].q));
+						int32[i * 2] * int32[i * 2 + 1]));
+			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_TRIGGER_SOURCE) {
 			/* Supported trigger sources */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, SR_CONF_TRIGGER_SOURCE,
-					(const void **)&stropts, sdi) != SR_OK) {
+					&gvar, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 			printf(" - supported trigger sources:\n");
-			for (i = 0; stropts[i]; i++)
+			stropts = g_variant_get_strv(gvar, &num_elements);
+			for (i = 0; i < num_elements; i++)
 				printf("      %s\n", stropts[i]);
+			g_variant_unref(gvar);
 
 		} else if (srci->key == SR_CONF_FILTER) {
 			/* Supported filters */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, SR_CONF_FILTER,
-					(const void **)&stropts, sdi) != SR_OK) {
+					&gvar, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 			printf(" - supported filter targets:\n");
-			for (i = 0; stropts[i]; i++)
+			stropts = g_variant_get_strv(gvar, &num_elements);
+			for (i = 0; i < num_elements; i++)
 				printf("      %s\n", stropts[i]);
+			g_variant_unref(gvar);
 
 		} else if (srci->key == SR_CONF_VDIV) {
 			/* Supported volts/div values */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, SR_CONF_VDIV,
-					(const void **)&rationals, sdi) != SR_OK) {
+					&gvar_list, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 			printf(" - supported volts/div:\n");
-			for (i = 0; rationals[i].p && rationals[i].q; i++)
-				printf("      %s\n", sr_voltage_string(	&rationals[i]));
+			int32 = g_variant_get_fixed_array(gvar_list,
+					&num_elements, sizeof(int32_t));
+			for (i = 0; i < num_elements / 2; i++)
+				printf("      %s\n", sr_period_string(
+						int32[i * 2] * int32[i * 2 + 1]));
+			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_COUPLING) {
 			/* Supported coupling settings */
 			printf("    %s", srci->id);
 			if (sr_config_list(sdi->driver, SR_CONF_COUPLING,
-					(const void **)&stropts, sdi) != SR_OK) {
+					&gvar, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 			printf(" - supported coupling options:\n");
-			for (i = 0; stropts[i]; i++)
+			stropts = g_variant_get_strv(gvar, &num_elements);
+			for (i = 0; i < num_elements; i++)
 				printf("      %s\n", stropts[i]);
+			g_variant_unref(gvar);
 
 		} else if (srci->key == SR_CONF_DATALOG) {
+			/* TODO test */
 			/* Turning on/off internal data logging. */
 			printf("    %s\t(on/off", srci->id);
 			if (sr_config_get(sdi->driver, SR_CONF_DATALOG,
 					&gvar, sdi) == SR_OK) {
 				tmp_bool = g_variant_get_boolean(gvar);
 				printf(", currently %s", tmp_bool ? "on" : "off");
+				g_variant_unref(gvar);
 			}
 			printf(")\n");
 		} else {
