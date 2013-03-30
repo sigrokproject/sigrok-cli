@@ -1423,7 +1423,7 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
-	float tmp_float;
+	double tmp_double;
 	uint64_t tmp_u64, p, q;
 	gboolean tmp_bool;
 	GVariant *val, *rational[2];
@@ -1446,21 +1446,21 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			ret = sr_parse_sizestring(value, &tmp_u64);
 			if (ret != SR_OK)
 				break;
-			val = &tmp_u64;
+			val = g_variant_new_uint64(tmp_u64);
 			break;
 		case SR_T_CHAR:
-			val = value;
+			val = g_variant_new_string(value);
 			break;
 		case SR_T_BOOL:
 			if (!value)
 				tmp_bool = TRUE;
 			else
 				tmp_bool = sr_parse_boolstring(value);
-			val = &tmp_bool;
+			val = g_variant_new_boolean(tmp_bool);
 			break;
 		case SR_T_FLOAT:
-			tmp_float = strtof(value, NULL);
-			val = &tmp_float;
+			tmp_double = strtof(value, NULL);
+			val = g_variant_new_double(tmp_double);
 			break;
 		case SR_T_RATIONAL_PERIOD:
 			if ((ret = sr_parse_period(value, &p, &q)) != SR_OK)
@@ -1657,6 +1657,7 @@ static void run_session(void)
 			sr_session_destroy();
 			return;
 		}
+		gvar = g_variant_new_uint64(limit_frames);
 		if (sr_config_set(sdi, SR_CONF_LIMIT_FRAMES, gvar) != SR_OK) {
 			g_critical("Failed to configure frame limit.");
 			sr_session_destroy();
