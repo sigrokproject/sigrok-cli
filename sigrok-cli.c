@@ -1424,10 +1424,9 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 	gpointer key, value;
 	int ret;
 	float tmp_float;
-	uint64_t tmp_u64;
-	struct sr_rational tmp_rat;
+	uint64_t tmp_u64, p, q;
 	gboolean tmp_bool;
-	void *val;
+	GVariant *val, *rational[2];
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
@@ -1464,14 +1463,18 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			val = &tmp_float;
 			break;
 		case SR_T_RATIONAL_PERIOD:
-			if ((ret = sr_parse_period(value, &tmp_rat)) != SR_OK)
+			if ((ret = sr_parse_period(value, &p, &q)) != SR_OK)
 				break;
-			val = &tmp_rat;
+			rational[0] = g_variant_new_uint64(p);
+			rational[1] = g_variant_new_uint64(q);
+			val = g_variant_new_tuple(rational, 2);
 			break;
 		case SR_T_RATIONAL_VOLT:
-			if ((ret = sr_parse_voltage(value, &tmp_rat)) != SR_OK)
+			if ((ret = sr_parse_voltage(value, &p, &q)) != SR_OK)
 				break;
-			val = &tmp_rat;
+			rational[0] = g_variant_new_uint64(p);
+			rational[1] = g_variant_new_uint64(q);
+			val = g_variant_new_tuple(rational, 2);
 			break;
 		default:
 			ret = SR_ERR;
