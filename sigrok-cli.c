@@ -461,11 +461,11 @@ static void show_dev_detail(void)
 				continue;
 			}
 			printf(" - supported time bases:\n");
-			int32 = g_variant_get_fixed_array(gvar_list,
-					&num_elements, sizeof(int32_t));
+			int64 = g_variant_get_fixed_array(gvar_list,
+					&num_elements, sizeof(uint64_t));
 			for (i = 0; i < num_elements / 2; i++)
 				printf("      %s\n", sr_period_string(
-						int32[i * 2] * int32[i * 2 + 1]));
+						int64[i * 2] * int64[i * 2 + 1]));
 			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_TRIGGER_SOURCE) {
@@ -505,11 +505,11 @@ static void show_dev_detail(void)
 				continue;
 			}
 			printf(" - supported volts/div:\n");
-			int32 = g_variant_get_fixed_array(gvar_list,
-					&num_elements, sizeof(int32_t));
+			int64 = g_variant_get_fixed_array(gvar_list,
+					&num_elements, sizeof(uint64_t));
 			for (i = 0; i < num_elements / 2; i++)
-				printf("      %s\n", sr_period_string(
-						int32[i * 2] * int32[i * 2 + 1]));
+				printf("      %s\n", sr_voltage_string(
+						int64[i * 2], int64[i * 2 + 1]));
 			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_COUPLING) {
