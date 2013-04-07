@@ -317,8 +317,8 @@ static void show_dev_detail(void)
 	GSList *devices;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
-	const uint64_t *int64;
-	const int32_t *opts, *int32;
+	const uint64_t *int64, p, q;
+	const int32_t *opts;
 	unsigned int num_devices, tmp_bool, o, i;
 	char *s;
 	const char *charopts, **stropts;
@@ -461,11 +461,14 @@ static void show_dev_detail(void)
 				continue;
 			}
 			printf(" - supported time bases:\n");
-			int64 = g_variant_get_fixed_array(gvar_list,
-					&num_elements, sizeof(uint64_t));
-			for (i = 0; i < num_elements / 2; i++)
-				printf("      %s\n", sr_period_string(
-						int64[i * 2] * int64[i * 2 + 1]));
+			num_elements = g_variant_n_children(gvar_list);
+			for (i = 0; i < num_elements; i++) {
+				gvar = g_variant_get_child_value(gvar_list, i);
+				g_variant_get(gvar, "(tt)", &p, &q);
+				s = sr_period_string(p * q);
+				printf("      %s\n", s);
+				g_free(s);
+			}
 			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_TRIGGER_SOURCE) {
@@ -505,11 +508,14 @@ static void show_dev_detail(void)
 				continue;
 			}
 			printf(" - supported volts/div:\n");
-			int64 = g_variant_get_fixed_array(gvar_list,
-					&num_elements, sizeof(uint64_t));
-			for (i = 0; i < num_elements / 2; i++)
-				printf("      %s\n", sr_voltage_string(
-						int64[i * 2], int64[i * 2 + 1]));
+			num_elements = g_variant_n_children(gvar_list);
+			for (i = 0; i < num_elements; i++) {
+				gvar = g_variant_get_child_value(gvar_list, i);
+				g_variant_get(gvar, "(tt)", &p, &q);
+				s = sr_voltage_string(p, q);
+				printf("      %s\n", s);
+				g_free(s);
+			}
 			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_COUPLING) {
