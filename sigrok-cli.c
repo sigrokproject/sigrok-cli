@@ -317,7 +317,7 @@ static void show_dev_detail(void)
 	GSList *devices;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
-	const uint64_t *int64, p, q;
+	const uint64_t *uint64, p, q;
 	const int32_t *opts;
 	unsigned int num_devices, tmp_bool, o, i;
 	char *s;
@@ -409,27 +409,27 @@ static void show_dev_detail(void)
 			}
 			if ((gvar_list = g_variant_lookup_value(gvar_dict,
 					"samplerates", G_VARIANT_TYPE("at")))) {
-				int64 = g_variant_get_fixed_array(gvar_list,
+				uint64 = g_variant_get_fixed_array(gvar_list,
 						&num_elements, sizeof(uint64_t));
 				printf(" - supported samplerates:\n");
 				for (i = 0; i < num_elements; i++)
-					printf("      %s\n", sr_samplerate_string(int64[i]));
+					printf("      %s\n", sr_samplerate_string(uint64[i]));
 			} if ((gvar_list = g_variant_lookup_value(gvar_dict,
 					"samplerate-steps", G_VARIANT_TYPE("at")))) {
-				int64 = g_variant_get_fixed_array(gvar_list,
+				uint64 = g_variant_get_fixed_array(gvar_list,
 						&num_elements, sizeof(uint64_t));
 				/* low */
-				if (!(s = sr_samplerate_string(int64[0])))
+				if (!(s = sr_samplerate_string(uint64[0])))
 					continue;
 				printf(" (%s", s);
 				g_free(s);
 				/* high */
-				if (!(s = sr_samplerate_string(int64[1])))
+				if (!(s = sr_samplerate_string(uint64[1])))
 					continue;
 				printf(" - %s", s);
 				g_free(s);
 				/* step */
-				if (!(s = sr_samplerate_string(int64[2])))
+				if (!(s = sr_samplerate_string(uint64[2])))
 					continue;
 				printf(" in steps of %s)\n", s);
 				g_free(s);
@@ -445,11 +445,11 @@ static void show_dev_detail(void)
 				printf("\n");
 				continue;
 			}
-			int64 = g_variant_get_fixed_array(gvar_list,
+			uint64 = g_variant_get_fixed_array(gvar_list,
 					&num_elements, sizeof(uint64_t));
 			printf(" - supported buffer sizes:\n");
 			for (i = 0; i < num_elements; i++)
-				printf("      %"PRIu64"\n", int64[i]);
+				printf("      %"PRIu64"\n", uint64[i]);
 			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_TIMEBASE) {
