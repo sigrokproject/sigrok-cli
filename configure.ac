@@ -110,12 +110,14 @@ echo "sigrok-cli configuration summary:"
 echo
 echo "  - Package version: $VERSION"
 echo "  - Prefix: $prefix"
+echo "  - Building on: $build"
+echo "  - Building for: $host"
 echo
 echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0" "libsigrok" "libsigrokdecode"; do
+for lib in "glib-2.0 >= 2.28.0" "libsigrok >= 0.2.0" "libsigrokdecode >= 0.1.0"; do
 	if test "$lib" = "libsigrokdecode" -a "$WITH_SRD" != "yes" ; then
 		answer="no"
 	else
