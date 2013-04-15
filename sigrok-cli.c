@@ -644,7 +644,7 @@ static GArray *get_enabled_logic_probes(const struct sr_dev_inst *sdi)
 }
 
 static void datafeed_in(const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet)
+		const struct sr_datafeed_packet *packet, void *cb_data)
 {
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
@@ -662,6 +662,8 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	int sample_size, ret;
 	uint64_t samplerate, output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
+
+	(void) cb_data;
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -1392,7 +1394,7 @@ static void load_input_file_format(void)
 		return;
 
 	sr_session_new();
-	sr_session_datafeed_callback_add(datafeed_in);
+	sr_session_datafeed_callback_add(datafeed_in, NULL);
 	if (sr_session_dev_add(in->sdi) != SR_OK) {
 		g_critical("Failed to use device.");
 		sr_session_destroy();
@@ -1412,7 +1414,7 @@ static void load_input_file(void)
 
 	if (sr_session_load(opt_input_file) == SR_OK) {
 		/* sigrok session file */
-		sr_session_datafeed_callback_add(datafeed_in);
+		sr_session_datafeed_callback_add(datafeed_in, NULL);
 		sr_session_start();
 		sr_session_run();
 		sr_session_stop();
@@ -1591,7 +1593,7 @@ static void run_session(void)
 	sdi = devices->data;
 
 	sr_session_new();
-	sr_session_datafeed_callback_add(datafeed_in);
+	sr_session_datafeed_callback_add(datafeed_in, NULL);
 
 	if (sr_session_dev_add(sdi) != SR_OK) {
 		g_critical("Failed to use device.");
