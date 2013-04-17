@@ -271,26 +271,39 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 {
 	struct sr_probe *probe;
 	GSList *l;
+	GString *s;
+	GVariant *gvar;
 
+	s = g_string_sized_new(128);
+	g_string_assign(s, sdi->driver->name);
+	if (sr_config_get(sdi->driver, SR_CONF_CONN, &gvar, sdi) == SR_OK) {
+		g_string_append(s, ":conn=");
+		g_string_append(s, g_variant_get_string(gvar, NULL));
+		g_variant_unref(gvar);
+	}
+	g_string_append(s, " - ");
 	if (sdi->vendor && sdi->vendor[0])
-		printf("%s ", sdi->vendor);
+		g_string_append_printf(s, "%s ", sdi->vendor);
 	if (sdi->model && sdi->model[0])
-		printf("%s ", sdi->model);
+		g_string_append_printf(s, "%s ", sdi->model);
 	if (sdi->version && sdi->version[0])
-		printf("%s ", sdi->version);
+		g_string_append_printf(s, "%s ", sdi->version);
 	if (sdi->probes) {
 		if (g_slist_length(sdi->probes) == 1) {
 			probe = sdi->probes->data;
-			printf("with 1 probe: %s", probe->name);
+			g_string_append_printf(s, "with 1 probe: %s", probe->name);
 		} else {
-			printf("with %d probes:", g_slist_length(sdi->probes));
+			g_string_append_printf(s, "with %d probes:", g_slist_length(sdi->probes));
 			for (l = sdi->probes; l; l = l->next) {
 				probe = l->data;
-				printf(" %s", probe->name);
+				g_string_append_printf(s, " %s", probe->name);
 			}
 		}
 	}
-	printf("\n");
+	g_string_append_printf(s, "\n");
+	printf("%s", s->str);
+	g_string_free(s, TRUE);
+
 }
 
 static void show_dev_list(void)
