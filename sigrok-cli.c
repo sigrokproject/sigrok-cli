@@ -351,11 +351,8 @@ static void show_dev_detail(void)
 	sdi = devices->data;
 	print_dev_line(sdi);
 
-	/* This properly opens and initializes the device, so we can get
-	 * current settings. */
-	sr_session_new();
-	if (sr_session_dev_add(sdi) != SR_OK) {
-		g_critical("Failed to use device.");
+	if (sr_dev_open(sdi) != SR_OK) {
+		g_critical("Failed to open device.");
 		return;
 	}
 
@@ -563,7 +560,7 @@ static void show_dev_detail(void)
 	}
 	g_variant_unref(gvar_opts);
 
-	sr_session_destroy();
+	sr_dev_close(sdi);
 
 }
 
@@ -1531,15 +1528,14 @@ static void set_options(void)
 	}
 	sdi = devices->data;
 
-	sr_session_new();
-	if (sr_session_dev_add(sdi) != SR_OK) {
-		g_critical("Failed to use device.");
+	if (sr_dev_open(sdi) != SR_OK) {
+		g_critical("Failed to open device.");
 		return;
 	}
 
 	set_dev_options(sdi, devargs);
 
-	sr_session_destroy();
+	sr_dev_close(sdi);
 	g_slist_free(devices);
 	g_hash_table_destroy(devargs);
 
@@ -1608,8 +1604,13 @@ static void run_session(void)
 	sr_session_new();
 	sr_session_datafeed_callback_add(datafeed_in, NULL);
 
+	if (sr_dev_open(sdi) != SR_OK) {
+		g_critical("Failed to open device.");
+		return;
+	}
+
 	if (sr_session_dev_add(sdi) != SR_OK) {
-		g_critical("Failed to use device.");
+		g_critical("Failed to add device to session.");
 		sr_session_destroy();
 		return;
 	}
