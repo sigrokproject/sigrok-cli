@@ -37,4 +37,5 @@ Makefile.in
 sigrok-cli
 sigrok-cli.exe
 contrib/sigrok-cli.nsi
+contrib/sigrok-cli_cross.nsi
 contrib/sigrok-cli-installer*.exe

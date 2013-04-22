@@ -18,5 +18,5 @@
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 ##
 
-EXTRA_DIST = sigrok-cli.nsi sigrok-logo-notext.ico
+EXTRA_DIST = sigrok-cli.nsi sigrok-cli_cross.nsi sigrok-logo-notext.ico
 

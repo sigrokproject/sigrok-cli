@@ -101,6 +101,7 @@ AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 AC_CONFIG_FILES([Makefile
 		 contrib/Makefile
 		 contrib/sigrok-cli.nsi
+		 contrib/sigrok-cli_cross.nsi
 		 doc/Makefile])
 
 AC_OUTPUT
