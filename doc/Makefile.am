@@ -1,5 +1,5 @@
 ##
-## This file is part of the sigrok project.
+## This file is part of the sigrok-cli project.
 ##
 ## Copyright (C) 2010 Uwe Hermann <uwe@hermann-uwe.de>
 ##
