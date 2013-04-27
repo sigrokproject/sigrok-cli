@@ -872,15 +872,15 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 	}
 
-	if (o && o->format->recv) {
-		out = o->format->recv(o, sdi, packet);
-		if (out && out->len) {
+	if (o && o->format->receive) {
+		if (o->format->receive(o, sdi, packet, &out) == SR_OK && out) {
 			fwrite(out->str, 1, out->len, outfile);
 			fflush(outfile);
+			g_string_free(out, TRUE);
 		}
 	}
 
-	/* SR_DF_END needs to be handled after the output module's recv()
+	/* SR_DF_END needs to be handled after the output module's receive()
 	 * is called, so it can properly clean up that module etc. */
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END");
