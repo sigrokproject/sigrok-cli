@@ -344,7 +344,7 @@ static void show_dev_detail(void)
 	num_devices = g_slist_length(devices);
 	if (num_devices > 1) {
 		g_critical("%d devices found. Use --list-devices to show them, "
-				"and --device to select one.", num_devices);
+				"and select one to show.", num_devices);
 		return;
 	}
 
@@ -543,7 +543,6 @@ static void show_dev_detail(void)
 			g_variant_unref(gvar);
 
 		} else if (srci->key == SR_CONF_DATALOG) {
-			/* TODO test */
 			/* Turning on/off internal data logging. */
 			printf("    %s\t(on/off", srci->id);
 			if (sr_config_get(sdi->driver, SR_CONF_DATALOG,
