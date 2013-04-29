@@ -42,6 +42,7 @@ static int received_anykey(int fd, int revents, void *cb_data)
 	(void)revents;
 	(void)cb_data;
 
+	sr_session_source_remove(STDIN_FILENO);
 	sr_session_stop();
 
 	return TRUE;
