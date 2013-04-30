@@ -25,9 +25,9 @@ Show
 version, and information about supported hardware drivers, input file
 formats, output file formats, and protocol decoders.
 .TP
-\fB\-\-driver\fP <drivername>
-A driver must always be selected. Use the \fB-V\fP option to get a list of
-available drivers.
+\fB\-d, \-\-driver\fP <drivername>
+A driver must always be selected (unless doing a global scan). Use the
+\fB-V\fP option to get a list of available drivers.
 .sp
 Drivers can take options, in the form \fBkey=value\fP
 separated by colons.
@@ -44,23 +44,23 @@ either \fBVendorID.ProductID\fP or \fBbus.address\fP:
 .sp
 .RB "  $ " "sigrok\-cli \-\-driver=nexus-osciprime:conn=04b4.8613"
 .TP
-.BR "\-d, \-\-device " <device>
+.BR "\-c, \-\-config " <device>
 A colon-separated list of device options, where each option takes the form
 .BR key=value .
 For example, to set the samplerate to 1MHz on a device supported by the
 fx2lafw driver, you might specify
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver=fx2lafw \-\-device samplerate=1m"
+.RB "  $ " "sigrok\-cli \-\-driver=fx2lafw \-\-config samplerate=1m"
 .sp
 Samplerate is an option common to most logic analyzers. The argument specifies
 the samplerate in Hz. You can also specify the samplerate in kHz, MHz or GHz.
 The following are all equivalent:
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-device samplerate=1000000"
+.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-config samplerate=1000000"
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-device samplerate=1m"
+.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-config samplerate=1m"
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-device \(dqsamplerate=1 MHz\(dq"
+.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-config \(dqsamplerate=1 MHz\(dq"
 .TP
 .BR "\-i, \-\-input\-file " <filename>
 Load input from a file instead of a hardware device. If the
@@ -197,7 +197,7 @@ any pre-trigger data. This option is useful if you don't care about the data
 that came before the trigger (but the hardware delivers this data to sigrok
 nonetheless).
 .TP
-.BR "\-a, \-\-protocol\-decoders " <list>
+.BR "\-P, \-\-protocol\-decoders " <list>
 This option allows the user to specify a comma-separated list of protocol
 decoders to be used in this session. The decoders are specified by their
 ID, as shown in the
@@ -207,7 +207,7 @@ output.
 Example:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-a i2c"
+.B "sigrok\-cli \-i <file.sr> \-P i2c"
 .sp
 Each protocol decoder can optionally be followed by a colon-separated list
 of options, where each option takes the form
@@ -216,7 +216,7 @@ of options, where each option takes the form
 Example:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-a uart:baudrate=115200:parity=odd"
+.B "sigrok\-cli \-i <file.sr> \-P uart:baudrate=115200:parity=odd"
 .sp
 The list of supported options depends entirely on the protocol decoder. Every
 protocol decoder has different options it supports.
@@ -229,7 +229,7 @@ Example:
  $
 .B "sigrok\-cli \-i <file.sr>"
 .br
-.B "              \-a spi:wordsize=9:miso=1:mosi=5:sck=3:cs=0"
+.B "              \-P spi:wordsize=9:miso=1:mosi=5:sck=3:cs=0"
 .sp
 In this example,
 .B wordsize
@@ -239,7 +239,7 @@ protocol decoder. Additionally, the user tells sigrok to decode the SPI
 protocol using probe 1 as MISO signal for SPI, probe 5 as MOSI, probe 3
 as SCK, and probe 0 as CS# signal.
 .TP
-.BR "\-s, \-\-protocol\-decoder\-stack " <stack>
+.BR "\-S, \-\-protocol\-decoder\-stack " <stack>
 This option allows the user to specify a protocol decoder stack, i.e.
 the way in which one protocol decoder's output gets piped into another
 protocol decoder. If not specified, the stack will be set up in the same
@@ -250,21 +250,21 @@ option.
 The decoders are specified by their ID, as shown in the
 .B \-\-version
 output. In addition to the
-.B \-s
+.B \-S
 option, all protocol decoders that are used in a stack, must also be specified
 (together with their options, if any) using the
-.B \-a
+.B \-A
 parameter.
 .sp
 Example:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-a i2c:sda=4:scl=7,rtc8564"
+.B "sigrok\-cli \-i <file.sr> \-A i2c:sda=4:scl=7,rtc8564"
 .br
-.B "              \-s i2c,rtc8564"
+.B "              \-S i2c,rtc8564"
 .sp
 In this example, the
-.B \-s
+.B \-S
 option specifies that the output of the
 .BR i2c " decoder"
 is piped into the
@@ -276,9 +276,9 @@ is stacked on top of the
 .sp
 The respective protocol decoder options and probe name/number assignments
 must be given using the
-.B \-a
+.B \-P
 option (you cannot specify them in the
-.B \-s
+.B \-S
 option).
 .TP
 .BR "\-A, \-\-protocol\-decoder\-annotations " <annotations>
@@ -287,13 +287,13 @@ shown. With this option another decoder's annotation can be selected for
 display, by specifying its ID:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid -A i2c"
+.B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid -A i2c"
 .sp
 If a protocol decoder has multiple annotation formats, you can also specify
 which of them to show by specifying its short description like this:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
+.B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
 .B "              \-A i2c=rawhex"
 .sp
@@ -301,7 +301,7 @@ You can also select multiple protocol decoders, with an optional selected
 annotation format each, by separating them with commas:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-a i2c,i2cfilter,edid"
+.B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
 .B "              \-A i2c=rawhex,edid"
 .TP
@@ -341,14 +341,13 @@ To view the documentation for a protocol decoder:
  $
 .B "sigrok\-cli \-\-protocol-decoders i2c \-\-show
 .TP
-.B "\-D, \-\-list\-devices"
-List all devices found on the system. This actively scans for devices that
-can be detected automatically.
+.B "\-\-scan"
+Scan for devices that can be detected automatically.
 .sp
 Example:
 .sp
  $
-.B "sigrok\-cli \-D
+.B "sigrok\-cli \-\-scan
 .br
  The following devices were found:
 .br
@@ -364,7 +363,7 @@ However, not all devices are auto-detectable (e.g. serial port based ones).
 For those you'll have to provide a \fBconn\fP option, see above.
 .sp
  $
-.B "sigrok\-cli \-\-driver digitek-dt4000zc:conn=/dev/ttyUSB0 \-D
+.B "sigrok\-cli \-\-driver digitek-dt4000zc:conn=/dev/ttyUSB0 \-\-scan
 .br
  The following devices were found:
 .br
@@ -400,7 +399,7 @@ will acquire 3000000 samples.
 Sample continuously until stopped. Not all devices support this.
 .TP
 .BR "\-\-set"
-Set one or more variables specified with the --device option, without doing
+Set one or more variables specified with the \fB--config\fP option, without doing
 any acquisition.
 .SH EXAMPLES
 In order to get exactly 100 samples from the connected fx2lafw-supported logic analyzer hardware, run the following command:
@@ -419,23 +418,19 @@ To capture data from the first 4 probes using the Openbench Logic Sniffer lastin
 0:high, 1:rising, 2:low, 3:high, use:
 .TP
 .nf
-  \fBsigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-device samplerate=10m \\\fP
-\fB\-\-output\-format bits \-\-probes 0\-3 \-\-time 100 \\\fP
-\fB\-\-wait\-trigger \-\-triggers 0=1,1=r,2=0,3=1\fP
+\fBsigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-config samplerate=10m \\\fP
+\fB\-\-output\-format bits \-\-probes 0\-3 \-\-wait\-trigger \\\fP
+\fB\-\-triggers 0=1,1=r,2=0,3=1 \-\-time 100\fP
 .TP
 To turn on internal logging on a Lascar EL-USB series device:
 .TP
 \fBsigrok\-cli \-\-driver lascar\-el\-usb:conn=10c4.0002 \\\fP
-\fB\-\-device datalog=on --set\fP
-.TP
-.fi
+\fB\-\-config datalog=on --set\fP
 .SH "EXIT STATUS"
 .B sigrok\-cli
 exits with 0 on success, 1 on most failures.
 .SH "SEE ALSO"
-\fBpulseview\fP(1),
-\fBsigrok\-qt\fP(1),
-\fBsigrok\-gtk\fP(1)
+\fBpulseview\fP(1)
 .SH "BUGS"
 Please report any bugs via Bugzilla
 .RB "(" http://sigrok.org/bugzilla ")"
