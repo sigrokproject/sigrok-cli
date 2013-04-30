@@ -52,12 +52,12 @@ static GByteArray *savebuf;
 
 static gboolean opt_version = FALSE;
 static gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
-static gboolean opt_list_devs = FALSE;
+static gboolean opt_scan_devs = FALSE;
 static gboolean opt_wait_trigger = FALSE;
 static gchar *opt_input_file = NULL;
 static gchar *opt_output_file = NULL;
 static gchar *opt_drv = NULL;
-static gchar *opt_dev = NULL;
+static gchar *opt_config = NULL;
 static gchar *opt_probes = NULL;
 static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
@@ -78,13 +78,11 @@ static GOptionEntry optargs[] = {
 	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
 			"Show version and support list", NULL},
 	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
-			"Set libsigrok/libsigrokdecode loglevel", NULL},
-	{"list-devices", 'D', 0, G_OPTION_ARG_NONE, &opt_list_devs,
-			"Scan for devices", NULL},
-	{"driver", 0, 0, G_OPTION_ARG_STRING, &opt_drv,
-			"Use only this driver", NULL},
-	{"device", 'd', 0, G_OPTION_ARG_STRING, &opt_dev,
-			"Use specified device", NULL},
+			"Set loglevel (5 is most verbose)", NULL},
+	{"driver", 'd', 0, G_OPTION_ARG_STRING, &opt_drv,
+			"The driver to use", NULL},
+	{"config", 'c', 0, G_OPTION_ARG_STRING, &opt_config,
+			"Specify device configuration options", NULL},
 	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file,
 			"Load input from file", NULL},
 	{"input-format", 'I', 0, G_OPTION_ARG_STRING, &opt_input_format,
@@ -100,13 +98,15 @@ static GOptionEntry optargs[] = {
 	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger,
 			"Wait for trigger", NULL},
 #ifdef HAVE_SRD
-	{"protocol-decoders", 'a', 0, G_OPTION_ARG_STRING, &opt_pds,
+	{"protocol-decoders", 'P', 0, G_OPTION_ARG_STRING, &opt_pds,
 			"Protocol decoders to run", NULL},
-	{"protocol-decoder-stack", 's', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
+	{"protocol-decoder-stack", 'S', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
 			"Protocol decoder stack", NULL},
 	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotations,
 			"Protocol decoder annotation(s) to show", NULL},
 #endif
+	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
+			"Scan for devices", NULL},
 	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
 			"Show device detail", NULL},
 	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
@@ -1513,12 +1513,12 @@ static void set_options(void)
 	GSList *devices;
 	GHashTable *devargs;
 
-	if (!opt_dev) {
+	if (!opt_config) {
 		g_critical("No setting specified.");
 		return;
 	}
 
-	if (!(devargs = parse_generic_arg(opt_dev, FALSE)))
+	if (!(devargs = parse_generic_arg(opt_config, FALSE)))
 		return;
 
 	if (!(devices = device_scan())) {
@@ -1614,8 +1614,8 @@ static void run_session(void)
 		return;
 	}
 
-	if (opt_dev) {
-		if ((devargs = parse_generic_arg(opt_dev, FALSE))) {
+	if (opt_config) {
+		if ((devargs = parse_generic_arg(opt_config, FALSE))) {
 			if (set_dev_options(sdi, devargs) != SR_OK)
 				return;
 			g_hash_table_destroy(devargs);
@@ -1771,7 +1771,7 @@ int main(int argc, char **argv)
 
 	if (opt_version)
 		show_version();
-	else if (opt_list_devs)
+	else if (opt_scan_devs)
 		show_dev_list();
 #ifdef HAVE_SRD
 	else if (opt_pds && opt_show)
