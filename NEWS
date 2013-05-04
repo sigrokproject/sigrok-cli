@@ -1,3 +1,29 @@
+0.4.0 (2012-05-04)
+------------------
+
+ * Update sigrok-cli to the new APIs from both libsigrok 0.2.0 and also
+   libsigrokdecode 0.2.0.
+ * Add support for handling analog data sources (DMMs, scopes, dataloggers).
+ * Bugfix in the handling of -A options with arguments.
+ * Updated build dependencies list.
+   - glib (required): Now must be >= 2.28.0.
+   - libsigrok (required): Now must be >= 0.2.0.
+   - libsigrokdecode (required): Now must be >= 0.2.0.
+ * Add support for specifying input format options.
+ * Probe numbers now generally start at 0 (not 1).
+ * Command line option changes:
+   - The -D|--list-devices option was renamed to --scan.
+   - The -d|--device option was renamed to -c|--config.
+   - The -a|--protocol-decoders option was renamed to -P|--protocol-decoders.
+   - The -s|--protocol-decoder-stack option was renamed to
+     -S|--protocol-decoder-stack.
+   - Added a --driver option to specify which libsigrok driver is to be used.
+   - Added a --show option. This can show details about drivers or PDs.
+   - Added a --frames option which limits the number of frames to get from
+     a supported oscilloscope (or other frame-based device).
+ * Various documentation updates (README, manpage, and so on).
+ * configure: Don't overwrite CFLAGS, but rather amend it.
+
 0.3.1 (2012-05-30)
 ------------------
 
