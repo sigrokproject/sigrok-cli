@@ -185,10 +185,14 @@ static GSList *device_scan(void)
 			return NULL;
 		}
 		drvopts = NULL;
-		if (g_hash_table_size(drvargs) > 0)
-			if (!(drvopts = hash_to_hwopt(drvargs)))
+		if (g_hash_table_size(drvargs) > 0) {
+			if (!(drvopts = hash_to_hwopt(drvargs))) {
 				/* Unknown options, already logged. */
+				g_hash_table_destroy(drvargs);
 				return NULL;
+			}
+		}
+		g_hash_table_destroy(drvargs); 
 		devices = sr_driver_scan(driver, drvopts);
 		g_slist_free_full(drvopts, (GDestroyNotify)free_drvopts);
 	} else {
@@ -422,9 +426,14 @@ static void show_dev_detail(void)
 				uint64 = g_variant_get_fixed_array(gvar_list,
 						&num_elements, sizeof(uint64_t));
 				printf(" - supported samplerates:\n");
-				for (i = 0; i < num_elements; i++)
-					printf("      %s\n", sr_samplerate_string(uint64[i]));
-			} if ((gvar_list = g_variant_lookup_value(gvar_dict,
+				for (i = 0; i < num_elements; i++) {
+					if (!(s = sr_samplerate_string(uint64[i])))
+						continue;
+					printf("      %s\n", s);
+					g_free(s);
+				}
+				g_variant_unref(gvar_list);
+			} else if ((gvar_list = g_variant_lookup_value(gvar_dict,
 					"samplerate-steps", G_VARIANT_TYPE("at")))) {
 				uint64 = g_variant_get_fixed_array(gvar_list,
 						&num_elements, sizeof(uint64_t));
@@ -560,6 +569,7 @@ static void show_dev_detail(void)
 	g_variant_unref(gvar_opts);
 
 	sr_dev_close(sdi);
+	g_slist_free(devices);
 
 }
 
@@ -1724,16 +1734,18 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 
 int main(int argc, char **argv)
 {
-	int ret = 1;
 	GOptionContext *context;
 	GError *error;
+	int ret;
+	char *help;
 
 	g_log_set_default_handler(logger, NULL);
 
-	error = NULL;
 	context = g_option_context_new(NULL);
 	g_option_context_add_main_entries(context, optargs, NULL);
 
+	ret = 1;
+	error = NULL;
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_critical("%s", error->message);
 		goto done;
@@ -1785,8 +1797,11 @@ int main(int argc, char **argv)
 		set_options();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)
 		run_session();
-	else
-		printf("%s", g_option_context_get_help(context, TRUE, NULL));
+	else {
+		help = g_option_context_get_help(context, TRUE, NULL);
+		printf("%s", help);
+		g_free(help);
+	}
 
 #ifdef HAVE_SRD
 	if (opt_pds)
