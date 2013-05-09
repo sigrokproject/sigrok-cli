@@ -347,7 +347,7 @@ static void show_dev_detail(void)
 
 	num_devices = g_slist_length(devices);
 	if (num_devices > 1) {
-		g_critical("%d devices found. Use --list-devices to show them, "
+		g_critical("%d devices found. Use --scan to show them, "
 				"and select one to show.", num_devices);
 		return;
 	}
@@ -677,7 +677,6 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	static FILE *outfile = NULL;
 	GSList *l;
 	GString *out;
-	GVariant *gvar;
 	int sample_size, ret;
 	uint64_t samplerate, output_len, filter_out_len;
 	uint8_t *output_buf, *filter_out;
@@ -729,6 +728,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		unitsize = (logic_probelist->len + 7) / 8;
 
 #ifdef HAVE_SRD
+		GVariant *gvar;
 		if (opt_pds && logic_probelist->len) {
 			if (sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
 					&gvar, sdi) != SR_OK) {
