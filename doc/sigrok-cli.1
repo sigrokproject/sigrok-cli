@@ -399,10 +399,11 @@ will acquire 3000000 samples.
 Sample continuously until stopped. Not all devices support this.
 .TP
 .BR "\-\-set"
-Set one or more variables specified with the \fB--config\fP option, without doing
-any acquisition.
+Set one or more variables specified with the \fB\-\-config\fP option, without
+doing any acquisition.
 .SH EXAMPLES
-In order to get exactly 100 samples from the connected fx2lafw-supported logic analyzer hardware, run the following command:
+In order to get exactly 100 samples from the connected fx2lafw-supported logic
+analyzer hardware, run the following command:
 .TP
 .B "  sigrok\-cli \-\-driver fx2lafw \-\-samples 100"
 .TP
@@ -425,7 +426,7 @@ To capture data from the first 4 probes using the Openbench Logic Sniffer lastin
 To turn on internal logging on a Lascar EL-USB series device:
 .TP
 \fBsigrok\-cli \-\-driver lascar\-el\-usb:conn=10c4.0002 \\\fP
-\fB\-\-config datalog=on --set\fP
+\fB\-\-config datalog=on \-\-set\fP
 .SH "EXIT STATUS"
 .B sigrok\-cli
 exits with 0 on success, 1 on most failures.
