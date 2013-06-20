@@ -334,9 +334,11 @@ static void show_dev_detail(void)
 	GSList *devices;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
-	const uint64_t *uint64, p, q;
+	const uint64_t *uint64, p, q, low, high;
+	uint64_t cur_low, cur_high;
 	const int32_t *opts;
-	unsigned int num_devices, tmp_bool, o, i;
+	unsigned int num_devices, o, i;
+	char *tmp_str;
 	char *s;
 	const char *charopts, **stropts;
 
@@ -378,7 +380,7 @@ static void show_dev_detail(void)
 		/* Driver supports no device instance options. */
 		return;
 
-	printf("Supported device options:\n");
+	printf("Supported configuration options:\n");
 	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(int32_t));
 	for (o = 0; o < num_opts; o++) {
 		if (!(srci = sr_config_info_get(opts[o])))
@@ -490,34 +492,6 @@ static void show_dev_detail(void)
 			}
 			g_variant_unref(gvar_list);
 
-		} else if (srci->key == SR_CONF_TRIGGER_SOURCE) {
-			/* Supported trigger sources */
-			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_TRIGGER_SOURCE,
-					&gvar, sdi) != SR_OK) {
-				printf("\n");
-				continue;
-			}
-			printf(" - supported trigger sources:\n");
-			stropts = g_variant_get_strv(gvar, &num_elements);
-			for (i = 0; i < num_elements; i++)
-				printf("      %s\n", stropts[i]);
-			g_variant_unref(gvar);
-
-		} else if (srci->key == SR_CONF_FILTER) {
-			/* Supported filters */
-			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_FILTER,
-					&gvar, sdi) != SR_OK) {
-				printf("\n");
-				continue;
-			}
-			printf(" - supported filter targets:\n");
-			stropts = g_variant_get_strv(gvar, &num_elements);
-			for (i = 0; i < num_elements; i++)
-				printf("      %s\n", stropts[i]);
-			g_variant_unref(gvar);
-
 		} else if (srci->key == SR_CONF_VDIV) {
 			/* Supported volts/div values */
 			printf("    %s", srci->id);
@@ -537,31 +511,78 @@ static void show_dev_detail(void)
 			}
 			g_variant_unref(gvar_list);
 
-		} else if (srci->key == SR_CONF_COUPLING) {
-			/* Supported coupling settings */
-			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_COUPLING,
+		} else if (srci->datatype == SR_T_CHAR) {
+			printf("    %s: ", srci->id);
+			if (sr_config_get(sdi->driver, srci->key,
+					&gvar, sdi) == SR_OK) {
+				tmp_str = g_strdup(g_variant_get_string(gvar, NULL));
+				g_variant_unref(gvar);
+			} else
+				tmp_str = NULL;
+
+			if (sr_config_list(sdi->driver, srci->key,
 					&gvar, sdi) != SR_OK) {
 				printf("\n");
 				continue;
 			}
-			printf(" - supported coupling options:\n");
+
 			stropts = g_variant_get_strv(gvar, &num_elements);
-			for (i = 0; i < num_elements; i++)
-				printf("      %s\n", stropts[i]);
+			for (i = 0; i < num_elements; i++) {
+				if (i)
+					printf(", ");
+				printf("%s", stropts[i]);
+				if (tmp_str && !strcmp(tmp_str, stropts[i]))
+					printf(" (current)");
+			}
+			printf("\n");
+			g_free(stropts);
+			g_free(tmp_str);
 			g_variant_unref(gvar);
 
-		} else if (srci->key == SR_CONF_DATALOG) {
-			/* Turning on/off internal data logging. */
-			printf("    %s\t(on/off", srci->id);
-			if (sr_config_get(sdi->driver, SR_CONF_DATALOG,
-					&gvar, sdi) == SR_OK) {
-				tmp_bool = g_variant_get_boolean(gvar);
-				printf(", currently %s", tmp_bool ? "on" : "off");
-				g_variant_unref(gvar);
+		} else if (srci->datatype == SR_T_UINT64_RANGE) {
+			printf("    %s: ", srci->id);
+			if (sr_config_list(sdi->driver, srci->key,
+					&gvar_list, sdi) != SR_OK) {
+				printf("\n");
+				continue;
 			}
-			printf(")\n");
+
+			if (sr_config_get(sdi->driver, srci->key, &gvar, sdi) == SR_OK) {
+				g_variant_get(gvar, "(tt)", &cur_low, &cur_high);
+				g_variant_unref(gvar);
+			} else {
+				cur_low = 0;
+				cur_high = 0;
+			}
+
+			num_elements = g_variant_n_children(gvar_list);
+			for (i = 0; i < num_elements; i++) {
+				gvar = g_variant_get_child_value(gvar_list, i);
+				g_variant_get(gvar, "(tt)", &low, &high);
+				g_variant_unref(gvar);
+				if (i)
+					printf(", ");
+				printf("%"PRIu64"-%"PRIu64, low, high);
+				if (low == cur_low && high == cur_high)
+					printf(" (current)");
+			}
+			printf("\n");
+			g_variant_unref(gvar_list);
+
+		} else if (srci->datatype == SR_T_BOOL) {
+			printf("    %s: ", srci->id);
+			if (sr_config_get(sdi->driver, srci->key,
+					&gvar, sdi) == SR_OK) {
+				if (g_variant_get_boolean(gvar))
+					printf("on (current), off\n");
+				else
+					printf("on, off (current)\n");
+				g_variant_unref(gvar);
+			} else
+				printf("on, off\n");
+
 		} else {
+
 			/* Everything else */
 			printf("    %s\n", srci->id);
 		}
@@ -1451,9 +1472,9 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 	gpointer key, value;
 	int ret;
 	double tmp_double;
-	uint64_t tmp_u64, p, q;
+	uint64_t tmp_u64, p, q, low, high;
 	gboolean tmp_bool;
-	GVariant *val, *rational[2];
+	GVariant *val, *rational[2], *range[2];
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
@@ -1502,6 +1523,16 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			rational[0] = g_variant_new_uint64(p);
 			rational[1] = g_variant_new_uint64(q);
 			val = g_variant_new_tuple(rational, 2);
+			break;
+		case SR_T_UINT64_RANGE:
+			if (sscanf(value, "%"PRIu64"-%"PRIu64, &low, &high) != 2) {
+				ret = SR_ERR;
+				break;
+			} else {
+				range[0] = g_variant_new_uint64(low);
+				range[1] = g_variant_new_uint64(high);
+				val = g_variant_new_tuple(range, 2);
+			}
 			break;
 		default:
 			ret = SR_ERR;
