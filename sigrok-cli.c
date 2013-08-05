@@ -1741,6 +1741,7 @@ static void run_session(void)
 	if (opt_continuous)
 		clear_anykey();
 
+	sr_session_datafeed_callback_remove_all();
 	sr_session_destroy();
 	g_slist_free(devices);
 
