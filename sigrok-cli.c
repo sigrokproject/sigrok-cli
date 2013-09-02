@@ -943,7 +943,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		if (outfile && outfile != stdout)
 			fclose(outfile);
 
-		if (opt_output_file && default_output_format) {
+		if (opt_output_file && default_output_format && savebuf->len) {
 			if (sr_session_save(opt_output_file, sdi, savebuf->data,
 					unitsize, savebuf->len / unitsize) != SR_OK)
 				g_critical("Failed to save session.");
