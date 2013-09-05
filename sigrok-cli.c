@@ -252,6 +252,7 @@ static void show_version(void)
 	outputs = sr_output_list();
 	for (i = 0; outputs[i]; i++)
 		printf("  %-20s %s\n", outputs[i]->id, outputs[i]->description);
+	printf("  %-20s %s\n", "sigrok", "Default file output format");
 	printf("\n");
 
 #ifdef HAVE_SRD
@@ -1267,6 +1268,13 @@ int setup_output_format(void)
 	struct sr_output_format **outputs;
 	int i;
 	char *fmtspec;
+
+	if (opt_output_format && !strcmp(opt_output_format, "sigrok")) {
+		/* Doesn't really exist as an output module - this is
+		 * the session save mode. */
+		g_free(opt_output_format);
+		opt_output_format = NULL;
+	}
 
 	if (!opt_output_format) {
 		opt_output_format = DEFAULT_OUTPUT_FORMAT;
