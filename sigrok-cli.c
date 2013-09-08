@@ -1014,7 +1014,7 @@ static int probes_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 			(GDestroyNotify)g_variant_unref);
 
 	all_probes = g_slist_copy(dec->probes);
-	all_probes = g_slist_concat(all_probes, dec->opt_probes);
+	all_probes = g_slist_concat(all_probes, g_slist_copy(dec->opt_probes));
 	for (l = all_probes; l; l = l->next) {
 		p = l->data;
 		if (!(val_str = g_hash_table_lookup(hash, p->id)))
