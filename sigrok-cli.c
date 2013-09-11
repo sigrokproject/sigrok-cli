@@ -977,7 +977,7 @@ static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 		if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_STRING)) {
 			gvar = g_variant_new_string(val_str);
 		} else if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_INT64)) {
-			val_int = strtoll(val_str, &conv, 10);
+			val_int = strtoll(val_str, &conv, 0);
 			if (!conv || conv == val_str) {
 				g_critical("Protocol decoder '%s' option '%s' "
 						"requires a number.", dec->name, o->id);
