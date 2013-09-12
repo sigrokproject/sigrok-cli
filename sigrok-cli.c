@@ -46,6 +46,7 @@ static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static char *output_format_param = NULL;
 #ifdef HAVE_SRD
+static struct srd_session *srd_sess = NULL;
 static GHashTable *pd_ann_visible = NULL;
 #endif
 static GByteArray *savebuf;
@@ -760,7 +761,25 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			}
 			samplerate = g_variant_get_uint64(gvar);
 			g_variant_unref(gvar);
-			srd_session_start(logic_probelist->len, unitsize, samplerate);
+			if (srd_session_config_set(srd_sess, SRD_CONF_NUM_PROBES,
+						g_variant_new_uint64(logic_probelist->len)) != SRD_OK) {
+				g_critical("Failed to configure decode session.");
+				break;
+			}
+			if (srd_session_config_set(srd_sess, SRD_CONF_UNITSIZE,
+						g_variant_new_uint64(unitsize)) != SRD_OK) {
+				g_critical("Failed to configure decode session.");
+				break;
+			}
+			if (srd_session_config_set(srd_sess, SRD_CONF_SAMPLERATE,
+						g_variant_new_uint64(samplerate)) != SRD_OK) {
+				g_critical("Failed to configure decode session.");
+				break;
+			}
+			if (srd_session_start(srd_sess) != SRD_OK) {
+				g_critical("Failed to start decode session.");
+				break;
+			}
 		}
 #endif
 		break;
@@ -829,8 +848,8 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		} else {
 			if (opt_pds) {
 #ifdef HAVE_SRD
-				if (srd_session_send(received_samples, (uint8_t*)filter_out,
-						filter_out_len) != SRD_OK)
+				if (srd_session_send(srd_sess, received_samples,
+						(uint8_t*)filter_out, filter_out_len) != SRD_OK)
 					sr_session_stop();
 #endif
 			} else {
@@ -1091,7 +1110,7 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 			break;
 		}
 
-		if (!(di = srd_inst_new(pd_name, options))) {
+		if (!(di = srd_inst_new(srd_sess, pd_name, options))) {
 			g_critical("Failed to instantiate protocol decoder %s.", pd_name);
 			ret = 1;
 			break;
@@ -1147,7 +1166,7 @@ int setup_pd_stack(void)
 
 		/* First PD goes at the bottom of the stack. */
 		ids = g_strsplit(pds[0], ":", 0);
-		if (!(di_from = srd_inst_find_by_id(ids[0]))) {
+		if (!(di_from = srd_inst_find_by_id(srd_sess, ids[0]))) {
 			g_strfreev(ids);
 			g_critical("Cannot stack protocol decoder '%s': "
 					"instance not found.", pds[0]);
@@ -1158,14 +1177,14 @@ int setup_pd_stack(void)
 		/* Every subsequent PD goes on top. */
 		for (i = 1; pds[i]; i++) {
 			ids = g_strsplit(pds[i], ":", 0);
-			if (!(di_to = srd_inst_find_by_id(ids[0]))) {
+			if (!(di_to = srd_inst_find_by_id(srd_sess, ids[0]))) {
 				g_strfreev(ids);
 				g_critical("Cannot stack protocol decoder '%s': "
 						"instance not found.", pds[i]);
 				return 1;
 			}
 			g_strfreev(ids);
-			if ((ret = srd_inst_stack(di_from, di_to)) != SRD_OK)
+			if ((ret = srd_inst_stack(srd_sess, di_from, di_to)) != SRD_OK)
 				return 1;
 
 			/* Don't show annotation from this PD. Only the last PD in
@@ -1806,9 +1825,13 @@ int main(int argc, char **argv)
 	if (opt_pds) {
 		if (srd_init(NULL) != SRD_OK)
 			goto done;
+		if (srd_session_new(&srd_sess) != SRD_OK) {
+			g_critical("Failed to create new decode session.");
+			goto done;
+		}
 		if (register_pds(NULL, opt_pds) != 0)
 			goto done;
-		if (srd_pd_output_callback_add(SRD_OUTPUT_ANN,
+		if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_ANN,
 				show_pd_annotations, NULL) != SRD_OK)
 			goto done;
 		if (setup_pd_stack() != 0)
