@@ -1789,6 +1789,10 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 		fprintf(stderr, "%s\n", message);
 		fflush(stderr);
 	}
+
+	if (log_level & (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL))
+		exit(1);
+
 }
 
 int main(int argc, char **argv)
