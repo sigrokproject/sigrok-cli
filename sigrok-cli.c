@@ -178,11 +178,14 @@ static GSList *device_scan(void)
 		}
 		if (!driver) {
 			g_critical("Driver %s not found.", drvname);
+			g_hash_table_destroy(drvargs);
+			g_free(drvname);
 			return NULL;
 		}
 		g_free(drvname);
 		if (sr_driver_init(sr_ctx, driver) != SR_OK) {
 			g_critical("Failed to initialize driver.");
+			g_hash_table_destroy(drvargs);
 			return NULL;
 		}
 		drvopts = NULL;
@@ -193,7 +196,7 @@ static GSList *device_scan(void)
 				return NULL;
 			}
 		}
-		g_hash_table_destroy(drvargs); 
+		g_hash_table_destroy(drvargs);
 		devices = sr_driver_scan(driver, drvopts);
 		g_slist_free_full(drvopts, (GDestroyNotify)free_drvopts);
 	} else {
