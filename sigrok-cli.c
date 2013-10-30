@@ -701,7 +701,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	GSList *l;
 	GString *out;
 	int sample_size, ret;
-	uint64_t samplerate, output_len, filter_out_len;
+	uint64_t samplerate, output_len, filter_out_len, end_sample;
 	uint8_t *output_buf, *filter_out;
 
 	(void) cb_data;
@@ -754,27 +754,14 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		GVariant *gvar;
 		if (opt_pds && logic_probelist->len) {
 			if (sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
-					&gvar, sdi) != SR_OK) {
-				g_critical("Unable to initialize protocol "
-						"decoders: no samplerate found.");
-				break;
-			}
-			samplerate = g_variant_get_uint64(gvar);
-			g_variant_unref(gvar);
-			if (srd_session_config_set(srd_sess, SRD_CONF_NUM_PROBES,
-						g_variant_new_uint64(logic_probelist->len)) != SRD_OK) {
-				g_critical("Failed to configure decode session.");
-				break;
-			}
-			if (srd_session_config_set(srd_sess, SRD_CONF_UNITSIZE,
-						g_variant_new_uint64(unitsize)) != SRD_OK) {
-				g_critical("Failed to configure decode session.");
-				break;
-			}
-			if (srd_session_config_set(srd_sess, SRD_CONF_SAMPLERATE,
+					&gvar, sdi) == SR_OK) {
+				samplerate = g_variant_get_uint64(gvar);
+				g_variant_unref(gvar);
+				if (srd_session_metadata_set(srd_sess, SRD_CONF_SAMPLERATE,
 						g_variant_new_uint64(samplerate)) != SRD_OK) {
-				g_critical("Failed to configure decode session.");
-				break;
+					g_critical("Failed to configure decode session.");
+					break;
+				}
 			}
 			if (srd_session_start(srd_sess) != SRD_OK) {
 				g_critical("Failed to start decode session.");
@@ -793,6 +780,14 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 			case SR_CONF_SAMPLERATE:
 				samplerate = g_variant_get_uint64(src->data);
 				g_debug("cli: got samplerate %"PRIu64" Hz", samplerate);
+#ifdef HAVE_SRD
+				if (opt_pds) {
+					if (srd_session_metadata_set(srd_sess, SRD_CONF_SAMPLERATE,
+							g_variant_new_uint64(samplerate)) != SRD_OK) {
+						g_critical("Failed to pass samplerate to decoder.");
+					}
+				}
+#endif
 				break;
 			case SR_CONF_SAMPLE_INTERVAL:
 				samplerate = g_variant_get_uint64(src->data);
@@ -833,9 +828,10 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		if (ret != SR_OK)
 			break;
 
-		/* What comes out of the filter is guaranteed to be packed into the
+		/*
+		 * What comes out of the filter is guaranteed to be packed into the
 		 * minimum size needed to support the number of samples at this sample
-		 * size. however, the driver may have submitted too much -- cut off
+		 * size. however, the driver may have submitted too much. Cut off
 		 * the buffer of the last packet according to the sample limit.
 		 */
 		if (limit_samples && (received_samples + logic->length / sample_size >
@@ -848,7 +844,8 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		} else {
 			if (opt_pds) {
 #ifdef HAVE_SRD
-				if (srd_session_send(srd_sess, received_samples,
+				end_sample = received_samples + filter_out_len / unitsize;
+				if (srd_session_send(srd_sess, received_samples, end_sample,
 						(uint8_t*)filter_out, filter_out_len) != SRD_OK)
 					sr_session_stop();
 #endif
