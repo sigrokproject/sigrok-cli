@@ -285,7 +285,7 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 
 	s = g_string_sized_new(128);
 	g_string_assign(s, sdi->driver->name);
-	if (sr_config_get(sdi->driver, SR_CONF_CONN, &gvar, sdi) == SR_OK) {
+	if (sr_config_get(sdi->driver, sdi, NULL, SR_CONF_CONN, &gvar) == SR_OK) {
 		g_string_append(s, ":conn=");
 		g_string_append(s, g_variant_get_string(gvar, NULL));
 		g_variant_unref(gvar);
@@ -367,8 +367,8 @@ static void show_dev_detail(void)
 		return;
 	}
 
-	if ((sr_config_list(sdi->driver, SR_CONF_SCAN_OPTIONS, &gvar_opts,
-			NULL) == SR_OK)) {
+	if ((sr_config_list(sdi->driver, NULL, NULL, SR_CONF_SCAN_OPTIONS,
+			&gvar_opts) == SR_OK)) {
 		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
 				sizeof(int32_t));
 		printf("Supported driver options:\n");
@@ -380,8 +380,8 @@ static void show_dev_detail(void)
 		g_variant_unref(gvar_opts);
 	}
 
-	if ((sr_config_list(sdi->driver, SR_CONF_DEVICE_OPTIONS, &gvar_opts,
-			sdi) != SR_OK))
+	if ((sr_config_list(sdi->driver, sdi, NULL, SR_CONF_DEVICE_OPTIONS,
+			&gvar_opts) != SR_OK))
 		/* Driver supports no device instance options. */
 		return;
 
@@ -392,8 +392,8 @@ static void show_dev_detail(void)
 			continue;
 
 		if (srci->key == SR_CONF_TRIGGER_TYPE) {
-			if (sr_config_list(sdi->driver, srci->key, &gvar,
-					sdi) != SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+					&gvar) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -409,8 +409,8 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_PATTERN_MODE) {
 			/* Pattern generator modes */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, srci->key, &gvar,
-					sdi) == SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+					&gvar) == SR_OK) {
 				printf(" - supported patterns:\n");
 				stropts = g_variant_get_strv(gvar, &num_elements);
 				for (i = 0; i < num_elements; i++)
@@ -423,8 +423,8 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_SAMPLERATE,
-					&gvar_dict, sdi) != SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
+					&gvar_dict) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -466,8 +466,8 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_BUFFERSIZE) {
 			/* Supported buffer sizes */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_BUFFERSIZE,
-					&gvar_list, sdi) != SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL,
+					SR_CONF_BUFFERSIZE, &gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -481,8 +481,8 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_TIMEBASE) {
 			/* Supported time bases */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_TIMEBASE,
-					&gvar_list, sdi) != SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL,
+					SR_CONF_TIMEBASE, &gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -500,8 +500,8 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_VDIV) {
 			/* Supported volts/div values */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, SR_CONF_VDIV,
-					&gvar_list, sdi) != SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL,
+					SR_CONF_VDIV, &gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -756,7 +756,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 #ifdef HAVE_SRD
 		GVariant *gvar;
 		if (opt_pds && logic_probelist->len) {
-			if (sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
+			if (sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
 					&gvar, sdi) == SR_OK) {
 				samplerate = g_variant_get_uint64(gvar);
 				g_variant_unref(gvar);
@@ -1565,7 +1565,7 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 			ret = SR_ERR;
 		}
 		if (val)
-			ret = sr_config_set(sdi, srci->key, val);
+			ret = sr_config_set(sdi, NULL, srci->key, val);
 		if (ret != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
@@ -1621,13 +1621,13 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 
 	if (sr_dev_has_option(sdi, SR_CONF_LIMIT_MSEC)) {
 		gvar = g_variant_new_uint64(time_msec);
-		if (sr_config_set(sdi, SR_CONF_LIMIT_MSEC, gvar) != SR_OK) {
+		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_MSEC, gvar) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			return SR_ERR;
 		}
 	} else if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
 		/* Convert to samples based on the samplerate.  */
-		sr_config_get(sdi->driver, SR_CONF_SAMPLERATE, &gvar, sdi);
+		sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE, &gvar);
 		samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
 		limit_samples = (samplerate) * time_msec / (uint64_t)1000;
@@ -1636,7 +1636,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 		gvar = g_variant_new_uint64(limit_samples);
-		if (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
+		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
 			g_critical("Failed to configure time-based sample limit.");
 			return SR_ERR;
 		}
@@ -1733,7 +1733,7 @@ static void run_session(void)
 			return;
 		}
 		gvar = g_variant_new_uint64(limit_samples);
-		if (sr_config_set(sdi, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
+		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
 			g_critical("Failed to configure sample limit.");
 			sr_session_destroy();
 			return;
@@ -1747,7 +1747,7 @@ static void run_session(void)
 			return;
 		}
 		gvar = g_variant_new_uint64(limit_frames);
-		if (sr_config_set(sdi, SR_CONF_LIMIT_FRAMES, gvar) != SR_OK) {
+		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_FRAMES, gvar) != SR_OK) {
 			g_critical("Failed to configure frame limit.");
 			sr_session_destroy();
 			return;
