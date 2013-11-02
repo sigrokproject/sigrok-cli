@@ -336,7 +336,9 @@ static void show_dev_detail(void)
 {
 	struct sr_dev_inst *sdi;
 	const struct sr_config_info *srci;
-	GSList *devices;
+	struct sr_probe *probe;
+	struct sr_probe_group *probe_group;
+	GSList *devices, *pgl, *prl;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
 	const uint64_t *uint64, p, q, low, high;
@@ -384,6 +386,19 @@ static void show_dev_detail(void)
 			&gvar_opts) != SR_OK))
 		/* Driver supports no device instance options. */
 		return;
+
+	if (sdi->probe_groups) {
+		printf("Probe groups:\n");
+		for (pgl = sdi->probe_groups; pgl; pgl = pgl->next) {
+			probe_group = pgl->data;
+			printf("    %s:", probe_group->name);
+			for (prl = probe_group->probes; prl; prl = prl->next) {
+				probe = prl->data;
+				printf(" %s", probe->name);
+			}
+			printf("\n");
+		}
+	}
 
 	printf("Supported configuration options:\n");
 	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(int32_t));
