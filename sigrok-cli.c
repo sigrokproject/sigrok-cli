@@ -518,15 +518,15 @@ static void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_CHAR) {
 			printf("    %s: ", srci->id);
-			if (sr_config_get(sdi->driver, srci->key,
-					&gvar, sdi) == SR_OK) {
+			if (sr_config_get(sdi->driver, sdi, NULL, srci->key,
+					&gvar) == SR_OK) {
 				tmp_str = g_strdup(g_variant_get_string(gvar, NULL));
 				g_variant_unref(gvar);
 			} else
 				tmp_str = NULL;
 
-			if (sr_config_list(sdi->driver, srci->key,
-					&gvar, sdi) != SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+					&gvar) != SR_OK) {
 				printf("\n");
 				continue;
 			}
@@ -546,13 +546,13 @@ static void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_UINT64_RANGE) {
 			printf("    %s: ", srci->id);
-			if (sr_config_list(sdi->driver, srci->key,
-					&gvar_list, sdi) != SR_OK) {
+			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+					&gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 
-			if (sr_config_get(sdi->driver, srci->key, &gvar, sdi) == SR_OK) {
+			if (sr_config_get(sdi->driver, sdi, NULL, srci->key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(tt)", &cur_low, &cur_high);
 				g_variant_unref(gvar);
 			} else {
@@ -576,8 +576,8 @@ static void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_BOOL) {
 			printf("    %s: ", srci->id);
-			if (sr_config_get(sdi->driver, srci->key,
-					&gvar, sdi) == SR_OK) {
+			if (sr_config_get(sdi->driver, sdi, NULL, srci->key,
+					&gvar) == SR_OK) {
 				if (g_variant_get_boolean(gvar))
 					printf("on (current), off\n");
 				else
@@ -757,7 +757,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		GVariant *gvar;
 		if (opt_pds && logic_probelist->len) {
 			if (sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
-					&gvar, sdi) == SR_OK) {
+					&gvar) == SR_OK) {
 				samplerate = g_variant_get_uint64(gvar);
 				g_variant_unref(gvar);
 				if (srd_session_metadata_set(srd_sess, SRD_CONF_SAMPLERATE,
