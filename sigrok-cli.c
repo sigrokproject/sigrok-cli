@@ -60,6 +60,7 @@ static gchar *opt_output_file = NULL;
 static gchar *opt_drv = NULL;
 static gchar *opt_config = NULL;
 static gchar *opt_probes = NULL;
+static gchar *opt_probe_group = NULL;
 static gchar *opt_triggers = NULL;
 static gchar *opt_pds = NULL;
 #ifdef HAVE_SRD
@@ -94,6 +95,8 @@ static GOptionEntry optargs[] = {
 			"Output format", NULL},
 	{"probes", 'p', 0, G_OPTION_ARG_STRING, &opt_probes,
 			"Probes to use", NULL},
+	{"probe-group", 'g', 0, G_OPTION_ARG_STRING, &opt_probe_group,
+			"Probe groups", NULL},
 	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers,
 			"Trigger configuration", NULL},
 	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger,
@@ -1371,6 +1374,29 @@ static int select_probes(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static struct sr_probe_group *select_probe_group(struct sr_dev_inst *sdi)
+{
+	struct sr_probe_group *pg;
+	GSList *l;
+
+	if (!opt_probe_group)
+		return NULL;
+
+	if (!sdi->probe_groups) {
+		g_critical("This device does not have any probe groups.");
+		return NULL;
+	}
+
+	for (l = sdi->probe_groups; l; l = l->next) {
+		pg = l->data;
+		if (!strcasecmp(opt_probe_group, pg->name)) {
+			return pg;
+		}
+	}
+
+	return NULL;
+}
+
 /**
  * Return the input file format which the CLI tool should use.
  *
@@ -1510,6 +1536,7 @@ static void load_input_file(void)
 static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 {
 	const struct sr_config_info *srci;
+	struct sr_probe_group *pg;
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
@@ -1579,8 +1606,10 @@ static int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 		default:
 			ret = SR_ERR;
 		}
-		if (val)
-			ret = sr_config_set(sdi, NULL, srci->key, val);
+		if (val) {
+			pg = select_probe_group(sdi);
+			ret = sr_config_set(sdi, pg, srci->key, val);
+		}
 		if (ret != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
