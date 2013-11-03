@@ -154,6 +154,29 @@ static GSList *hash_to_hwopt(GHashTable *hash)
 	return opts;
 }
 
+static struct sr_probe_group *select_probe_group(struct sr_dev_inst *sdi)
+{
+	struct sr_probe_group *pg;
+	GSList *l;
+
+	if (!opt_probe_group)
+		return NULL;
+
+	if (!sdi->probe_groups) {
+		g_critical("This device does not have any probe groups.");
+		return NULL;
+	}
+
+	for (l = sdi->probe_groups; l; l = l->next) {
+		pg = l->data;
+		if (!strcasecmp(opt_probe_group, pg->name)) {
+			return pg;
+		}
+	}
+
+	return NULL;
+}
+
 static void free_drvopts(struct sr_config *src)
 {
 	g_variant_unref(src->data);
@@ -340,7 +363,7 @@ static void show_dev_detail(void)
 	struct sr_dev_inst *sdi;
 	const struct sr_config_info *srci;
 	struct sr_probe *probe;
-	struct sr_probe_group *probe_group;
+	struct sr_probe_group *probe_group, *pg;
 	GSList *devices, *pgl, *prl;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
@@ -385,17 +408,19 @@ static void show_dev_detail(void)
 		g_variant_unref(gvar_opts);
 	}
 
-	if ((sr_config_list(sdi->driver, sdi, NULL, SR_CONF_DEVICE_OPTIONS,
-			&gvar_opts) != SR_OK))
+	probe_group = select_probe_group(sdi);
+	if ((sr_config_list(sdi->driver, sdi, probe_group, SR_CONF_DEVICE_OPTIONS,
+			&gvar_opts)) != SR_OK)
 		/* Driver supports no device instance options. */
 		return;
 
 	if (sdi->probe_groups) {
 		printf("Probe groups:\n");
 		for (pgl = sdi->probe_groups; pgl; pgl = pgl->next) {
-			probe_group = pgl->data;
-			printf("    %s:", probe_group->name);
-			for (prl = probe_group->probes; prl; prl = prl->next) {
+			pg = pgl->data;
+			printf("    %s: channel%s", pg->name,
+					g_slist_length(pg->probes) > 1 ? "s" : "");
+			for (prl = pg->probes; prl; prl = prl->next) {
 				probe = prl->data;
 				printf(" %s", probe->name);
 			}
@@ -403,14 +428,21 @@ static void show_dev_detail(void)
 		}
 	}
 
-	printf("Supported configuration options:\n");
+	printf("Supported configuration options");
+	if (sdi->probe_groups) {
+		if (!probe_group)
+			printf(" across all probe groups");
+		else
+			printf(" on probe group %s", probe_group->name);
+	}
+	printf(":\n");
 	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(int32_t));
 	for (o = 0; o < num_opts; o++) {
 		if (!(srci = sr_config_info_get(opts[o])))
 			continue;
 
 		if (srci->key == SR_CONF_TRIGGER_TYPE) {
-			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
 					&gvar) != SR_OK) {
 				printf("\n");
 				continue;
@@ -427,7 +459,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_PATTERN_MODE) {
 			/* Pattern generator modes */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
 					&gvar) == SR_OK) {
 				printf(" - supported patterns:\n");
 				stropts = g_variant_get_strv(gvar, &num_elements);
@@ -441,7 +473,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
+			if (sr_config_list(sdi->driver, sdi, probe_group, SR_CONF_SAMPLERATE,
 					&gvar_dict) != SR_OK) {
 				printf("\n");
 				continue;
@@ -484,7 +516,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_BUFFERSIZE) {
 			/* Supported buffer sizes */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, NULL,
+			if (sr_config_list(sdi->driver, sdi, probe_group,
 					SR_CONF_BUFFERSIZE, &gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
@@ -499,7 +531,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_TIMEBASE) {
 			/* Supported time bases */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, NULL,
+			if (sr_config_list(sdi->driver, sdi, probe_group,
 					SR_CONF_TIMEBASE, &gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
@@ -518,7 +550,7 @@ static void show_dev_detail(void)
 		} else if (srci->key == SR_CONF_VDIV) {
 			/* Supported volts/div values */
 			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, NULL,
+			if (sr_config_list(sdi->driver, sdi, probe_group,
 					SR_CONF_VDIV, &gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
@@ -536,14 +568,14 @@ static void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_CHAR) {
 			printf("    %s: ", srci->id);
-			if (sr_config_get(sdi->driver, sdi, NULL, srci->key,
+			if (sr_config_get(sdi->driver, sdi, probe_group, srci->key,
 					&gvar) == SR_OK) {
 				tmp_str = g_strdup(g_variant_get_string(gvar, NULL));
 				g_variant_unref(gvar);
 			} else
 				tmp_str = NULL;
 
-			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
 					&gvar) != SR_OK) {
 				printf("\n");
 				continue;
@@ -564,7 +596,7 @@ static void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_UINT64_RANGE) {
 			printf("    %s: ", srci->id);
-			if (sr_config_list(sdi->driver, sdi, NULL, srci->key,
+			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
 					&gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
@@ -1372,29 +1404,6 @@ static int select_probes(struct sr_dev_inst *sdi)
 	g_slist_free(selected_probes);
 
 	return SR_OK;
-}
-
-static struct sr_probe_group *select_probe_group(struct sr_dev_inst *sdi)
-{
-	struct sr_probe_group *pg;
-	GSList *l;
-
-	if (!opt_probe_group)
-		return NULL;
-
-	if (!sdi->probe_groups) {
-		g_critical("This device does not have any probe groups.");
-		return NULL;
-	}
-
-	for (l = sdi->probe_groups; l; l = l->next) {
-		pg = l->data;
-		if (!strcasecmp(opt_probe_group, pg->name)) {
-			return pg;
-		}
-	}
-
-	return NULL;
 }
 
 /**
