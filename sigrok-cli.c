@@ -1299,9 +1299,9 @@ int setup_pd_annotations(void)
 
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
-	int i;
-	char **annotations;
+	struct srd_proto_data_annotation *pda;
 	gpointer ann_format;
+	int i;
 
 	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
@@ -1314,16 +1314,16 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		/* Not in the list of PDs whose annotations we're showing. */
 		return;
 
-	if (pdata->ann_format != GPOINTER_TO_INT(ann_format))
+	pda = pdata->data;
+	if (pda->ann_format != GPOINTER_TO_INT(ann_format))
 		/* We don't want this particular format from the PD. */
 		return;
 
-	annotations = pdata->data;
 	if (opt_loglevel > SR_LOG_WARN)
 		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
 	printf("%s: ", pdata->pdo->proto_id);
-	for (i = 0; annotations[i]; i++)
-		printf("\"%s\" ", annotations[i]);
+	for (i = 0; pda->ann_text[i]; i++)
+		printf("\"%s\" ", pda->ann_text[i]);
 	printf("\n");
 	fflush(stdout);
 }
