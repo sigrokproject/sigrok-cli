@@ -48,6 +48,7 @@ static char *output_format_param = NULL;
 #ifdef HAVE_SRD
 static struct srd_session *srd_sess = NULL;
 static GHashTable *pd_ann_visible = NULL;
+static GHashTable *pd_meta_visible = NULL;
 #endif
 static GByteArray *savebuf;
 
@@ -66,6 +67,7 @@ static gchar *opt_pds = NULL;
 #ifdef HAVE_SRD
 static gchar *opt_pd_stack = NULL;
 static gchar *opt_pd_annotations = NULL;
+static gchar *opt_pd_meta = NULL;
 #endif
 static gchar *opt_input_format = NULL;
 static gchar *opt_output_format = NULL;
@@ -108,6 +110,8 @@ static GOptionEntry optargs[] = {
 			"Protocol decoder stack", NULL},
 	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotations,
 			"Protocol decoder annotation(s) to show", NULL},
+	{"protocol-decoder-meta", 'M', 0, G_OPTION_ARG_STRING, &opt_pd_meta,
+			"Protocol decoder meta output to show", NULL},
 #endif
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},
@@ -1261,38 +1265,57 @@ int setup_pd_annotations(void)
 	char **pds, **pdtok, **keyval, **ann_descr;
 
 	/* Set up custom list of PDs and annotations to show. */
-	if (opt_pd_annotations) {
-		pds = g_strsplit(opt_pd_annotations, ",", 0);
-		for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
-			ann = 0;
-			keyval = g_strsplit(*pdtok, "=", 0);
-			if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
-				g_critical("Protocol decoder '%s' not found.", keyval[0]);
-				return 1;
-			}
-			if (!dec->annotations) {
-				g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
-				return 1;
-			}
-			if (g_strv_length(keyval) == 2) {
-				for (l = dec->annotations; l; l = l->next, ann++) {
-					ann_descr = l->data;
-					if (!canon_cmp(ann_descr[0], keyval[1]))
-						/* Found it. */
-						break;
-				}
-				if (!l) {
-					g_critical("Annotation '%s' not found "
-							"for protocol decoder '%s'.", keyval[1], keyval[0]);
-					return 1;
-				}
-			}
-			g_debug("cli: showing protocol decoder annotation %d from '%s'", ann, keyval[0]);
-			g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]), GINT_TO_POINTER(ann));
-			g_strfreev(keyval);
+	pds = g_strsplit(opt_pd_annotations, ",", 0);
+	for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
+		ann = 0;
+		keyval = g_strsplit(*pdtok, "=", 0);
+		if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
+			g_critical("Protocol decoder '%s' not found.", keyval[0]);
+			return 1;
 		}
-		g_strfreev(pds);
+		if (!dec->annotations) {
+			g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
+			return 1;
+		}
+		if (g_strv_length(keyval) == 2) {
+			for (l = dec->annotations; l; l = l->next, ann++) {
+				ann_descr = l->data;
+				if (!canon_cmp(ann_descr[0], keyval[1]))
+					/* Found it. */
+					break;
+			}
+			if (!l) {
+				g_critical("Annotation '%s' not found "
+						"for protocol decoder '%s'.", keyval[1], keyval[0]);
+				return 1;
+			}
+		}
+		g_debug("cli: Showing protocol decoder annotation %d from '%s'.", ann, keyval[0]);
+		g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]), GINT_TO_POINTER(ann));
+		g_strfreev(keyval);
 	}
+	g_strfreev(pds);
+
+	return 0;
+}
+
+int setup_pd_meta(void)
+{
+	struct srd_decoder *dec;
+	char **pds, **pdtok;
+
+	pd_meta_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
+			g_free, NULL);
+	pds = g_strsplit(opt_pd_meta, ",", 0);
+	for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
+		if (!(dec = srd_decoder_get_by_id(*pdtok))) {
+			g_critical("Protocol decoder '%s' not found.", *pdtok);
+			return 1;
+		}
+		g_debug("cli: Showing protocol decoder meta output from '%s'.", *pdtok);
+		g_hash_table_insert(pd_meta_visible, g_strdup(*pdtok), NULL);
+	}
+	g_strfreev(pds);
 
 	return 0;
 }
@@ -1324,6 +1347,25 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	printf("%s: ", pdata->pdo->proto_id);
 	for (i = 0; pda->ann_text[i]; i++)
 		printf("\"%s\" ", pda->ann_text[i]);
+	printf("\n");
+	fflush(stdout);
+}
+
+void show_pd_meta(struct srd_proto_data *pdata, void *cb_data)
+{
+
+	/* 'cb_data' is not used in this specific callback. */
+	(void)cb_data;
+
+	if (!g_hash_table_lookup_extended(pd_meta_visible,
+			pdata->pdo->di->decoder->id, NULL, NULL))
+		/* Not in the list of PDs whose meta output we're showing. */
+		return;
+
+	if (opt_loglevel > SR_LOG_WARN)
+		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
+	printf("%s: ", pdata->pdo->proto_id);
+	printf("%s: %s", pdata->pdo->meta_name, g_variant_print(pdata->data, FALSE));
 	printf("\n");
 	fflush(stdout);
 }
@@ -1893,8 +1935,16 @@ int main(int argc, char **argv)
 			goto done;
 		if (setup_pd_stack() != 0)
 			goto done;
-		if (setup_pd_annotations() != 0)
-			goto done;
+		if (opt_pd_annotations)
+			if (setup_pd_annotations() != 0)
+				goto done;
+		if (opt_pd_meta) {
+			if (setup_pd_meta() != 0)
+				goto done;
+			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_META,
+					show_pd_meta, NULL) != SRD_OK)
+				goto done;
+		}
 	}
 #endif
 
