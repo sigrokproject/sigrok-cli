@@ -49,6 +49,7 @@ static char *output_format_param = NULL;
 static struct srd_session *srd_sess = NULL;
 static GHashTable *pd_ann_visible = NULL;
 static GHashTable *pd_meta_visible = NULL;
+static GHashTable *pd_binary_visible = NULL;
 #endif
 static GByteArray *savebuf;
 
@@ -68,6 +69,7 @@ static gchar *opt_pds = NULL;
 static gchar *opt_pd_stack = NULL;
 static gchar *opt_pd_annotations = NULL;
 static gchar *opt_pd_meta = NULL;
+static gchar *opt_pd_binary = NULL;
 #endif
 static gchar *opt_input_format = NULL;
 static gchar *opt_output_format = NULL;
@@ -112,6 +114,8 @@ static GOptionEntry optargs[] = {
 			"Protocol decoder annotation(s) to show", NULL},
 	{"protocol-decoder-meta", 'M', 0, G_OPTION_ARG_STRING, &opt_pd_meta,
 			"Protocol decoder meta output to show", NULL},
+	{"protocol-decoder-binary", 'B', 0, G_OPTION_ARG_STRING, &opt_pd_binary,
+			"Protocol decoder binary output to show", NULL},
 #endif
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},
@@ -1326,6 +1330,55 @@ int setup_pd_meta(void)
 	return 0;
 }
 
+int setup_pd_binary(void)
+{
+	GSList *l;
+	struct srd_decoder *dec;
+	int bin_class;
+	char **pds, **pdtok, **keyval, *bin_name;
+
+	pd_binary_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
+			g_free, NULL);
+	pds = g_strsplit(opt_pd_binary, ",", 0);
+	for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
+		keyval = g_strsplit(*pdtok, "=", 0);
+		if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
+			g_critical("Protocol decoder '%s' not found.", keyval[0]);
+			return 1;
+		}
+		if (!dec->binary) {
+			g_critical("Protocol decoder '%s' has no binary output.", keyval[0]);
+			return 1;
+		}
+		bin_class = 0;
+		if (g_strv_length(keyval) == 2) {
+			for (l = dec->binary; l; l = l->next, bin_class++) {
+				bin_name = l->data;
+				if (!canon_cmp(bin_name, keyval[1]))
+					/* Found it. */
+					break;
+			}
+			if (!l) {
+				g_critical("binary output '%s' not found "
+						"for protocol decoder '%s'.", keyval[1], keyval[0]);
+				return 1;
+			}
+			g_debug("cli: Showing protocol decoder %s binary class "
+					"%d (%s).", keyval[0], bin_class, bin_name);
+		} else {
+			/* No class specified: output all of them. */
+			bin_class = -1;
+			g_debug("cli: Showing all binary classes for protocol "
+					"decoder %s.", keyval[0]);
+		}
+		g_hash_table_insert(pd_binary_visible, g_strdup(keyval[0]), GINT_TO_POINTER(bin_class));
+		g_strfreev(keyval);
+	}
+	g_strfreev(pds);
+
+	return 0;
+}
+
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_proto_data_annotation *pda;
@@ -1374,6 +1427,31 @@ void show_pd_meta(struct srd_proto_data *pdata, void *cb_data)
 	printf("%s: ", pdata->pdo->proto_id);
 	printf("%s: %s", pdata->pdo->meta_name, g_variant_print(pdata->data, FALSE));
 	printf("\n");
+	fflush(stdout);
+}
+
+void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
+{
+	struct srd_proto_data_binary *pdb;
+	gpointer classp;
+	int class;
+
+	/* 'cb_data' is not used in this specific callback. */
+	(void)cb_data;
+
+	if (!g_hash_table_lookup_extended(pd_binary_visible,
+			pdata->pdo->di->decoder->id, NULL, (void **)&classp))
+		/* Not in the list of PDs whose meta output we're showing. */
+		return;
+
+	class = GPOINTER_TO_INT(classp);
+	pdb = pdata->data;
+	if (class != -1 && class != pdb->bin_class)
+		/* Not showing this binary class. */
+		return;
+
+	/* Just send the binary output to stdout, no embellishments. */
+	fwrite(pdb->data, pdb->size, 1, stdout);
 	fflush(stdout);
 }
 #endif
