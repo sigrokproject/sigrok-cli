@@ -1352,8 +1352,8 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	if (opt_loglevel > SR_LOG_WARN)
 		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
 	printf("%s: ", pdata->pdo->proto_id);
-	for (i = 0; pda->ann_text[i]; i++)
-		printf("\"%s\" ", pda->ann_text[i]);
+	/* Show only the longest annotation. */
+	printf("\"%s\" ", pda->ann_text[0]);
 	printf("\n");
 	fflush(stdout);
 }
