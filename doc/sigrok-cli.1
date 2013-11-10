@@ -311,6 +311,43 @@ annotation each, by separating them with commas:
 .br
 .B "              \-A i2c=data-read:data-write,edid"
 .TP
+.BR "\-M, \-\-protocol\-decoder\-meta " <pdname>
+When given, show protocol decoder meta output instead of annotations.
+The argument is the name of the decoder whose meta output to show.
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-M i2c"
+.sp
+Not every decoder generates meta output.
+.TP
+.BR "\-B, \-\-protocol\-decoder\-binary " <binaryspec>
+When given, decoder "raw" data of various kinds is written to stdout instead
+of annotations (this could be raw binary UART/SPI bytes, or WAV files, PCAP
+files, PNG files, or anything else; this is entirely dependent on the
+decoder and what kinds of binary output make sense for that decoder).
+.sp
+No other information is printed to stdout, so this is
+suitable for piping into other programs or saving to a file.
+.sp
+Protocol decoders that support binary output publish a list of binary
+classes, for example the UART decoder might have "TX" and "RX". To
+select TX for output, the argument to this option would be:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-B uart=tx"
+.br
+.sp
+If only the protocol decoder is specified, without binary class, all classes
+are written to stdout:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-B uart"
+.sp
+(this is only useful in rare cases, generally you would specify a certain
+binary class you're interested in)
+.sp
+Not every decoder generates binary output.
+.TP
 .BR "\-l, \-\-loglevel " <level>
 Set the libsigrok and libsigrokdecode loglevel. At the moment \fBsigrok-cli\fP
 doesn't support setting the two loglevels independently. The higher the
