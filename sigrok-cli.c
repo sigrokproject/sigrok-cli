@@ -2015,19 +2015,28 @@ int main(int argc, char **argv)
 		}
 		if (register_pds(NULL, opt_pds) != 0)
 			goto done;
-		if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_ANN,
-				show_pd_annotations, NULL) != SRD_OK)
-			goto done;
 		if (setup_pd_stack() != 0)
 			goto done;
-		if (opt_pd_annotations)
-			if (setup_pd_annotations() != 0)
+
+		/* Only one output type is ever shown. */
+		if (opt_pd_binary) {
+			if (setup_pd_binary() != 0)
 				goto done;
-		if (opt_pd_meta) {
+			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_BINARY,
+					show_pd_binary, NULL) != SRD_OK)
+				goto done;
+		} else if (opt_pd_meta) {
 			if (setup_pd_meta() != 0)
 				goto done;
 			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_META,
 					show_pd_meta, NULL) != SRD_OK)
+				goto done;
+		} else {
+			if (opt_pd_annotations)
+				if (setup_pd_annotations() != 0)
+					goto done;
+			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_ANN,
+					show_pd_annotations, NULL) != SRD_OK)
 				goto done;
 		}
 	}
