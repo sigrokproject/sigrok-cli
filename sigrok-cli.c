@@ -1126,9 +1126,9 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 
 	(void)dev;
 
-	ret = 0;
 	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
 			g_free, NULL);
+	ret = 0;
 	pd_name = NULL;
 	pd_opthash = options = probes = NULL;
 	pdtokens = g_strsplit(pdstring, ",", 0);
@@ -1176,7 +1176,7 @@ static int register_pds(struct sr_dev *dev, const char *pdstring)
 		 */
 		if (!opt_pd_annotations)
 			g_hash_table_insert(pd_ann_visible,
-					    g_strdup(di->inst_id), NULL);
+					    g_strdup(di->inst_id), GINT_TO_POINTER(-1));
 
 		/* Remap the probes if needed. */
 		if (srd_inst_probe_set_all(di, probes) != SRD_OK) {
@@ -1261,13 +1261,12 @@ int setup_pd_annotations(void)
 {
 	GSList *l;
 	struct srd_decoder *dec;
-	int ann;
+	int ann_class;
 	char **pds, **pdtok, **keyval, **ann_descr;
 
 	/* Set up custom list of PDs and annotations to show. */
 	pds = g_strsplit(opt_pd_annotations, ",", 0);
 	for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
-		ann = 0;
 		keyval = g_strsplit(*pdtok, "=", 0);
 		if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
 			g_critical("Protocol decoder '%s' not found.", keyval[0]);
@@ -1277,8 +1276,9 @@ int setup_pd_annotations(void)
 			g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
 			return 1;
 		}
+		ann_class = 0;
 		if (g_strv_length(keyval) == 2) {
-			for (l = dec->annotations; l; l = l->next, ann++) {
+			for (l = dec->annotations; l; l = l->next, ann_class++) {
 				ann_descr = l->data;
 				if (!canon_cmp(ann_descr[0], keyval[1]))
 					/* Found it. */
@@ -1289,9 +1289,15 @@ int setup_pd_annotations(void)
 						"for protocol decoder '%s'.", keyval[1], keyval[0]);
 				return 1;
 			}
+			g_debug("cli: Showing protocol decoder %s annotation "
+					"class %d (%s).", keyval[0], ann_class, ann_descr[0]);
+		} else {
+			/* No class specified: show all of them. */
+			ann_class = -1;
+			g_debug("cli: Showing all annotation classes for protocol "
+					"decoder %s.", keyval[0]);
 		}
-		g_debug("cli: Showing protocol decoder annotation %d from '%s'.", ann, keyval[0]);
-		g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]), GINT_TO_POINTER(ann));
+		g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]), GINT_TO_POINTER(ann_class));
 		g_strfreev(keyval);
 	}
 	g_strfreev(pds);
@@ -1324,7 +1330,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_proto_data_annotation *pda;
 	gpointer ann_format;
-	int i;
+	int format;
 
 	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
@@ -1337,8 +1343,9 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		/* Not in the list of PDs whose annotations we're showing. */
 		return;
 
+	format = GPOINTER_TO_INT(ann_format);
 	pda = pdata->data;
-	if (pda->ann_format != GPOINTER_TO_INT(ann_format))
+	if (format != -1 && pda->ann_format != format)
 		/* We don't want this particular format from the PD. */
 		return;
 
