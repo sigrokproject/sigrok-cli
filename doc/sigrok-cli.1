@@ -169,6 +169,13 @@ for probes 5 and 6 will be reset to the defaults by the
 .B "1\-8"
 probe selection.
 .TP
+.BR "\-g, \-\-probe\-group "<probe\ group>
+Specify the probe group to operate on.
+
+Some devices organize probes into groups, the settings of which can
+only be changed as a group. The list of probe groups, if any, is displayed
+with the \-\-show command.
+.TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form
 .BR "<probe>=<trigger>" .
