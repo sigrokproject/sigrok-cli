@@ -73,25 +73,25 @@ GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
 				/* Need exactly two arguments. */
 				g_critical("Invalid probe syntax '%s'.", tokens[i]);
 				ret = SR_ERR;
-				break;
+				goto range_fail;
 			}
 
 			b = strtol(range[0], &eptr, 10);
 			if (eptr == range[0] || *eptr != '\0') {
 				g_critical("Invalid probe '%s'.", range[0]);
 				ret = SR_ERR;
-				break;
+				goto range_fail;
 			}
 			e = strtol(range[1], NULL, 10);
 			if (eptr == range[1] || *eptr != '\0') {
 				g_critical("Invalid probe '%s'.", range[1]);
 				ret = SR_ERR;
-				break;
+				goto range_fail;
 			}
 			if (b < 0 || b >= e) {
 				g_critical("Invalid probe range '%s'.", tokens[i]);
 				ret = SR_ERR;
-				break;
+				goto range_fail;
 			}
 
 			while (b <= e) {
@@ -110,6 +110,10 @@ GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
 				probelist = g_slist_append(probelist, probe);
 				b++;
 			}
+range_fail:
+			if (range)
+				g_strfreev(range);
+
 			if (ret != SR_OK)
 				break;
 		} else {
@@ -133,13 +137,11 @@ GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
 				probe->name = g_strdup(names[1]);
 			}
 			probelist = g_slist_append(probelist, probe);
+
+			if (names)
+				g_strfreev(names);
 		}
 	}
-	if (range)
-		g_strfreev(range);
-
-	if (names)
-		g_strfreev(names);
 
 	if (ret != SR_OK) {
 		g_slist_free(probelist);
