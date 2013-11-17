@@ -32,11 +32,6 @@ static GHashTable *pd_binary_visible = NULL;
 
 extern struct srd_session *srd_sess;
 extern gint opt_loglevel;
-extern gchar *opt_pds;
-extern gchar *opt_pd_stack;
-extern gchar *opt_pd_annotations;
-extern gchar *opt_pd_meta;
-extern gchar *opt_pd_binary;
 
 
 static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
@@ -126,7 +121,7 @@ static int probes_to_gvar(struct srd_decoder *dec, GHashTable *hash,
  * That will instantiate two SPI decoders on the clock but different data
  * lines.
  */
-int register_pds(const char *pdstring)
+int register_pds(const char *opt_pds, char *opt_pd_annotations)
 {
 	struct srd_decoder *dec;
 	GHashTable *pd_opthash, *options, *probes;
@@ -140,7 +135,7 @@ int register_pds(const char *pdstring)
 	ret = 0;
 	pd_name = NULL;
 	pd_opthash = options = probes = NULL;
-	pdtokens = g_strsplit(pdstring, ",", 0);
+	pdtokens = g_strsplit(opt_pds, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
 			g_critical("Invalid protocol decoder option '%s'.", *pdtok);
@@ -207,7 +202,7 @@ int register_pds(const char *pdstring)
 	return ret;
 }
 
-int setup_pd_stack(void)
+int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations)
 {
 	struct srd_decoder_inst *di_from, *di_to;
 	int ret, i;
@@ -266,7 +261,7 @@ int setup_pd_stack(void)
 	return 0;
 }
 
-int setup_pd_annotations(void)
+int setup_pd_annotations(char *opt_pd_annotations)
 {
 	GSList *l;
 	struct srd_decoder *dec;
@@ -314,7 +309,7 @@ int setup_pd_annotations(void)
 	return 0;
 }
 
-int setup_pd_meta(void)
+int setup_pd_meta(char *opt_pd_meta)
 {
 	struct srd_decoder *dec;
 	char **pds, **pdtok;
@@ -335,7 +330,7 @@ int setup_pd_meta(void)
 	return 0;
 }
 
-int setup_pd_binary(void)
+int setup_pd_binary(char *opt_pd_binary)
 {
 	GSList *l;
 	struct srd_decoder *dec;

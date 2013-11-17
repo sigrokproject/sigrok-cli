@@ -43,10 +43,10 @@ gchar *opt_probe_group = NULL;
 gchar *opt_triggers = NULL;
 gchar *opt_pds = NULL;
 #ifdef HAVE_SRD
-gchar *opt_pd_stack = NULL;
-gchar *opt_pd_annotations = NULL;
-gchar *opt_pd_meta = NULL;
-gchar *opt_pd_binary = NULL;
+static gchar *opt_pd_stack = NULL;
+static gchar *opt_pd_annotations = NULL;
+static gchar *opt_pd_meta = NULL;
+static gchar *opt_pd_binary = NULL;
 #endif
 gchar *opt_input_format = NULL;
 gchar *opt_output_format = NULL;
@@ -226,27 +226,27 @@ int main(int argc, char **argv)
 			g_critical("Failed to create new decode session.");
 			goto done;
 		}
-		if (register_pds(opt_pds) != 0)
+		if (register_pds(opt_pds, opt_pd_annotations) != 0)
 			goto done;
-		if (setup_pd_stack() != 0)
+		if (setup_pd_stack(opt_pds, opt_pd_stack, opt_pd_annotations) != 0)
 			goto done;
 
 		/* Only one output type is ever shown. */
 		if (opt_pd_binary) {
-			if (setup_pd_binary() != 0)
+			if (setup_pd_binary(opt_pd_binary) != 0)
 				goto done;
 			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_BINARY,
 					show_pd_binary, NULL) != SRD_OK)
 				goto done;
 		} else if (opt_pd_meta) {
-			if (setup_pd_meta() != 0)
+			if (setup_pd_meta(opt_pd_meta) != 0)
 				goto done;
 			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_META,
 					show_pd_meta, NULL) != SRD_OK)
 				goto done;
 		} else {
 			if (opt_pd_annotations)
-				if (setup_pd_annotations() != 0)
+				if (setup_pd_annotations(opt_pd_annotations) != 0)
 					goto done;
 			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_ANN,
 					show_pd_annotations, NULL) != SRD_OK)

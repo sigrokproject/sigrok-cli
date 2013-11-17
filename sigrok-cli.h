@@ -52,11 +52,11 @@ void run_session(void);
 void load_input_file(void);
 
 /* decode.c */
-int register_pds(const char *pdstring);
-int setup_pd_stack(void);
-int setup_pd_annotations(void);
-int setup_pd_meta(void);
-int setup_pd_binary(void);
+int register_pds(const char *opt_pds, char *opt_pd_annotations);
+int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations);
+int setup_pd_annotations(char *opt_pd_annotations);
+int setup_pd_meta(char *opt_pd_meta);
+int setup_pd_binary(char *opt_pd_binary);
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_meta(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_binary(struct srd_proto_data *pdata, void *cb_data);
