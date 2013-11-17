@@ -23,7 +23,7 @@ AC_PREREQ([2.63])
 AC_INIT([sigrok-cli], [0.4.0], [sigrok-devel@lists.sourceforge.net],
 	[sigrok-cli], [http://www.sigrok.org])
 
-AC_CONFIG_SRCDIR([sigrok-cli.c])
+AC_CONFIG_SRCDIR([sigrok-cli.h])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
