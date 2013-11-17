@@ -20,15 +20,50 @@
 #ifndef SIGROK_CLI_SIGROK_CLI_H
 #define SIGROK_CLI_SIGROK_CLI_H
 
-/* sigrok-cli.c */
-int num_real_devs(void);
+#include "config.h"
+#include <libsigrok/libsigrok.h>
+#ifdef HAVE_SRD
+#include <libsigrokdecode/libsigrokdecode.h>
+#endif
+
+#define DEFAULT_OUTPUT_FORMAT "bits:width=64"
+
+/* main.c */
+int select_probes(struct sr_dev_inst *sdi);
+
+/* show.c */
+void show_version(void);
+void show_dev_list(void);
+void show_dev_detail(void);
+void show_pd_detail(void);
+
+/* device.c */
+GSList *device_scan(void);
+struct sr_probe_group *select_probe_group(struct sr_dev_inst *sdi);
+
+/* session.c */
+int setup_output_format(void);
+void datafeed_in(const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, void *cb_data);
+int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args);
+void run_session(void);
+
+/* input.c */
+void load_input_file(void);
+
+/* decode.c */
+int register_pds(const char *pdstring);
+int setup_pd_stack(void);
+int setup_pd_annotations(void);
+int setup_pd_meta(void);
+int setup_pd_binary(void);
+void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data);
+void show_pd_meta(struct srd_proto_data *pdata, void *cb_data);
+void show_pd_binary(struct srd_proto_data *pdata, void *cb_data);
 
 /* parsers.c */
 GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring);
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first);
-struct sr_dev *parse_devstring(const char *devstring);
-uint64_t sr_parse_timestring(const char *timestring);
-char *strcanon(const char *str);
 int canon_cmp(const char *str1, const char *str2);
 
 /* anykey.c */

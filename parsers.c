@@ -25,7 +25,7 @@
 #include <libsigrok/libsigrok.h>
 #include "sigrok-cli.h"
 
-struct sr_probe *find_probe(GSList *probelist, const char *probename)
+static struct sr_probe *find_probe(GSList *probelist, const char *probename)
 {
 	struct sr_probe *probe;
 	GSList *l;
@@ -183,7 +183,7 @@ GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 	return hash;
 }
 
-char *strcanon(const char *str)
+static char *strcanon(const char *str)
 {
 	int p0, p1;
 	char *s;

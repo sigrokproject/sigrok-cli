@@ -1,7 +1,7 @@
 ##
 ## This file is part of the sigrok-cli project.
 ##
-## Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+## Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -23,7 +23,16 @@ SUBDIRS = contrib doc
 
 bin_PROGRAMS = sigrok-cli
 
-sigrok_cli_SOURCES = sigrok-cli.c sigrok-cli.h parsers.c anykey.c
+sigrok_cli_SOURCES = \
+	main.c \
+	show.c \
+	device.c \
+	session.c \
+	input.c \
+	decode.c \
+	sigrok-cli.h \
+	parsers.c \
+	anykey.c
 
 MAINTAINERCLEANFILES = ChangeLog
 
