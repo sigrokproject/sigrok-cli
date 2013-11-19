@@ -440,7 +440,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			if (sr_session_save(opt_output_file, sdi, savebuf->data,
 					unitsize, savebuf->len / unitsize) != SR_OK)
 				g_critical("Failed to save session.");
-			g_byte_array_free(savebuf, FALSE);
+			g_byte_array_free(savebuf, TRUE);
 		}
 	}
 
