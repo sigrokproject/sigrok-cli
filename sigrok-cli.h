@@ -21,10 +21,11 @@
 #define SIGROK_CLI_SIGROK_CLI_H
 
 #include "config.h"
-#include <libsigrok/libsigrok.h>
 #ifdef HAVE_SRD
+/* First, so we avoid a _POSIX_C_SOURCE warning. */
 #include <libsigrokdecode/libsigrokdecode.h>
 #endif
+#include <libsigrok/libsigrok.h>
 
 #define DEFAULT_OUTPUT_FORMAT "bits:width=64"
 

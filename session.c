@@ -17,14 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "sigrok-cli.h"
 #include "config.h"
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <libsigrok/libsigrok.h>
-#ifdef HAVE_SRD
-#include <libsigrokdecode/libsigrokdecode.h> /* First, so we avoid a _POSIX_C_SOURCE warning. */
-#endif
-#include "sigrok-cli.h"
 
 static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;

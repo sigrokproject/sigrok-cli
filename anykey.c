@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "sigrok-cli.h"
 #include <stdio.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -26,8 +27,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <glib.h>
-#include <libsigrok/libsigrok.h>
-#include "sigrok-cli.h"
 
 #ifdef _WIN32
 static HANDLE stdin_handle;

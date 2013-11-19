@@ -17,13 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "sigrok-cli.h"
 #include "config.h"
 #include <glib.h>
-#include <libsigrok/libsigrok.h>
-#ifdef HAVE_SRD
-#include <libsigrokdecode/libsigrokdecode.h> /* First, so we avoid a _POSIX_C_SOURCE warning. */
-#endif
-#include "sigrok-cli.h"
 
 #ifdef HAVE_SRD
 static GHashTable *pd_ann_visible = NULL;

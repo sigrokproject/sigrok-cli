@@ -17,13 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "sigrok-cli.h"
 #include "config.h"
 #include <glib.h>
-#include <libsigrok/libsigrok.h>
-#ifdef HAVE_SRD
-#include <libsigrokdecode/libsigrokdecode.h>
-#endif
-#include "sigrok-cli.h"
 
 extern gint opt_loglevel;
 extern gchar *opt_pds;
