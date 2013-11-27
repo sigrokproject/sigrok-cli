@@ -377,9 +377,11 @@ int setup_pd_binary(char *opt_pd_binary)
 
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
+	struct srd_decoder *dec;
 	struct srd_proto_data_annotation *pda;
 	gpointer ann_format;
-	int format;
+	int format, i;
+	char **ann_descr;
 
 	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
@@ -393,16 +395,29 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		return;
 
 	format = GPOINTER_TO_INT(ann_format);
+	dec = pdata->pdo->di->decoder;
 	pda = pdata->data;
 	if (format != -1 && pda->ann_format != format)
 		/* We don't want this particular format from the PD. */
 		return;
 
-	if (opt_loglevel > SR_LOG_WARN)
+	if (opt_loglevel <= SR_LOG_WARN) {
+		/* Show only the longest annotation. */
+		printf("%s ", pda->ann_text[0]);
+	} else if (opt_loglevel >= SR_LOG_INFO) {
+		/* Sample numbers and quotes around the longest annotation. */
 		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
-	printf("%s: ", pdata->pdo->proto_id);
-	/* Show only the longest annotation. */
-	printf("\"%s\" ", pda->ann_text[0]);
+		if (opt_loglevel == SR_LOG_INFO) {
+			printf("\"%s\" ", pda->ann_text[0]);
+		} else {
+			/* Protocol decoder id, annotation class,
+			 * all annotation strings. */
+			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_format);
+			printf("%s: %s: ", pdata->pdo->proto_id, ann_descr[0]);
+			for (i = 0; pda->ann_text[i]; i++)
+				printf("\"%s\" ", pda->ann_text[i]);
+		}
+	}
 	printf("\n");
 	fflush(stdout);
 }
