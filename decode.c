@@ -403,19 +403,19 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 
 	if (opt_loglevel <= SR_LOG_WARN) {
 		/* Show only the longest annotation. */
-		printf("%s ", pda->ann_text[0]);
+		printf("%s", pda->ann_text[0]);
 	} else if (opt_loglevel >= SR_LOG_INFO) {
 		/* Sample numbers and quotes around the longest annotation. */
-		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
+		printf("%"PRIu64"-%"PRIu64"", pdata->start_sample, pdata->end_sample);
 		if (opt_loglevel == SR_LOG_INFO) {
-			printf("\"%s\" ", pda->ann_text[0]);
+			printf(" \"%s\"", pda->ann_text[0]);
 		} else {
 			/* Protocol decoder id, annotation class,
 			 * all annotation strings. */
 			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_format);
-			printf("%s: %s: ", pdata->pdo->proto_id, ann_descr[0]);
+			printf(" %s: %s:", pdata->pdo->proto_id, ann_descr[0]);
 			for (i = 0; pda->ann_text[i]; i++)
-				printf("\"%s\" ", pda->ann_text[i]);
+				printf(" \"%s\"", pda->ann_text[i]);
 		}
 	}
 	printf("\n");
