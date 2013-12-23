@@ -331,7 +331,7 @@ int setup_pd_binary(char *opt_pd_binary)
 	GSList *l;
 	struct srd_decoder *dec;
 	int bin_class;
-	char **pds, **pdtok, **keyval, *bin_name;
+	char **pds, **pdtok, **keyval, **bin_name;
 
 	pd_binary_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
 			g_free, NULL);
@@ -350,7 +350,7 @@ int setup_pd_binary(char *opt_pd_binary)
 		if (g_strv_length(keyval) == 2) {
 			for (l = dec->binary; l; l = l->next, bin_class++) {
 				bin_name = l->data;
-				if (!canon_cmp(bin_name, keyval[1]))
+				if (!strcmp(bin_name[0], keyval[1]))
 					/* Found it. */
 					break;
 			}
@@ -360,7 +360,7 @@ int setup_pd_binary(char *opt_pd_binary)
 				return 1;
 			}
 			g_debug("cli: Showing protocol decoder %s binary class "
-					"%d (%s).", keyval[0], bin_class, bin_name);
+					"%d (%s).", keyval[0], bin_class, bin_name[0]);
 		} else {
 			/* No class specified: output all of them. */
 			bin_class = -1;
