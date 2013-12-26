@@ -28,24 +28,18 @@ extern gchar *opt_probe_group;
 /* Convert driver options hash to GSList of struct sr_config. */
 static GSList *hash_to_hwopt(GHashTable *hash)
 {
-	const struct sr_config_info *srci;
 	struct sr_config *src;
 	GList *gl, *keys;
 	GSList *opts;
-	char *key, *value;
+	char *key;
 
 	keys = g_hash_table_get_keys(hash);
 	opts = NULL;
 	for (gl = keys; gl; gl = gl->next) {
 		key = gl->data;
-		if (!(srci = sr_config_info_name_get(key))) {
-			g_critical("Unknown option %s", key);
+		src = g_malloc(sizeof(struct sr_config));
+		if (opt_to_gvar(key, g_hash_table_lookup(hash, key), src) != 0)
 			return NULL;
-		}
-		src = g_try_malloc(sizeof(struct sr_config));
-		src->key = srci->key;
-		value = g_hash_table_lookup(hash, key);
-		src->data = g_variant_new_string(value);
 		opts = g_slist_append(opts, src);
 	}
 	g_list_free(keys);

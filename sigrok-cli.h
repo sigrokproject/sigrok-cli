@@ -46,6 +46,7 @@ struct sr_probe_group *select_probe_group(struct sr_dev_inst *sdi);
 int setup_output_format(void);
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
+int opt_to_gvar(char *key, char *value, struct sr_config *src);
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args);
 void run_session(void);
 

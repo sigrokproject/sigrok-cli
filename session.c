@@ -442,83 +442,100 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 }
 
-int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
+int opt_to_gvar(char *key, char *value, struct sr_config *src)
 {
 	const struct sr_config_info *srci;
+	double tmp_double;
+	uint64_t tmp_u64, p, q, low, high;
+	GVariant *rational[2], *range[2];
+	gboolean tmp_bool;
+	int ret;
+
+	if (!(srci = sr_config_info_name_get(key))) {
+		g_critical("Unknown device option '%s'.", (char *) key);
+		return -1;
+	}
+	src->key = srci->key;
+
+	if ((value == NULL) &&
+		(srci->datatype != SR_T_BOOL)) {
+		g_critical("Option '%s' needs a value.", (char *)key);
+		return -1;
+	}
+
+	ret = 0;
+	switch (srci->datatype) {
+	case SR_T_UINT64:
+		ret = sr_parse_sizestring(value, &tmp_u64);
+		if (ret != 0)
+			break;
+		src->data = g_variant_new_uint64(tmp_u64);
+		break;
+	case SR_T_INT32:
+		ret = sr_parse_sizestring(value, &tmp_u64);
+		if (ret != 0)
+			break;
+		src->data = g_variant_new_int32(tmp_u64);
+		break;
+	case SR_T_CHAR:
+		src->data = g_variant_new_string(value);
+		break;
+	case SR_T_BOOL:
+		if (!value)
+			tmp_bool = TRUE;
+		else
+			tmp_bool = sr_parse_boolstring(value);
+		src->data = g_variant_new_boolean(tmp_bool);
+		break;
+	case SR_T_FLOAT:
+		tmp_double = strtof(value, NULL);
+		src->data = g_variant_new_double(tmp_double);
+		break;
+	case SR_T_RATIONAL_PERIOD:
+		if ((ret = sr_parse_period(value, &p, &q)) != SR_OK)
+			break;
+		rational[0] = g_variant_new_uint64(p);
+		rational[1] = g_variant_new_uint64(q);
+		src->data = g_variant_new_tuple(rational, 2);
+		break;
+	case SR_T_RATIONAL_VOLT:
+		if ((ret = sr_parse_voltage(value, &p, &q)) != SR_OK)
+			break;
+		rational[0] = g_variant_new_uint64(p);
+		rational[1] = g_variant_new_uint64(q);
+		src->data = g_variant_new_tuple(rational, 2);
+		break;
+	case SR_T_UINT64_RANGE:
+		if (sscanf(value, "%"PRIu64"-%"PRIu64, &low, &high) != 2) {
+			ret = -1;
+			break;
+		} else {
+			range[0] = g_variant_new_uint64(low);
+			range[1] = g_variant_new_uint64(high);
+			src->data = g_variant_new_tuple(range, 2);
+		}
+		break;
+	default:
+		ret = -1;
+	}
+
+	return ret;
+}
+
+int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
+{
+	struct sr_config src;
 	struct sr_probe_group *pg;
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
-	double tmp_double;
-	uint64_t tmp_u64, p, q, low, high;
-	gboolean tmp_bool;
-	GVariant *val, *rational[2], *range[2];
 
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		if (!(srci = sr_config_info_name_get(key))) {
-			g_critical("Unknown device option '%s'.", (char *) key);
-			return SR_ERR;
-		}
-
-		if ((value == NULL) &&
-			(srci->datatype != SR_T_BOOL)) {
-			g_critical("Option '%s' needs a value.", (char *)key);
-			return SR_ERR;
-		}
-		val = NULL;
-		switch (srci->datatype) {
-		case SR_T_UINT64:
-			ret = sr_parse_sizestring(value, &tmp_u64);
-			if (ret != SR_OK)
-				break;
-			val = g_variant_new_uint64(tmp_u64);
-			break;
-		case SR_T_CHAR:
-			val = g_variant_new_string(value);
-			break;
-		case SR_T_BOOL:
-			if (!value)
-				tmp_bool = TRUE;
-			else
-				tmp_bool = sr_parse_boolstring(value);
-			val = g_variant_new_boolean(tmp_bool);
-			break;
-		case SR_T_FLOAT:
-			tmp_double = strtof(value, NULL);
-			val = g_variant_new_double(tmp_double);
-			break;
-		case SR_T_RATIONAL_PERIOD:
-			if ((ret = sr_parse_period(value, &p, &q)) != SR_OK)
-				break;
-			rational[0] = g_variant_new_uint64(p);
-			rational[1] = g_variant_new_uint64(q);
-			val = g_variant_new_tuple(rational, 2);
-			break;
-		case SR_T_RATIONAL_VOLT:
-			if ((ret = sr_parse_voltage(value, &p, &q)) != SR_OK)
-				break;
-			rational[0] = g_variant_new_uint64(p);
-			rational[1] = g_variant_new_uint64(q);
-			val = g_variant_new_tuple(rational, 2);
-			break;
-		case SR_T_UINT64_RANGE:
-			if (sscanf(value, "%"PRIu64"-%"PRIu64, &low, &high) != 2) {
-				ret = SR_ERR;
-				break;
-			} else {
-				range[0] = g_variant_new_uint64(low);
-				range[1] = g_variant_new_uint64(high);
-				val = g_variant_new_tuple(range, 2);
-			}
-			break;
-		default:
-			ret = SR_ERR;
-		}
-		if (val) {
-			pg = select_probe_group(sdi);
-			ret = sr_config_set(sdi, pg, srci->key, val);
-		}
+		if ((ret = opt_to_gvar(key, value, &src)) != 0)
+			return ret;
+		pg = select_probe_group(sdi);
+		ret = sr_config_set(sdi, pg, src.key, src.data);
 		if (ret != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
