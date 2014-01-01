@@ -1,7 +1,7 @@
 ##
 ## This file is part of the sigrok-cli project.
 ##
-## Copyright (C) 2011-2013 Uwe Hermann <uwe@hermann-uwe.de>
+## Copyright (C) 2011-2014 Uwe Hermann <uwe@hermann-uwe.de>
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -128,17 +128,23 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	# Install the file(s) specified below into the specified directory.
 	SetOutPath "$INSTDIR"
 
-	# License file
+	# License file.
 	File "../COPYING"
 
-	# sigrok-cli
+	# sigrok-cli.
 	File "${CROSS}/bin/@PACKAGE_NAME@.exe"
 
 	# Install the file(s) specified below into the specified directory.
 	SetOutPath "$INSTDIR\decoders"
 
-	# Protocol decoders
+	# Protocol decoders.
 	File /r /x "__pycache__" "${CROSS}/share/libsigrokdecode/decoders/*"
+
+	# Install the file(s) specified below into the specified directory.
+	SetOutPath "$INSTDIR\firmware"
+
+	# Firmware files.
+	File /r "${CROSS}/share/sigrok-firmware/*"
 
 	# Generate the uninstaller executable.
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -222,8 +228,12 @@ Section "Uninstall"
 	# There could be *.pyc files or __pycache__ subdirs and so on.
 	RMDir /r "$INSTDIR\decoders\*"
 
+	# Delete the firmware files.
+	File /r "$INSTDIR\firmware\*"
+
 	# Delete the install directory and its sub-directories.
 	RMDir "$INSTDIR\decoders"
+	RMDir "$INSTDIR\firmware"
 	RMDir "$INSTDIR"
 
 	# Delete the links from the start menu.
