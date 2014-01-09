@@ -635,6 +635,7 @@ void run_session(void)
 			/* The device has no compression, or compression is turned
 			 * off, and publishes its sample memory size. */
 			max_samples = g_variant_get_uint64(gvar);
+			g_variant_unref(gvar);
 			if (limit_samples > max_samples) {
 				g_critical("The device can store only %"PRIu64
 						" samples with the current settings.", max_samples);
