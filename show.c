@@ -235,20 +235,6 @@ void show_dev_detail(void)
 			printf("\n");
 			g_variant_unref(gvar);
 
-		} else if (srci->key == SR_CONF_PATTERN_MODE) {
-			/* Pattern generator modes */
-			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
-					&gvar) == SR_OK) {
-				printf(" - supported patterns:\n");
-				stropts = g_variant_get_strv(gvar, &num_elements);
-				for (i = 0; i < num_elements; i++)
-					printf("      %s\n", stropts[i]);
-				g_variant_unref(gvar);
-			} else {
-				printf("\n");
-			}
-
 		} else if (srci->key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
