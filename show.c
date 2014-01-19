@@ -187,7 +187,11 @@ void show_dev_detail(void)
 		g_variant_unref(gvar_opts);
 	}
 
+	/* Selected probes and probe group may affect which options are
+	 * returned, or which values for them. */
+	select_probes(sdi);
 	probe_group = select_probe_group(sdi);
+
 	if ((sr_config_list(sdi->driver, sdi, probe_group, SR_CONF_DEVICE_OPTIONS,
 			&gvar_opts)) != SR_OK)
 		/* Driver supports no device instance options. */
@@ -234,6 +238,21 @@ void show_dev_detail(void)
 			}
 			printf("\n");
 			g_variant_unref(gvar);
+
+		} else if (srci->key == SR_CONF_LIMIT_SAMPLES) {
+			/* If implemented in config_list(), this denotes the
+			 * maximum number of samples a device can send. This
+			 * really applies only to logic analyzers, and then
+			 * only to those that don't support compression, or
+			 * have it turned off by default. The values returned
+			 * are the low/high limits. */
+			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
+					&gvar) != SR_OK) {
+				continue;
+			}
+			g_variant_get(gvar, "(tt)", &low, &high);
+			g_variant_unref(gvar);
+			printf("    Maximum number of samples: %"PRIu64"\n", high);
 
 		} else if (srci->key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */

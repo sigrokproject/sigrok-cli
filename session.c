@@ -551,7 +551,7 @@ void run_session(void)
 	GHashTable *devargs;
 	GVariant *gvar;
 	struct sr_dev_inst *sdi;
-	uint64_t max_samples;
+	uint64_t min_samples, max_samples;
 	int max_probes, i;
 	char **triggerlist;
 
@@ -630,12 +630,16 @@ void run_session(void)
 			sr_session_destroy();
 			return;
 		}
-		if (sr_config_get(sdi->driver, sdi, NULL,
-				SR_CONF_MAX_UNCOMPRESSED_SAMPLES, &gvar) == SR_OK) {
+		if (sr_config_list(sdi->driver, sdi, NULL,
+				SR_CONF_LIMIT_SAMPLES, &gvar) == SR_OK) {
 			/* The device has no compression, or compression is turned
 			 * off, and publishes its sample memory size. */
-			max_samples = g_variant_get_uint64(gvar);
+			g_variant_get(gvar, "(tt)", &min_samples, &max_samples);
 			g_variant_unref(gvar);
+			if (limit_samples < min_samples) {
+				g_critical("The device stores at least %"PRIu64
+						" samples with the current settings.", min_samples);
+			}
 			if (limit_samples > max_samples) {
 				g_critical("The device can store only %"PRIu64
 						" samples with the current settings.", max_samples);
