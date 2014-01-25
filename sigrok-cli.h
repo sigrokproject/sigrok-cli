@@ -54,6 +54,7 @@ void run_session(void);
 void load_input_file(void);
 
 /* decode.c */
+#ifdef HAVE_SRD
 int register_pds(const char *opt_pds, char *opt_pd_annotations);
 int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations);
 int setup_pd_annotations(char *opt_pd_annotations);
@@ -62,6 +63,7 @@ int setup_pd_binary(char *opt_pd_binary);
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_meta(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_binary(struct srd_proto_data *pdata, void *cb_data);
+#endif
 
 /* parsers.c */
 GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring);

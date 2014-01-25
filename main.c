@@ -19,6 +19,7 @@
 
 #include "sigrok-cli.h"
 #include "config.h"
+#include <stdlib.h>
 #include <glib.h>
 
 struct sr_context *sr_ctx = NULL;
