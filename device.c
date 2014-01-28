@@ -20,6 +20,7 @@
 #include "sigrok-cli.h"
 #include "config.h"
 #include <glib.h>
+#include <string.h>
 
 extern struct sr_context *sr_ctx;
 extern gchar *opt_drv;

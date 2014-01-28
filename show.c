@@ -20,6 +20,7 @@
 #include "sigrok-cli.h"
 #include "config.h"
 #include <glib.h>
+#include <string.h>
 
 extern gint opt_loglevel;
 extern gchar *opt_pds;

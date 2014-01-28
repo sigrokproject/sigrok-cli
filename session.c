@@ -21,6 +21,8 @@
 #include "config.h"
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
@@ -173,7 +175,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	GSList *l;
 	GString *out;
 	int sample_size, ret;
-	uint64_t samplerate, output_len, filter_out_len, end_sample;
+	uint64_t samplerate, output_len, filter_out_len;
+#ifdef HAVE_SRD
+	uint64_t end_sample;
+#endif
 	uint8_t *output_buf, *filter_out;
 
 	(void) cb_data;
