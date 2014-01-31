@@ -456,11 +456,11 @@ void show_pd_detail(void)
 		printf("ID: %s\nName: %s\nLong name: %s\nDescription: %s\n",
 				dec->id, dec->name, dec->longname, dec->desc);
 		printf("License: %s\n", dec->license);
-		printf("Annotations:\n");
+		printf("Annotation classes:\n");
 		if (dec->annotations) {
 			for (l = dec->annotations; l; l = l->next) {
 				ann = l->data;
-				printf("- %s\n  %s\n", ann[0], ann[1]);
+				printf("- %s: %s\n", ann[0], ann[1]);
 			}
 		} else {
 			printf("None.\n");
@@ -469,7 +469,7 @@ void show_pd_detail(void)
 		if (dec->annotation_rows) {
 			for (l = dec->annotation_rows; l; l = l->next) {
 				r = l->data;
-				printf("- %s (%s): ", r->desc, r->id);
+				printf("- %s (%s): ", r->id, r->desc);
 				for (ll = r->ann_classes; ll; ll = ll->next)
 					printf("%d ", GPOINTER_TO_INT(ll->data));
 				printf("\n");
@@ -482,7 +482,7 @@ void show_pd_detail(void)
 			for (l = dec->probes; l; l = l->next) {
 				p = l->data;
 				printf("- %s (%s): %s\n",
-				       p->name, p->id, p->desc);
+				       p->id, p->name, p->desc);
 			}
 		} else {
 			printf("None.\n");
@@ -492,7 +492,7 @@ void show_pd_detail(void)
 			for (l = dec->opt_probes; l; l = l->next) {
 				p = l->data;
 				printf("- %s (%s): %s\n",
-				       p->name, p->id, p->desc);
+				       p->id, p->name, p->desc);
 			}
 		} else {
 			printf("None.\n");
@@ -502,7 +502,8 @@ void show_pd_detail(void)
 			for (l = dec->options; l; l = l->next) {
 				o = l->data;
 				val = g_variant_print(o->def, FALSE);
-				printf("- %s: %s (default %s)\n", o->id, o->desc, val);
+				printf("- %s: %s (default %s)\n", o->id,
+					o->desc, val);
 				g_free(val);
 			}
 		} else {
