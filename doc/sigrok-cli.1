@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "Feb 05, 2013"
+.TH SIGROK\-CLI 1 "Jan 31, 2014"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -223,7 +223,9 @@ of options, where each option takes the form
 Example:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-P uart:baudrate=115200:parity_type=odd"
+.B "sigrok\-cli \-i <file.sr> "
+.br
+.B "              \-P uart:baudrate=115200:parity_type=odd"
 .sp
 The list of supported options depends entirely on the protocol decoder. Every
 protocol decoder has different options it supports.
