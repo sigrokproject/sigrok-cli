@@ -437,11 +437,12 @@ void show_dev_detail(void)
 #ifdef HAVE_SRD
 void show_pd_detail(void)
 {
-	GSList *l;
+	GSList *l, *ll;
 	struct srd_decoder *dec;
 	struct srd_decoder_option *o;
 	char **pdtokens, **pdtok, *optsep, **ann, *val, *doc;
 	struct srd_probe *p;
+	struct srd_decoder_annotation_row *r;
 
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
@@ -460,6 +461,18 @@ void show_pd_detail(void)
 			for (l = dec->annotations; l; l = l->next) {
 				ann = l->data;
 				printf("- %s\n  %s\n", ann[0], ann[1]);
+			}
+		} else {
+			printf("None.\n");
+		}
+		printf("Annotation rows:\n");
+		if (dec->annotation_rows) {
+			for (l = dec->annotation_rows; l; l = l->next) {
+				r = l->data;
+				printf("- %s (%s): ", r->desc, r->id);
+				for (ll = r->ann_classes; ll; ll = ll->next)
+					printf("%d ", GPOINTER_TO_INT(ll->data));
+				printf("\n");
 			}
 		} else {
 			printf("None.\n");
@@ -484,14 +497,16 @@ void show_pd_detail(void)
 		} else {
 			printf("None.\n");
 		}
+		printf("Options:\n");
 		if (dec->options) {
-			printf("Options:\n");
 			for (l = dec->options; l; l = l->next) {
 				o = l->data;
 				val = g_variant_print(o->def, FALSE);
 				printf("- %s: %s (default %s)\n", o->id, o->desc, val);
 				g_free(val);
 			}
+		} else {
+			printf("None.\n");
 		}
 		if ((doc = srd_decoder_doc_get(dec))) {
 			printf("Documentation:\n%s\n",
