@@ -120,6 +120,7 @@ range_fail:
 			if (!names[0] || (names[1] && names[2])) {
 				/* Need one or two arguments. */
 				g_critical("Invalid probe '%s'.", tokens[i]);
+				g_strfreev(names);
 				ret = SR_ERR;
 				break;
 			}
@@ -127,6 +128,7 @@ range_fail:
 			probe = find_probe(sdi->probes, names[0]);
 			if (!probe) {
 				g_critical("unknown probe '%s'.", names[0]);
+				g_strfreev(names);
 				ret = SR_ERR;
 				break;
 			}
@@ -137,8 +139,7 @@ range_fail:
 			}
 			probelist = g_slist_append(probelist, probe);
 
-			if (names)
-				g_strfreev(names);
+			g_strfreev(names);
 		}
 	}
 
