@@ -179,7 +179,7 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 					    g_strdup(di->inst_id), GINT_TO_POINTER(-1));
 
 		/* Remap the probes if needed. */
-		if (srd_inst_probe_set_all(di, probes) != SRD_OK) {
+		if (srd_inst_probe_set_all(di, probes, (g_hash_table_size(probes) + 7) / 8) != SRD_OK) {
 			ret = 1;
 			break;
 		}
