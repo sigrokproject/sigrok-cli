@@ -152,9 +152,23 @@ static void load_input_file_format(void)
 
 void load_input_file(void)
 {
+	GSList *sessions;
+	struct sr_dev_inst *sdi;
+	int ret;
 
 	if (sr_session_load(opt_input_file) == SR_OK) {
 		/* sigrok session file */
+		ret = sr_session_dev_list(&sessions);
+		if (ret != SR_OK || !sessions->data) {
+			g_critical("Failed to access session device.");
+			sr_session_destroy();
+			return;
+		}
+		sdi = sessions->data;
+		if (select_probes(sdi) != SR_OK) {
+			sr_session_destroy();
+			return;
+		}
 		sr_session_datafeed_callback_add(datafeed_in, NULL);
 		sr_session_start();
 		sr_session_run();
@@ -165,4 +179,3 @@ void load_input_file(void)
 		load_input_file_format();
 	}
 }
-
