@@ -131,7 +131,7 @@ static void load_input_file_format(void)
 		}
 	}
 
-	if (select_probes(in->sdi) > 0)
+	if (select_probes(in->sdi) != SR_OK)
 		return;
 
 	sr_session_new();

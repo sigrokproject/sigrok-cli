@@ -48,8 +48,8 @@ GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
 	char **tokens, **range, **names, *eptr, str[8];
 
 	if (!probestring || !probestring[0])
-		/* All probes are enabled by default by the driver. */
-		return NULL;
+		/* Use all probes by default. */
+		return g_slist_copy(sdi->probes);
 
 	ret = SR_OK;
 	range = NULL;
