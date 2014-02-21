@@ -45,26 +45,6 @@ extern gchar *opt_triggers;
 extern struct srd_session *srd_sess;
 #endif
 
-
-static GArray *get_enabled_logic_probes(const struct sr_dev_inst *sdi)
-{
-	struct sr_probe *probe;
-	GArray *probes;
-	GSList *l;
-
-	probes = g_array_new(FALSE, FALSE, sizeof(int));
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
-			continue;
-		if (probe->enabled != TRUE)
-			continue;
-		g_array_append_val(probes, probe->index);
-	}
-
-	return probes;
-}
-
 static int set_limit_time(const struct sr_dev_inst *sdi)
 {
 	GVariant *gvar;
@@ -167,9 +147,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_analog *analog;
 	struct sr_config *src;
 	static struct sr_output *o = NULL;
-	static GArray *logic_probelist = NULL;
 	static uint64_t received_samples = 0;
-	static int unitsize = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
 	GSList *l;
@@ -218,15 +196,11 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 				outfile = g_fopen(opt_output_file, "wb");
 			}
 		}
-
-		/* Prepare for logic data. */
-		logic_probelist = get_enabled_logic_probes(sdi);
-		/* How many bytes we need to store the packed samples. */
-		unitsize = (logic_probelist->len + 7) / 8;
+		received_samples = 0;
 
 #ifdef HAVE_SRD
-		GVariant *gvar;
-		if (opt_pds && logic_probelist->len) {
+		if (opt_pds) {
+			GVariant *gvar;
 			if (sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
 					&gvar) == SR_OK) {
 				samplerate = g_variant_get_uint64(gvar);
@@ -324,7 +298,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			}
 		}
 
-		received_samples += logic->length / logic->unitsize;
+		received_samples = end_sample;
 		break;
 
 	case SR_DF_ANALOG:
@@ -411,8 +385,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			g_warning("Device stopped after %" PRIu64 " samples.",
 			       received_samples);
 
-		g_array_free(logic_probelist, TRUE);
-
 		if (o->format->cleanup)
 			o->format->cleanup(o);
 		g_free(o);
@@ -421,9 +393,11 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		if (outfile && outfile != stdout)
 			fclose(outfile);
 
-		if (opt_output_file && default_output_format && savebuf->len) {
+		if (opt_output_file && default_output_format && savebuf->len
+				&& received_samples > 0) {
 			if (sr_session_save(opt_output_file, sdi, savebuf->data,
-					unitsize, savebuf->len / unitsize) != SR_OK)
+					savebuf->len / received_samples,
+					received_samples) != SR_OK)
 				g_critical("Failed to save session.");
 			g_byte_array_free(savebuf, TRUE);
 		}
