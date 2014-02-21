@@ -174,12 +174,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	static FILE *outfile = NULL;
 	GSList *l;
 	GString *out;
-	int sample_size, ret;
-	uint64_t samplerate, output_len, filter_out_len;
-#ifdef HAVE_SRD
+	uint64_t samplerate;
 	uint64_t end_sample;
-#endif
-	uint8_t *output_buf, *filter_out;
+	uint64_t output_len, input_len;
+	uint8_t *output_buf;
 
 	(void) cb_data;
 
@@ -187,7 +185,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	if (packet->type != SR_DF_HEADER && o == NULL)
 		return;
 
-	sample_size = -1;
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		g_debug("cli: Received SR_DF_HEADER");
@@ -288,7 +285,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	case SR_DF_LOGIC:
 		logic = packet->payload;
 		g_message("cli: received SR_DF_LOGIC, %"PRIu64" bytes", logic->length);
-		sample_size = logic->unitsize;
 		if (logic->length == 0)
 			break;
 
@@ -299,37 +295,26 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		if (limit_samples && received_samples >= limit_samples)
 			break;
 
-		ret = sr_filter_probes(sample_size, unitsize, logic_probelist,
-				logic->data, logic->length,
-				&filter_out, &filter_out_len);
-		if (ret != SR_OK)
-			break;
-
-		/*
-		 * What comes out of the filter is guaranteed to be packed into the
-		 * minimum size needed to support the number of samples at this sample
-		 * size. however, the driver may have submitted too much. Cut off
-		 * the buffer of the last packet according to the sample limit.
-		 */
-		if (limit_samples && (received_samples + logic->length / sample_size >
-				limit_samples * sample_size))
-			filter_out_len = limit_samples * sample_size - received_samples;
+		end_sample = received_samples + logic->length / logic->unitsize;
+		/* Cut off last packet according to the sample limit. */
+		if (limit_samples && end_sample > limit_samples)
+			end_sample = limit_samples;
+		input_len = (end_sample - received_samples) * logic->unitsize;
 
 		if (opt_output_file && default_output_format) {
 			/* Saving to a session file. */
-			g_byte_array_append(savebuf, filter_out, filter_out_len);
+			g_byte_array_append(savebuf, logic->data, input_len);
 		} else {
 			if (opt_pds) {
 #ifdef HAVE_SRD
-				end_sample = received_samples + filter_out_len / unitsize;
 				if (srd_session_send(srd_sess, received_samples, end_sample,
-						(uint8_t*)filter_out, filter_out_len) != SRD_OK)
+						logic->data, input_len) != SRD_OK)
 					sr_session_stop();
 #endif
 			} else {
 				output_len = 0;
 				if (o->format->data && packet->type == o->format->df_type)
-					o->format->data(o, filter_out, filter_out_len,
+					o->format->data(o, logic->data, input_len,
 							&output_buf, &output_len);
 				if (output_len) {
 					fwrite(output_buf, 1, output_len, outfile);
@@ -338,9 +323,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 				}
 			}
 		}
-		g_free(filter_out);
 
-		received_samples += logic->length / sample_size;
+		received_samples += logic->length / logic->unitsize;
 		break;
 
 	case SR_DF_ANALOG:
