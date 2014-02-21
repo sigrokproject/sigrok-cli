@@ -134,21 +134,22 @@ int select_probes(struct sr_dev_inst *sdi)
 	struct sr_probe *probe;
 	GSList *selected_probes, *l;
 
-	if (!opt_probes)
-		return SR_OK;
+	if (opt_probes) {
+		if (!(selected_probes = parse_probestring(sdi, opt_probes)))
+			return SR_ERR;
 
-	if (!(selected_probes = parse_probestring(sdi, opt_probes)))
-		return SR_ERR;
-
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (g_slist_find(selected_probes, probe))
-			probe->enabled = TRUE;
-		else
-			probe->enabled = FALSE;
+		for (l = sdi->probes; l; l = l->next) {
+			probe = l->data;
+			if (g_slist_find(selected_probes, probe))
+				probe->enabled = TRUE;
+			else
+				probe->enabled = FALSE;
+		}
+		g_slist_free(selected_probes);
 	}
-	g_slist_free(selected_probes);
-
+#ifdef HAVE_SRD
+	map_pd_probes(sdi);
+#endif
 	return SR_OK;
 }
 

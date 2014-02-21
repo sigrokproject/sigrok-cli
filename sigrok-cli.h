@@ -63,9 +63,11 @@ int setup_pd_binary(char *opt_pd_binary);
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_meta(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_binary(struct srd_proto_data *pdata, void *cb_data);
+void map_pd_probes(struct sr_dev_inst *sdi);
 #endif
 
 /* parsers.c */
+struct sr_probe *find_probe(GSList *probelist, const char *probename);
 GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring);
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first);
 int canon_cmp(const char *str1, const char *str2);

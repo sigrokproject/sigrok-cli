@@ -24,7 +24,7 @@
 #include <string.h>
 #include <glib.h>
 
-static struct sr_probe *find_probe(GSList *probelist, const char *probename)
+struct sr_probe *find_probe(GSList *probelist, const char *probename)
 {
 	struct sr_probe *probe;
 	GSList *l;

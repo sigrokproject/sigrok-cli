@@ -25,6 +25,7 @@
 static GHashTable *pd_ann_visible = NULL;
 static GHashTable *pd_meta_visible = NULL;
 static GHashTable *pd_binary_visible = NULL;
+static GHashTable *pd_probe_maps = NULL;
 
 extern struct srd_session *srd_sess;
 extern gint opt_loglevel;
@@ -74,42 +75,38 @@ static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 	return ret;
 }
 
-static int probes_to_gvar(struct srd_decoder *dec, GHashTable *hash,
-		GHashTable **probes)
+static int move_hash_element(GHashTable *src, GHashTable *dest, void *key)
 {
+	void *orig_key, *value;
+
+	if (!g_hash_table_lookup_extended(src, key, &orig_key, &value))
+		/* Not specified. */
+		return FALSE;
+	g_hash_table_steal(src, orig_key);
+	g_hash_table_insert(dest, orig_key, value);
+
+	return TRUE;
+}
+
+static GHashTable *extract_probe_map(struct srd_decoder *dec, GHashTable *hash)
+{
+	GHashTable *probe_map;
 	struct srd_probe *p;
-	GSList *all_probes, *l;
-	GVariant *gvar;
-	gint32 val_int;
-	int ret;
-	char *val_str, *conv;
+	GSList *l;
 
-	ret = TRUE;
-	*probes = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
-			(GDestroyNotify)g_variant_unref);
+	probe_map = g_hash_table_new_full(g_str_hash, g_str_equal,
+					  g_free, g_free);
 
-	all_probes = g_slist_copy(dec->probes);
-	all_probes = g_slist_concat(all_probes, g_slist_copy(dec->opt_probes));
-	for (l = all_probes; l; l = l->next) {
+	for (l = dec->probes; l; l = l->next) {
 		p = l->data;
-		if (!(val_str = g_hash_table_lookup(hash, p->id)))
-			/* Not specified. */
-			continue;
-		val_int = strtoll(val_str, &conv, 10);
-		if (!conv || conv == val_str) {
-			g_critical("Protocol decoder '%s' probes '%s' "
-					"is not a number.", dec->name, p->id);
-			ret = FALSE;
-			break;
-		}
-		gvar = g_variant_new_int32(val_int);
-		g_variant_ref_sink(gvar);
-		g_hash_table_insert(*probes, g_strdup(p->id), gvar);
-		g_hash_table_remove(hash, p->id);
+		move_hash_element(hash, probe_map, p->id);
 	}
-	g_slist_free(all_probes);
+	for (l = dec->opt_probes; l; l = l->next) {
+		p = l->data;
+		move_hash_element(hash, probe_map, p->id);
+	}
 
-	return ret;
+	return probe_map;
 }
 
 /* Register the given PDs for this session.
@@ -126,8 +123,10 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 	int ret;
 	char **pdtokens, **pdtok, *pd_name;
 
-	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
-			g_free, NULL);
+	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_str_equal,
+					       g_free, NULL);
+	pd_probe_maps = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+					(GDestroyNotify)g_hash_table_destroy);
 	ret = 0;
 	pd_name = NULL;
 	pd_opthash = options = probes = NULL;
@@ -152,10 +151,8 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 			ret = 1;
 			break;
 		}
-		if (!probes_to_gvar(dec, pd_opthash, &probes)) {
-			ret = 1;
-			break;
-		}
+		probes = extract_probe_map(dec, pd_opthash);
+
 		if (g_hash_table_size(pd_opthash) > 0) {
 			leftover = g_hash_table_get_keys(pd_opthash);
 			for (l = leftover; l; l = l->next)
@@ -170,6 +167,10 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 			break;
 		}
 
+		/* Save the probe setup for later. */
+		g_hash_table_insert(pd_probe_maps, g_strdup(di->inst_id), probes);
+		probes = NULL;
+
 		/* If no annotation list was specified, add them all in now.
 		 * This will be pared down later to leave only the last PD
 		 * in the stack.
@@ -177,12 +178,6 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		if (!opt_pd_annotations)
 			g_hash_table_insert(pd_ann_visible,
 					    g_strdup(di->inst_id), GINT_TO_POINTER(-1));
-
-		/* Remap the probes if needed. */
-		if (srd_inst_probe_set_all(di, probes, (g_hash_table_size(probes) + 7) / 8) != SRD_OK) {
-			ret = 1;
-			break;
-		}
 	}
 
 	g_strfreev(pdtokens);
@@ -196,6 +191,66 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		g_free(pd_name);
 
 	return ret;
+}
+
+static void map_pd_inst_probes(void *key, void *value, void *user_data)
+{
+	GHashTable *probe_map;
+	GHashTable *probe_indices;
+	GSList *probe_list;
+	struct srd_decoder_inst *di;
+	GVariant *var;
+	void *probe_id;
+	void *probe_target;
+	struct sr_probe *probe;
+	GHashTableIter iter;
+	int num_probes;
+
+	probe_map = value;
+	probe_list = user_data;
+
+	di = srd_inst_find_by_id(srd_sess, key);
+	if (!di) {
+		g_critical("Protocol decoder instance \"%s\" not found.",
+			   (char *)key);
+		return;
+	}
+	probe_indices = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+					      (GDestroyNotify)g_variant_unref);
+
+	g_hash_table_iter_init(&iter, probe_map);
+	while (g_hash_table_iter_next(&iter, &probe_id, &probe_target)) {
+		probe = find_probe(probe_list, probe_target);
+		if (!probe) {
+			g_printerr("cli: No probe with name \"%s\" found.\n",
+				   (char *)probe_target);
+			continue;
+		}
+		if (probe->enabled)
+			g_printerr("cli: Mapping probe \"%s\" to \"%s\" "
+				   "(index %d).\n", (char *)probe_id,
+				   (char *)probe_target, probe->index);
+		else
+			g_printerr("cli: Target probe \"%s\" not enabled.\n",
+				   (char *)probe_target);
+
+		var = g_variant_new_int32(probe->index);
+		g_variant_ref_sink(var);
+		g_hash_table_insert(probe_indices, g_strdup(probe_id), var);
+	}
+
+	num_probes = g_slist_length(probe_list);
+	srd_inst_probe_set_all(di, probe_indices, (num_probes + 7) / 8);
+}
+
+void map_pd_probes(struct sr_dev_inst *sdi)
+{
+	if (pd_probe_maps) {
+		g_hash_table_foreach(pd_probe_maps, &map_pd_inst_probes,
+				     sdi->probes);
+		g_hash_table_destroy(pd_probe_maps);
+		pd_probe_maps = NULL;
+	}
 }
 
 int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations)
