@@ -226,11 +226,7 @@ static void map_pd_inst_probes(void *key, void *value, void *user_data)
 				   (char *)probe_target);
 			continue;
 		}
-		if (probe->enabled)
-			g_printerr("cli: Mapping probe \"%s\" to \"%s\" "
-				   "(index %d).\n", (char *)probe_id,
-				   (char *)probe_target, probe->index);
-		else
+		if (!probe->enabled)
 			g_printerr("cli: Target probe \"%s\" not enabled.\n",
 				   (char *)probe_target);
 
