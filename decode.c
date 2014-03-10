@@ -125,11 +125,9 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 
 	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_str_equal,
 					       g_free, NULL);
-	pd_probe_maps = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
-					(GDestroyNotify)g_hash_table_destroy);
 	ret = 0;
 	pd_name = NULL;
-	pd_opthash = options = probes = NULL;
+	pd_opthash = options = probes = pd_probe_maps = NULL;
 	pdtokens = g_strsplit(opt_pds, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
@@ -167,9 +165,14 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 			break;
 		}
 
-		/* Save the probe setup for later. */
-		g_hash_table_insert(pd_probe_maps, g_strdup(di->inst_id), probes);
-		probes = NULL;
+		if (pdtok == pdtokens) {
+			/* Save the probe setup for later, but only on the first
+			 * decoder -- stacked decoders don't get probes. */
+			pd_probe_maps = g_hash_table_new_full(g_str_hash,
+					g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
+			g_hash_table_insert(pd_probe_maps, g_strdup(di->inst_id), probes);
+			probes = NULL;
+		}
 
 		/* If no annotation list was specified, add them all in now.
 		 * This will be pared down later to leave only the last PD
