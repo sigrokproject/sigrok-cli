@@ -162,8 +162,8 @@ Section "@PACKAGE_NAME@ (required)" Section1
 
 	# Create a shortcut for sigrok-cli (this merely opens a "DOS box").
 	# Set the working directory (where the user will be placed into when
-	# the DOS box starts) to the user's Desktop directory.
-	SetOutPath "$DESKTOP"
+	# the DOS box starts) to the installation directory.
+	SetOutPath "$INSTDIR"
 	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\sigrok command-line tool.lnk" \
 		"$SYSDIR\cmd.exe" \
 		"/K echo For instructions run @PACKAGE_NAME@ --help." \
