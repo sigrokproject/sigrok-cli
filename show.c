@@ -25,15 +25,44 @@
 extern gint opt_loglevel;
 extern gchar *opt_pds;
 
+static gint sort_inputs(gconstpointer a, gconstpointer b)
+{
+	const struct sr_input_format *ia = a, *ib = b;
+
+	return strcmp(ia->id, ib->id);
+}
+
+static gint sort_outputs(gconstpointer a, gconstpointer b)
+{
+	const struct sr_output_format *oa = a, *ob = b;
+
+	return strcmp(oa->id, ob->id);
+}
+
+static gint sort_drivers(gconstpointer a, gconstpointer b)
+{
+	const struct sr_dev_driver *sdda = a, *sddb = b;
+
+	return strcmp(sdda->name, sddb->name);
+}
+
+static gint sort_pds(gconstpointer a, gconstpointer b)
+{
+	const struct srd_decoder *sda = a, *sdb = b;
+
+	return strcmp(sda->id, sdb->id);
+}
+
 void show_version(void)
 {
-	struct sr_dev_driver **drivers;
-	struct sr_input_format **inputs;
-	struct sr_output_format **outputs;
+	struct sr_dev_driver **drivers, *driver;
+	struct sr_input_format **inputs, *input;
+	struct sr_output_format **outputs, *output;
+	const GSList *l;
+	GSList *sl;
 	int i;
 #ifdef HAVE_SRD
 	struct srd_decoder *dec;
-	const GSList *l;
 #endif
 
 	printf("sigrok-cli %s\n\n", VERSION);
@@ -47,35 +76,54 @@ void show_version(void)
 
 	printf("Supported hardware drivers:\n");
 	drivers = sr_driver_list();
-	for (i = 0; drivers[i]; i++) {
-		printf("  %-20s %s\n", drivers[i]->name, drivers[i]->longname);
+	for (sl = NULL, i = 0; drivers[i]; i++)
+		sl = g_slist_append(sl, drivers[i]);
+	sl = g_slist_sort(sl, sort_drivers);
+	for (l = sl; l; l = l->next) {
+		driver = l->data;
+		printf("  %-20s %s\n", driver->name, driver->longname);
 	}
 	printf("\n");
+	g_slist_free(sl);
 
 	printf("Supported input formats:\n");
 	inputs = sr_input_list();
-	for (i = 0; inputs[i]; i++)
-		printf("  %-20s %s\n", inputs[i]->id, inputs[i]->description);
+	for (sl = NULL, i = 0; inputs[i]; i++)
+		sl = g_slist_append(sl, inputs[i]);
+	sl = g_slist_sort(sl, sort_inputs);
+	for (l = sl; l; l = l->next) {
+		input = l->data;
+		printf("  %-20s %s\n", input->id, input->description);
+	}
 	printf("\n");
+	g_slist_free(sl);
 
 	printf("Supported output formats:\n");
 	outputs = sr_output_list();
-	for (i = 0; outputs[i]; i++)
-		printf("  %-20s %s\n", outputs[i]->id, outputs[i]->description);
-	printf("  %-20s %s\n", "sigrok", "Default file output format");
+	for (sl = NULL, i = 0; outputs[i]; i++)
+		sl = g_slist_append(sl, outputs[i]);
+	sl = g_slist_sort(sl, sort_outputs);
+	for (l = sl; l; l = l->next) {
+		output = l->data;
+		printf("  %-20s %s\n", output->id, output->description);
+	}
 	printf("\n");
+	g_slist_free(sl);
 
 #ifdef HAVE_SRD
 	if (srd_init(NULL) == SRD_OK) {
 		printf("Supported protocol decoders:\n");
 		srd_decoder_load_all();
-		for (l = srd_decoder_list(); l; l = l->next) {
+		sl = g_slist_copy((GSList *)srd_decoder_list());
+		sl = g_slist_sort(sl, sort_pds);
+		for (l = sl; l; l = l->next) {
 			dec = l->data;
 			printf("  %-20s %s\n", dec->id, dec->longname);
 			/* Print protocol description upon "-l 3" or higher. */
 			if (opt_loglevel >= SR_LOG_INFO)
 				printf("  %-20s %s\n", "", dec->desc);
 		}
+		g_slist_free(sl);
 		srd_exit();
 	}
 	printf("\n");
