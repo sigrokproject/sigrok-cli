@@ -130,10 +130,17 @@ void show_version(void)
 #endif
 }
 
+static gint sort_probes(gconstpointer a, gconstpointer b)
+{
+	const struct sr_probe *pa = a, *pb = b;
+
+	return pa->index - pb->index;
+}
+
 static void print_dev_line(const struct sr_dev_inst *sdi)
 {
 	struct sr_probe *probe;
-	GSList *l;
+	GSList *sl, *l;
 	GString *s;
 	GVariant *gvar;
 
@@ -156,11 +163,13 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 			probe = sdi->probes->data;
 			g_string_append_printf(s, "with 1 probe: %s", probe->name);
 		} else {
-			g_string_append_printf(s, "with %d probes:", g_slist_length(sdi->probes));
-			for (l = sdi->probes; l; l = l->next) {
+			sl = g_slist_sort(g_slist_copy(sdi->probes), sort_probes);
+			g_string_append_printf(s, "with %d probes:", g_slist_length(sl));
+			for (l = sl; l; l = l->next) {
 				probe = l->data;
 				g_string_append_printf(s, " %s", probe->name);
 			}
+			g_slist_free(sl);
 		}
 	}
 	g_string_append_printf(s, "\n");
