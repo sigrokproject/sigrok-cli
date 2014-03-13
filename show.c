@@ -494,7 +494,7 @@ void show_dev_detail(void)
 #ifdef HAVE_SRD
 void show_pd_detail(void)
 {
-	GSList *l, *ll;
+	GSList *l, *ll, *ol;
 	struct srd_decoder *dec;
 	struct srd_decoder_option *o;
 	char **pdtokens, **pdtok, *optsep, **ann, *val, *doc;
@@ -558,9 +558,14 @@ void show_pd_detail(void)
 		if (dec->options) {
 			for (l = dec->options; l; l = l->next) {
 				o = l->data;
+				printf("- %s: %s (", o->id, o->desc);
+				for (ol = o->values; ol; ol = ol->next) {
+					val = g_variant_print(ol->data, FALSE);
+					printf("%s, ", val);
+					g_free(val);
+				}
 				val = g_variant_print(o->def, FALSE);
-				printf("- %s: %s (default %s)\n", o->id,
-					o->desc, val);
+				printf("default %s)\n", val);
 				g_free(val);
 			}
 		} else {
