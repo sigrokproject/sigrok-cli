@@ -298,21 +298,28 @@ display, by specifying its ID:
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid -A i2c"
 .sp
-If a protocol decoder has multiple annotation formats, you can also specify
-which of them to show by specifying its short description like this:
+If a protocol decoder has multiple annotations, you can also specify
+which one of them to show by specifying its short description like this:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
-.B "              \-A i2c=rawhex"
+.B "              \-A i2c=data-read"
+.sp
+Select multiple annotations by separating them with a colon:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
+.br
+.B "              \-A i2c=data-read:data-write"
 .sp
 You can also select multiple protocol decoders, with an optional selected
-annotation format each, by separating them with commas:
+annotation each, by separating them with commas:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
-.B "              \-A i2c=rawhex,edid"
+.B "              \-A i2c=data-read:data-write,edid"
 .TP
 .BR "\-l, \-\-loglevel " <level>
 Set the libsigrok and libsigrokdecode loglevel. At the moment \fBsigrok-cli\fP

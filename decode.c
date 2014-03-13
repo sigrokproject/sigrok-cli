@@ -179,8 +179,8 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		 * in the stack.
 		 */
 		if (!opt_pd_annotations)
-			g_hash_table_insert(pd_ann_visible,
-					    g_strdup(di->inst_id), GINT_TO_POINTER(-1));
+			g_hash_table_insert(pd_ann_visible, g_strdup(di->inst_id),
+					g_slist_append(NULL, GINT_TO_POINTER(-1)));
 	}
 
 	g_strfreev(pdtokens);
@@ -300,8 +300,7 @@ int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations)
 			 * the annotation list was specifically provided).
 			 */
 			if (!opt_pd_annotations)
-				g_hash_table_remove(pd_ann_visible,
-						    di_from->inst_id);
+				g_hash_table_remove(pd_ann_visible, di_from->inst_id);
 
 			di_from = di_to;
 		}
@@ -313,10 +312,10 @@ int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations)
 
 int setup_pd_annotations(char *opt_pd_annotations)
 {
-	GSList *l;
+	GSList *l, *l_ann;
 	struct srd_decoder *dec;
 	int ann_class;
-	char **pds, **pdtok, **keyval, **ann_descr;
+	char **pds, **pdtok, **keyval, **annlist, **ann, **ann_descr;
 
 	/* Set up custom list of PDs and annotations to show. */
 	pds = g_strsplit(opt_pd_annotations, ",", 0);
@@ -330,28 +329,34 @@ int setup_pd_annotations(char *opt_pd_annotations)
 			g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
 			return 1;
 		}
-		ann_class = 0;
-		if (g_strv_length(keyval) == 2) {
-			for (l = dec->annotations; l; l = l->next, ann_class++) {
-				ann_descr = l->data;
-				if (!canon_cmp(ann_descr[0], keyval[1]))
-					/* Found it. */
-					break;
+		if (g_strv_length(keyval) == 2 && keyval[1][0] != '\0') {
+			annlist = g_strsplit(keyval[1], ":", 0);
+			for (ann = annlist; *ann && **ann; ann++) {
+				ann_class = 0;
+				for (l = dec->annotations; l; l = l->next, ann_class++) {
+					ann_descr = l->data;
+					if (!canon_cmp(ann_descr[0], *ann))
+						/* Found it. */
+						break;
+				}
+				if (!l) {
+					g_critical("Annotation '%s' not found "
+							"for protocol decoder '%s'.", *ann, keyval[0]);
+					return 1;
+				}
+				l_ann = g_hash_table_lookup(pd_ann_visible, keyval[0]);
+				l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
+				g_hash_table_replace(pd_ann_visible, g_strdup(keyval[0]), l_ann);
+				g_debug("cli: Showing protocol decoder %s annotation "
+						"class %d (%s).", keyval[0], ann_class, ann_descr[0]);
 			}
-			if (!l) {
-				g_critical("Annotation '%s' not found "
-						"for protocol decoder '%s'.", keyval[1], keyval[0]);
-				return 1;
-			}
-			g_debug("cli: Showing protocol decoder %s annotation "
-					"class %d (%s).", keyval[0], ann_class, ann_descr[0]);
 		} else {
 			/* No class specified: show all of them. */
-			ann_class = -1;
+				g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]),
+						g_slist_append(NULL, GINT_TO_POINTER(-1)));
 			g_debug("cli: Showing all annotation classes for protocol "
 					"decoder %s.", keyval[0]);
 		}
-		g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]), GINT_TO_POINTER(ann_class));
 		g_strfreev(keyval);
 	}
 	g_strfreev(pds);
@@ -433,9 +438,10 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_decoder *dec;
 	struct srd_proto_data_annotation *pda;
-	gpointer ann_format;
-	int format, i;
+	GSList *ann_list, *l;
+	int i;
 	char **ann_descr;
+	gboolean show;
 
 	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
@@ -444,15 +450,21 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		return;
 
 	if (!g_hash_table_lookup_extended(pd_ann_visible, pdata->pdo->di->inst_id,
-			NULL, &ann_format))
+			NULL, (void **)&ann_list))
 		/* Not in the list of PDs whose annotations we're showing. */
 		return;
 
-	format = GPOINTER_TO_INT(ann_format);
 	dec = pdata->pdo->di->decoder;
 	pda = pdata->data;
-	if (format != -1 && pda->ann_format != format)
-		/* We don't want this particular format from the PD. */
+	show = FALSE;
+	for (l = ann_list; l; l = l->next) {
+		if (GPOINTER_TO_INT(l->data) == -1
+				|| GPOINTER_TO_INT(l->data) == pda->ann_format) {
+			show = TRUE;
+			break;
+		}
+	}
+	if (!show)
 		return;
 
 	if (opt_loglevel <= SR_LOG_WARN) {
