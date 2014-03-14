@@ -41,7 +41,7 @@ void show_pd_detail(void);
 
 /* device.c */
 GSList *device_scan(void);
-struct sr_probe_group *select_probe_group(struct sr_dev_inst *sdi);
+struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi);
 
 /* session.c */
 int setup_output_format(void);

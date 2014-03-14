@@ -506,7 +506,7 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 {
 	struct sr_config src;
-	struct sr_probe_group *pg;
+	struct sr_channel_group *cg;
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
@@ -515,8 +515,8 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		if ((ret = opt_to_gvar(key, value, &src)) != 0)
 			return ret;
-		pg = select_probe_group(sdi);
-		ret = sr_config_set(sdi, pg, src.key, src.data);
+		cg = select_channel_group(sdi);
+		ret = sr_config_set(sdi, cg, src.key, src.data);
 		if (ret != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;

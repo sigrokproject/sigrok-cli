@@ -24,7 +24,7 @@
 
 extern struct sr_context *sr_ctx;
 extern gchar *opt_drv;
-extern gchar *opt_probe_group;
+extern gchar *opt_channel_group;
 
 /* Convert driver options hash to GSList of struct sr_config. */
 static GSList *hash_to_hwopt(GHashTable *hash)
@@ -116,23 +116,23 @@ GSList *device_scan(void)
 	return devices;
 }
 
-struct sr_probe_group *select_probe_group(struct sr_dev_inst *sdi)
+struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 {
-	struct sr_probe_group *pg;
+	struct sr_channel_group *cg;
 	GSList *l;
 
-	if (!opt_probe_group)
+	if (!opt_channel_group)
 		return NULL;
 
-	if (!sdi->probe_groups) {
-		g_critical("This device does not have any probe groups.");
+	if (!sdi->channel_groups) {
+		g_critical("This device does not have any channel groups.");
 		return NULL;
 	}
 
-	for (l = sdi->probe_groups; l; l = l->next) {
-		pg = l->data;
-		if (!strcasecmp(opt_probe_group, pg->name)) {
-			return pg;
+	for (l = sdi->channel_groups; l; l = l->next) {
+		cg = l->data;
+		if (!strcasecmp(opt_channel_group, cg->name)) {
+			return cg;
 		}
 	}
 

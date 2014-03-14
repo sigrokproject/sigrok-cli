@@ -36,7 +36,7 @@ gchar *opt_output_file = NULL;
 gchar *opt_drv = NULL;
 gchar *opt_config = NULL;
 static gchar *opt_probes = NULL;
-gchar *opt_probe_group = NULL;
+gchar *opt_channel_group = NULL;
 gchar *opt_triggers = NULL;
 gchar *opt_pds = NULL;
 #ifdef HAVE_SRD
@@ -73,8 +73,8 @@ static GOptionEntry optargs[] = {
 			"Output format", NULL},
 	{"probes", 'p', 0, G_OPTION_ARG_STRING, &opt_probes,
 			"Probes to use", NULL},
-	{"probe-group", 'g', 0, G_OPTION_ARG_STRING, &opt_probe_group,
-			"Probe groups", NULL},
+	{"channel-group", 'g', 0, G_OPTION_ARG_STRING, &opt_channel_group,
+			"Channel groups", NULL},
 	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers,
 			"Trigger configuration", NULL},
 	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger,
