@@ -204,6 +204,7 @@ void show_dev_detail(void)
 	GSList *devices, *pgl, *prl;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
+	double dlow, dhigh, dcur_low, dcur_high;
 	const uint64_t *uint64, p, q, low, high;
 	uint64_t cur_low, cur_high;
 	const int32_t *opts;
@@ -477,6 +478,36 @@ void show_dev_detail(void)
 				g_variant_unref(gvar);
 			} else
 				printf("on, off\n");
+
+		} else if (srci->datatype == SR_T_DOUBLE_RANGE) {
+			printf("    %s: ", srci->id);
+			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
+					&gvar_list) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+
+			if (sr_config_get(sdi->driver, sdi, NULL, srci->key, &gvar) == SR_OK) {
+				g_variant_get(gvar, "(dd)", &dcur_low, &dcur_high);
+				g_variant_unref(gvar);
+			} else {
+				dcur_low = 0;
+				dcur_high = 0;
+			}
+
+			num_elements = g_variant_n_children(gvar_list);
+			for (i = 0; i < num_elements; i++) {
+				gvar = g_variant_get_child_value(gvar_list, i);
+				g_variant_get(gvar, "(dd)", &dlow, &dhigh);
+				g_variant_unref(gvar);
+				if (i)
+					printf(", ");
+				printf("%.1f-%.1f", dlow, dhigh);
+				if (dlow == dcur_low && dhigh == dcur_high)
+					printf(" (current)");
+			}
+			printf("\n");
+			g_variant_unref(gvar_list);
 
 		} else {
 

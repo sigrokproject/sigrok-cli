@@ -416,7 +416,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 int opt_to_gvar(char *key, char *value, struct sr_config *src)
 {
 	const struct sr_config_info *srci;
-	double tmp_double;
+	double tmp_double, dlow, dhigh;
 	uint64_t tmp_u64, p, q, low, high;
 	GVariant *rational[2], *range[2];
 	gboolean tmp_bool;
@@ -483,6 +483,16 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 		} else {
 			range[0] = g_variant_new_uint64(low);
 			range[1] = g_variant_new_uint64(high);
+			src->data = g_variant_new_tuple(range, 2);
+		}
+		break;
+	case SR_T_DOUBLE_RANGE:
+		if (sscanf(value, "%lf-%lf", &dlow, &dhigh) != 2) {
+			ret = -1;
+			break;
+		} else {
+			range[0] = g_variant_new_double(dlow);
+			range[1] = g_variant_new_double(dhigh);
 			src->data = g_variant_new_tuple(range, 2);
 		}
 		break;
