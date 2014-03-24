@@ -24,71 +24,71 @@
 #include <string.h>
 #include <glib.h>
 
-struct sr_probe *find_probe(GSList *probelist, const char *probename)
+struct sr_channel *find_channel(GSList *channellist, const char *channelname)
 {
-	struct sr_probe *probe;
+	struct sr_channel *ch;
 	GSList *l;
 
-	probe = NULL;
-	for (l = probelist; l; l = l->next) {
-		probe = l->data;
-		if (!strcmp(probe->name, probename))
+	ch = NULL;
+	for (l = channellist; l; l = l->next) {
+		ch = l->data;
+		if (!strcmp(ch->name, channelname))
 			break;
 	}
-	probe = l ? l->data : NULL;
+	ch = l ? l->data : NULL;
 
-	return probe;
+	return ch;
 }
 
-GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
+GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 {
-	struct sr_probe *probe;
-	GSList *probelist;
+	struct sr_channel *ch;
+	GSList *channellist;
 	int ret, n, b, e, i;
 	char **tokens, **range, **names, *eptr, str[8];
 
-	if (!probestring || !probestring[0])
-		/* Use all probes by default. */
-		return g_slist_copy(sdi->probes);
+	if (!channelstring || !channelstring[0])
+		/* Use all channels by default. */
+		return g_slist_copy(sdi->channels);
 
 	ret = SR_OK;
 	range = NULL;
 	names = NULL;
-	probelist = NULL;
-	tokens = g_strsplit(probestring, ",", 0);
+	channellist = NULL;
+	tokens = g_strsplit(channelstring, ",", 0);
 	for (i = 0; tokens[i]; i++) {
 		if (tokens[i][0] == '\0') {
-			g_critical("Invalid empty probe.");
+			g_critical("Invalid empty channel.");
 			ret = SR_ERR;
 			break;
 		}
 		if (strchr(tokens[i], '-')) {
-			/* A range of probes in the form a-b. This will only work
-			 * if the probes are named as numbers -- so every probe
-			 * in the range must exist as a probe name string in the
+			/* A range of channels in the form a-b. This will only work
+			 * if the channels are named as numbers -- so every channel
+			 * in the range must exist as a channel name string in the
 			 * device. */
 			range = g_strsplit(tokens[i], "-", 2);
 			if (!range[0] || !range[1] || range[2]) {
 				/* Need exactly two arguments. */
-				g_critical("Invalid probe syntax '%s'.", tokens[i]);
+				g_critical("Invalid channel syntax '%s'.", tokens[i]);
 				ret = SR_ERR;
 				goto range_fail;
 			}
 
 			b = strtol(range[0], &eptr, 10);
 			if (eptr == range[0] || *eptr != '\0') {
-				g_critical("Invalid probe '%s'.", range[0]);
+				g_critical("Invalid channel '%s'.", range[0]);
 				ret = SR_ERR;
 				goto range_fail;
 			}
 			e = strtol(range[1], NULL, 10);
 			if (eptr == range[1] || *eptr != '\0') {
-				g_critical("Invalid probe '%s'.", range[1]);
+				g_critical("Invalid channel '%s'.", range[1]);
 				ret = SR_ERR;
 				goto range_fail;
 			}
 			if (b < 0 || b >= e) {
-				g_critical("Invalid probe range '%s'.", tokens[i]);
+				g_critical("Invalid channel range '%s'.", tokens[i]);
 				ret = SR_ERR;
 				goto range_fail;
 			}
@@ -96,17 +96,17 @@ GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring)
 			while (b <= e) {
 				n = snprintf(str, 8, "%d", b);
 				if (n < 0 || n > 8) {
-					g_critical("Invalid probe '%d'.", b);
+					g_critical("Invalid channel '%d'.", b);
 					ret = SR_ERR;
 					break;
 				}
-				probe = find_probe(sdi->probes, str);
-				if (!probe) {
-					g_critical("unknown probe '%d'.", b);
+				ch = find_channel(sdi->channels, str);
+				if (!ch) {
+					g_critical("unknown channel '%d'.", b);
 					ret = SR_ERR;
 					break;
 				}
-				probelist = g_slist_append(probelist, probe);
+				channellist = g_slist_append(channellist, ch);
 				b++;
 			}
 range_fail:
@@ -119,38 +119,38 @@ range_fail:
 			names = g_strsplit(tokens[i], "=", 2);
 			if (!names[0] || (names[1] && names[2])) {
 				/* Need one or two arguments. */
-				g_critical("Invalid probe '%s'.", tokens[i]);
+				g_critical("Invalid channel '%s'.", tokens[i]);
 				g_strfreev(names);
 				ret = SR_ERR;
 				break;
 			}
 
-			probe = find_probe(sdi->probes, names[0]);
-			if (!probe) {
-				g_critical("unknown probe '%s'.", names[0]);
+			ch = find_channel(sdi->channels, names[0]);
+			if (!ch) {
+				g_critical("unknown channel '%s'.", names[0]);
 				g_strfreev(names);
 				ret = SR_ERR;
 				break;
 			}
 			if (names[1]) {
-				/* Rename probe. */
-				g_free(probe->name);
-				probe->name = g_strdup(names[1]);
+				/* Rename channel. */
+				g_free(ch->name);
+				ch->name = g_strdup(names[1]);
 			}
-			probelist = g_slist_append(probelist, probe);
+			channellist = g_slist_append(channellist, ch);
 
 			g_strfreev(names);
 		}
 	}
 
 	if (ret != SR_OK) {
-		g_slist_free(probelist);
-		probelist = NULL;
+		g_slist_free(channellist);
+		channellist = NULL;
 	}
 
 	g_strfreev(tokens);
 
-	return probelist;
+	return channellist;
 }
 
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)

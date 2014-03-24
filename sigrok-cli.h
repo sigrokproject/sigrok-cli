@@ -31,7 +31,7 @@
 #define SAVE_CHUNK_SIZE 524288
 
 /* main.c */
-int select_probes(struct sr_dev_inst *sdi);
+int select_channels(struct sr_dev_inst *sdi);
 
 /* show.c */
 void show_version(void);
@@ -69,8 +69,8 @@ void map_pd_probes(struct sr_dev_inst *sdi);
 #endif
 
 /* parsers.c */
-struct sr_probe *find_probe(GSList *probelist, const char *probename);
-GSList *parse_probestring(struct sr_dev_inst *sdi, const char *probestring);
+struct sr_channel *find_channel(GSList *channellist, const char *channelname);
+GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring);
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first);
 int canon_cmp(const char *str1, const char *str2);
 

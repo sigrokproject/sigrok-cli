@@ -204,10 +204,10 @@ static void map_pd_inst_probes(void *key, void *value, void *user_data)
 	struct srd_decoder_inst *di;
 	GVariant *var;
 	void *probe_id;
-	void *probe_target;
-	struct sr_probe *probe;
+	void *channel_target;
+	struct sr_channel *ch;
 	GHashTableIter iter;
-	int num_probes;
+	int num_channels;
 
 	probe_map = value;
 	probe_list = user_data;
@@ -222,31 +222,31 @@ static void map_pd_inst_probes(void *key, void *value, void *user_data)
 					      (GDestroyNotify)g_variant_unref);
 
 	g_hash_table_iter_init(&iter, probe_map);
-	while (g_hash_table_iter_next(&iter, &probe_id, &probe_target)) {
-		probe = find_probe(probe_list, probe_target);
-		if (!probe) {
-			g_printerr("cli: No probe with name \"%s\" found.\n",
-				   (char *)probe_target);
+	while (g_hash_table_iter_next(&iter, &probe_id, &channel_target)) {
+		ch = find_channel(probe_list, channel_target);
+		if (!ch) {
+			g_printerr("cli: No channel with name \"%s\" found.\n",
+				   (char *)channel_target);
 			continue;
 		}
-		if (!probe->enabled)
-			g_printerr("cli: Target probe \"%s\" not enabled.\n",
-				   (char *)probe_target);
+		if (!ch->enabled)
+			g_printerr("cli: Target channel \"%s\" not enabled.\n",
+				   (char *)channel_target);
 
-		var = g_variant_new_int32(probe->index);
+		var = g_variant_new_int32(ch->index);
 		g_variant_ref_sink(var);
 		g_hash_table_insert(probe_indices, g_strdup(probe_id), var);
 	}
 
-	num_probes = g_slist_length(probe_list);
-	srd_inst_probe_set_all(di, probe_indices, (num_probes + 7) / 8);
+	num_channels = g_slist_length(probe_list);
+	srd_inst_probe_set_all(di, probe_indices, (num_channels + 7) / 8);
 }
 
 void map_pd_probes(struct sr_dev_inst *sdi)
 {
 	if (pd_probe_maps) {
 		g_hash_table_foreach(pd_probe_maps, &map_pd_inst_probes,
-				     sdi->probes);
+				     sdi->channels);
 		g_hash_table_destroy(pd_probe_maps);
 		pd_probe_maps = NULL;
 	}

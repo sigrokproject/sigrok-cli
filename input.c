@@ -131,7 +131,7 @@ static void load_input_file_format(void)
 		}
 	}
 
-	if (select_probes(in->sdi) != SR_OK)
+	if (select_channels(in->sdi) != SR_OK)
 		return;
 
 	sr_session_new();
@@ -165,7 +165,7 @@ void load_input_file(void)
 			return;
 		}
 		sdi = sessions->data;
-		if (select_probes(sdi) != SR_OK) {
+		if (select_channels(sdi) != SR_OK) {
 			sr_session_destroy();
 			return;
 		}

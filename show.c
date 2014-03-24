@@ -130,16 +130,16 @@ void show_version(void)
 #endif
 }
 
-static gint sort_probes(gconstpointer a, gconstpointer b)
+static gint sort_channels(gconstpointer a, gconstpointer b)
 {
-	const struct sr_probe *pa = a, *pb = b;
+	const struct sr_channel *pa = a, *pb = b;
 
 	return pa->index - pb->index;
 }
 
 static void print_dev_line(const struct sr_dev_inst *sdi)
 {
-	struct sr_probe *probe;
+	struct sr_channel *ch;
 	GSList *sl, *l;
 	GString *s;
 	GVariant *gvar;
@@ -158,16 +158,16 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 		g_string_append_printf(s, "%s ", sdi->model);
 	if (sdi->version && sdi->version[0])
 		g_string_append_printf(s, "%s ", sdi->version);
-	if (sdi->probes) {
-		if (g_slist_length(sdi->probes) == 1) {
-			probe = sdi->probes->data;
-			g_string_append_printf(s, "with 1 probe: %s", probe->name);
+	if (sdi->channels) {
+		if (g_slist_length(sdi->channels) == 1) {
+			ch = sdi->channels->data;
+			g_string_append_printf(s, "with 1 channel: %s", ch->name);
 		} else {
-			sl = g_slist_sort(g_slist_copy(sdi->probes), sort_probes);
-			g_string_append_printf(s, "with %d probes:", g_slist_length(sl));
+			sl = g_slist_sort(g_slist_copy(sdi->channels), sort_channels);
+			g_string_append_printf(s, "with %d channels:", g_slist_length(sl));
 			for (l = sl; l; l = l->next) {
-				probe = l->data;
-				g_string_append_printf(s, " %s", probe->name);
+				ch = l->data;
+				g_string_append_printf(s, " %s", ch->name);
 			}
 			g_slist_free(sl);
 		}
@@ -199,9 +199,9 @@ void show_dev_detail(void)
 {
 	struct sr_dev_inst *sdi;
 	const struct sr_config_info *srci;
-	struct sr_probe *probe;
+	struct sr_channel *ch;
 	struct sr_channel_group *channel_group, *cg;
-	GSList *devices, *cgl, *prl;
+	GSList *devices, *cgl, *chl;
 	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
@@ -248,7 +248,7 @@ void show_dev_detail(void)
 
 	/* Selected channels and channel group may affect which options are
 	 * returned, or which values for them. */
-	select_probes(sdi);
+	select_channels(sdi);
 	channel_group = select_channel_group(sdi);
 
 	if ((sr_config_list(sdi->driver, sdi, channel_group, SR_CONF_DEVICE_OPTIONS,
@@ -262,9 +262,9 @@ void show_dev_detail(void)
 			cg = cgl->data;
 			printf("    %s: channel%s", cg->name,
 					g_slist_length(cg->channels) > 1 ? "s" : "");
-			for (prl = cg->channels; prl; prl = prl->next) {
-				probe = prl->data;
-				printf(" %s", probe->name);
+			for (chl = cg->channels; chl; chl = chl->next) {
+				ch = chl->data;
+				printf(" %s", ch->name);
 			}
 			printf("\n");
 		}
@@ -481,7 +481,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_DOUBLE_RANGE) {
 			printf("    %s: ", srci->id);
-			if (sr_config_list(sdi->driver, sdi, probe_group, srci->key,
+			if (sr_config_list(sdi->driver, sdi, channel_group, srci->key,
 					&gvar_list) != SR_OK) {
 				printf("\n");
 				continue;

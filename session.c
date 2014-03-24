@@ -145,7 +145,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog *analog;
 	struct sr_config *src;
-	struct sr_probe *probe;
+	struct sr_channel *ch;
 	static struct sr_output *o = NULL;
 	static uint64_t rcvd_samples_logic = 0;
 	static uint64_t rcvd_samples_analog = 0;
@@ -158,7 +158,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	uint64_t output_len, input_len;
 	uint8_t *output_buf;
 	int i;
-	char **probes;
+	char **channels;
 
 	(void) cb_data;
 
@@ -278,16 +278,16 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			/* Saving to a session file. */
 			if (rcvd_samples_logic == 0) {
 				/* First packet with logic data, init session file. */
-				probes = g_malloc(sizeof(char *) * g_slist_length(sdi->probes));
-				for (i = 0, l = sdi->probes; l; l = l->next) {
-					probe = l->data;
-					if (probe->enabled && probe->type == SR_PROBE_LOGIC)
-						probes[i++] = probe->name;
+				channels = g_malloc(sizeof(char *) * g_slist_length(sdi->channels));
+				for (i = 0, l = sdi->channels; l; l = l->next) {
+					ch = l->data;
+					if (ch->enabled && ch->type == SR_CHANNEL_LOGIC)
+						channels[i++] = ch->name;
 				}
-				probes[i] = NULL;
+				channels[i] = NULL;
 				sr_session_save_init(opt_output_file, samplerate,
-						probes);
-				g_free(probes);
+						channels);
+				g_free(channels);
 			}
 			save_chunk_logic(logic->data, input_len, logic->unitsize);
 		} else {
@@ -533,7 +533,7 @@ void run_session(void)
 	GVariant *gvar;
 	struct sr_dev_inst *sdi;
 	uint64_t min_samples, max_samples;
-	int max_probes, i;
+	int max_channels, i;
 	char **triggerlist;
 
 	devices = device_scan();
@@ -569,8 +569,8 @@ void run_session(void)
 		}
 	}
 
-	if (select_probes(sdi) != SR_OK) {
-		g_critical("Failed to set probes.");
+	if (select_channels(sdi) != SR_OK) {
+		g_critical("Failed to set channels.");
 		sr_session_destroy();
 		return;
 	}
@@ -580,8 +580,8 @@ void run_session(void)
 			sr_session_destroy();
 			return;
 		}
-		max_probes = g_slist_length(sdi->probes);
-		for (i = 0; i < max_probes; i++) {
+		max_channels = g_slist_length(sdi->channels);
+		for (i = 0; i < max_channels; i++) {
 			if (triggerlist[i]) {
 				sr_dev_trigger_set(sdi, i, triggerlist[i]);
 				g_free(triggerlist[i]);

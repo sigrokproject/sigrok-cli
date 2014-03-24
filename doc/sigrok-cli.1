@@ -119,7 +119,7 @@ will display 128 bits per line, in hexadecimal:
  0:ffff ffff ffff ffff ffff ffff ffff ffff
  1:ff00 ff00 ff00 ff00 ff00 ff00 ff00 ff00
 .sp
-The lines always start with the probe number (or name, if defined), followed by a colon. If no format is specified, it defaults to
+The lines always start with the channel number (or name, if defined), followed by a colon. If no format is specified, it defaults to
 .BR bits:width=64 ,
 like this:
 .sp
@@ -127,18 +127,18 @@ like this:
  1:11111111 00000000 11111111 00000000 [...]
 .TP
 .BR "\-p, \-\-probes " <probelist>
-A comma-separated list of probes to be used in the session.
+A comma-separated list of channels to be used in the session.
 .sp
-Note that sigrok always names the probes according to how they're shown on
-the enclosure of the hardware. If your logic analyzer numbers the probes 0-15,
-that's how you must specify them with this option. An oscilloscope's probes
+Note that sigrok always names the channels according to how they're shown on
+the enclosure of the hardware. If your logic analyzer numbers the channels 0-15,
+that's how you must specify them with this option. An oscilloscope's channels
 would generally be referred to as "CH1", "CH2", and so on.
-Use the \fB\-\-show\fP option to see a list of probe names for your device.
+Use the \fB\-\-show\fP option to see a list of channel names for your device.
 .sp
-The default is to use all the probes available on a device. You can name
-a probe like this:
+The default is to use all the channels available on a device. You can name
+a channel like this:
 .BR "1=CLK" .
-A range of probes can also be given, in the form
+A range of channels can also be given, in the form
 .BR "1\-5" .
 .sp
 Example:
@@ -156,18 +156,18 @@ Example:
 The comma-separated list is processed from left to right, i.e. items farther
 to the right override previous items. For example
 .B "1=CS,1=MISO"
-will set the name of probe 1 to
+will set the name of channel 1 to
 .BR "MISO" .
 .sp
 Also, while
 .B "5=MOSI,6=MISO"
-will only select probes 5 and 6, and set their names to MISO and MOSI, the
+will only select channels 5 and 6, and set their names to MISO and MOSI, the
 command line
 .B "5=MOSI,6=MISO,1\-8"
-will select probes 1\-8 (including 5 and 6, of course), but the names specified
-for probes 5 and 6 will be reset to the defaults by the
+will select channels 1\-8 (including 5 and 6, of course), but the names specified
+for channels 5 and 6 will be reset to the defaults by the
 .B "1\-8"
-probe selection.
+channel selection.
 .TP
 .BR "\-g, \-\-channel\-group "<channel\ group>
 Specify the channel group to operate on.
@@ -178,8 +178,8 @@ with the \-\-show command.
 .TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form
-.BR "<probe>=<trigger>" .
-You can use the name or number of the probe, and the trigger itself is a
+.BR "<channel>=<trigger>" .
+You can use the name or number of the channel, and the trigger itself is a
 series of characters:
 .sp
 .BR "0 or 1" :
@@ -231,7 +231,7 @@ The list of supported options depends entirely on the protocol decoder. Every
 protocol decoder has different options it supports.
 .sp
 Any "options" specified for a protocol decoder which are not actually
-supported options, will be interpreted as being probe name/number assignments.
+supported options, will be interpreted as being channel name/number assignments.
 .sp
 Example:
 .sp
@@ -245,8 +245,8 @@ In this example,
 is an option supported by the
 .B spi
 protocol decoder. Additionally, the user tells sigrok to decode the SPI
-protocol using probe 1 as MISO signal for SPI, probe 5 as MOSI, probe 3
-as SCK, and probe 0 as CS# signal.
+protocol using channel 1 as MISO signal for SPI, channel 5 as MOSI, channel 3
+as SCK, and channel 0 as CS# signal.
 .TP
 .BR "\-S, \-\-protocol\-decoder\-stack " <stack>
 This option allows the user to specify a protocol decoder stack, i.e.
@@ -283,7 +283,7 @@ i.e., the
 is stacked on top of the
 .BR i2c " decoder."
 .sp
-The respective protocol decoder options and probe name/number assignments
+The respective protocol decoder options and channel name/number assignments
 must be given using the
 .B \-P
 option (you cannot specify them in the
@@ -367,13 +367,13 @@ Example:
 .br
  The following devices were found:
 .br
- Demo device with 8 probes: 0 1 2 3 4 5 6 7
+ Demo device with 8 channels: 0 1 2 3 4 5 6 7
 .br
- ChronoVu LA8 with 8 probes: 0 1 2 3 4 5 6 7
+ ChronoVu LA8 with 8 channels: 0 1 2 3 4 5 6 7
 .br
- ALSA: HDA ATI SB ALC270 Analog with 2 probes: Ch_0 Ch_1
+ ALSA: HDA ATI SB ALC270 Analog with 2 channels: Ch_0 Ch_1
 .br
- Saleae Logic with 8 probes: 0 1 2 3 4 5 6 7
+ Saleae Logic with 8 channels: 0 1 2 3 4 5 6 7
 .sp
 However, not all devices are auto-detectable (e.g. serial port based ones).
 For those you'll have to provide a \fBconn\fP option, see above.
@@ -383,7 +383,7 @@ For those you'll have to provide a \fBconn\fP option, see above.
 .br
  The following devices were found:
 .br
- Digitek DT4000ZC with 1 probe: P1
+ Digitek DT4000ZC with 1 channel: P1
 .TP
 .BR "\-\-time " <ms>
 Sample for
@@ -431,7 +431,7 @@ Alternatively, you can also use:
 .TP
 .B "  sigrok\-cli \-\-driver fx2lafw \-\-time 3s"
 .TP
-To capture data from the first 4 probes using the Openbench Logic Sniffer lasting 100ms at 10 MHz starting at the trigger condition
+To capture data from the first 4 channels using the Openbench Logic Sniffer lasting 100ms at 10 MHz starting at the trigger condition
 0:high, 1:rising, 2:low, 3:high, use:
 .TP
 .nf

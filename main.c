@@ -129,23 +129,23 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 
 }
 
-int select_probes(struct sr_dev_inst *sdi)
+int select_channels(struct sr_dev_inst *sdi)
 {
-	struct sr_probe *probe;
-	GSList *selected_probes, *l;
+	struct sr_channel *ch;
+	GSList *selected_channels, *l;
 
 	if (opt_probes) {
-		if (!(selected_probes = parse_probestring(sdi, opt_probes)))
+		if (!(selected_channels = parse_channelstring(sdi, opt_probes)))
 			return SR_ERR;
 
-		for (l = sdi->probes; l; l = l->next) {
-			probe = l->data;
-			if (g_slist_find(selected_probes, probe))
-				probe->enabled = TRUE;
+		for (l = sdi->channels; l; l = l->next) {
+			ch = l->data;
+			if (g_slist_find(selected_channels, ch))
+				ch->enabled = TRUE;
 			else
-				probe->enabled = FALSE;
+				ch->enabled = FALSE;
 		}
-		g_slist_free(selected_probes);
+		g_slist_free(selected_channels);
 	}
 #ifdef HAVE_SRD
 	map_pd_probes(sdi);
