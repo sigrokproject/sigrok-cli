@@ -685,7 +685,7 @@ void save_chunk_logic(uint8_t *data, uint64_t data_len, int unitsize)
 				(buf_len + max) / unitsize);
 		memcpy(buf, data + max, data_len - max);
 		buf_len = data_len - max;
-	} else if (data_len == 0) {
+	} else if (data_len == 0 && last_unitsize != 0) {
 		/* End of data, flush the buffer out. */
 		sr_session_append(opt_output_file, buf, last_unitsize,
 				buf_len / last_unitsize);
