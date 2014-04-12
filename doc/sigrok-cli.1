@@ -126,7 +126,7 @@ like this:
  0:11111111 11111111 11111111 11111111 [...]
  1:11111111 00000000 11111111 00000000 [...]
 .TP
-.BR "\-p, \-\-probes " <probelist>
+.BR "\-C, \-\-channels " <channellist>
 A comma-separated list of channels to be used in the session.
 .sp
 Note that sigrok always names the channels according to how they're shown on
@@ -145,7 +145,7 @@ Example:
 .sp
 .RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-samples 100"
 .br
-.B "               \-\-probes 1=CLK,2\-4,7"
+.B "               \-\-channels 1=CLK,2\-4,7"
 .br
  CLK:11111111 11111111 11111111 11111111 [...]
    2:11111111 11111111 11111111 11111111 [...]
@@ -436,7 +436,7 @@ To capture data from the first 4 channels using the Openbench Logic Sniffer last
 .TP
 .nf
 \fBsigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-config samplerate=10m \\\fP
-\fB\-\-output\-format bits \-\-probes 0\-3 \-\-wait\-trigger \\\fP
+\fB\-\-output\-format bits \-\-channels 0\-3 \-\-wait\-trigger \\\fP
 \fB\-\-triggers 0=1,1=r,2=0,3=1 \-\-time 100\fP
 .TP
 To turn on internal logging on a Lascar EL-USB series device:

@@ -35,7 +35,7 @@ gchar *opt_input_file = NULL;
 gchar *opt_output_file = NULL;
 gchar *opt_drv = NULL;
 gchar *opt_config = NULL;
-static gchar *opt_probes = NULL;
+static gchar *opt_channels = NULL;
 gchar *opt_channel_group = NULL;
 gchar *opt_triggers = NULL;
 gchar *opt_pds = NULL;
@@ -71,8 +71,8 @@ static GOptionEntry optargs[] = {
 			"Save output to file", NULL},
 	{"output-format", 'O', 0, G_OPTION_ARG_STRING, &opt_output_format,
 			"Output format", NULL},
-	{"probes", 'p', 0, G_OPTION_ARG_STRING, &opt_probes,
-			"Probes to use", NULL},
+	{"channels", 'C', 0, G_OPTION_ARG_STRING, &opt_channels,
+			"Channels to use", NULL},
 	{"channel-group", 'g', 0, G_OPTION_ARG_STRING, &opt_channel_group,
 			"Channel groups", NULL},
 	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers,
@@ -134,8 +134,8 @@ int select_channels(struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	GSList *selected_channels, *l;
 
-	if (opt_probes) {
-		if (!(selected_channels = parse_channelstring(sdi, opt_probes)))
+	if (opt_channels) {
+		if (!(selected_channels = parse_channelstring(sdi, opt_channels)))
 			return SR_ERR;
 
 		for (l = sdi->channels; l; l = l->next) {
@@ -148,7 +148,7 @@ int select_channels(struct sr_dev_inst *sdi)
 		g_slist_free(selected_channels);
 	}
 #ifdef HAVE_SRD
-	map_pd_probes(sdi);
+	map_pd_channels(sdi);
 #endif
 	return SR_OK;
 }

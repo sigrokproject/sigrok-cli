@@ -27,7 +27,7 @@
 
 extern gchar *opt_input_file;
 extern gchar *opt_input_format;
-extern gchar *opt_probes;
+extern gchar *opt_channels;
 
 
 /**

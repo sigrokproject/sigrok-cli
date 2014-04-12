@@ -529,7 +529,7 @@ void show_pd_detail(void)
 	struct srd_decoder *dec;
 	struct srd_decoder_option *o;
 	char **pdtokens, **pdtok, *optsep, **ann, *val, *doc;
-	struct srd_probe *p;
+	struct srd_channel *pdch;
 	struct srd_decoder_annotation_row *r;
 
 	pdtokens = g_strsplit(opt_pds, ",", -1);
@@ -565,22 +565,22 @@ void show_pd_detail(void)
 		} else {
 			printf("None.\n");
 		}
-		printf("Required probes:\n");
-		if (dec->probes) {
-			for (l = dec->probes; l; l = l->next) {
-				p = l->data;
+		printf("Required channels:\n");
+		if (dec->channels) {
+			for (l = dec->channels; l; l = l->next) {
+				pdch = l->data;
 				printf("- %s (%s): %s\n",
-				       p->id, p->name, p->desc);
+				       pdch->id, pdch->name, pdch->desc);
 			}
 		} else {
 			printf("None.\n");
 		}
-		printf("Optional probes:\n");
-		if (dec->opt_probes) {
-			for (l = dec->opt_probes; l; l = l->next) {
-				p = l->data;
+		printf("Optional channels:\n");
+		if (dec->opt_channels) {
+			for (l = dec->opt_channels; l; l = l->next) {
+				pdch = l->data;
 				printf("- %s (%s): %s\n",
-				       p->id, p->name, p->desc);
+				       pdch->id, pdch->name, pdch->desc);
 			}
 		} else {
 			printf("None.\n");

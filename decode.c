@@ -25,7 +25,7 @@
 static GHashTable *pd_ann_visible = NULL;
 static GHashTable *pd_meta_visible = NULL;
 static GHashTable *pd_binary_visible = NULL;
-static GHashTable *pd_probe_maps = NULL;
+static GHashTable *pd_channel_maps = NULL;
 
 extern struct srd_session *srd_sess;
 extern gint opt_loglevel;
@@ -88,25 +88,25 @@ static int move_hash_element(GHashTable *src, GHashTable *dest, void *key)
 	return TRUE;
 }
 
-static GHashTable *extract_probe_map(struct srd_decoder *dec, GHashTable *hash)
+static GHashTable *extract_channel_map(struct srd_decoder *dec, GHashTable *hash)
 {
-	GHashTable *probe_map;
-	struct srd_probe *p;
+	GHashTable *channel_map;
+	struct srd_channel *pdch;
 	GSList *l;
 
-	probe_map = g_hash_table_new_full(g_str_hash, g_str_equal,
+	channel_map = g_hash_table_new_full(g_str_hash, g_str_equal,
 					  g_free, g_free);
 
-	for (l = dec->probes; l; l = l->next) {
-		p = l->data;
-		move_hash_element(hash, probe_map, p->id);
+	for (l = dec->channels; l; l = l->next) {
+		pdch = l->data;
+		move_hash_element(hash, channel_map, pdch->id);
 	}
-	for (l = dec->opt_probes; l; l = l->next) {
-		p = l->data;
-		move_hash_element(hash, probe_map, p->id);
+	for (l = dec->opt_channels; l; l = l->next) {
+		pdch = l->data;
+		move_hash_element(hash, channel_map, pdch->id);
 	}
 
-	return probe_map;
+	return channel_map;
 }
 
 /* Register the given PDs for this session.
@@ -117,7 +117,7 @@ static GHashTable *extract_probe_map(struct srd_decoder *dec, GHashTable *hash)
 int register_pds(const char *opt_pds, char *opt_pd_annotations)
 {
 	struct srd_decoder *dec;
-	GHashTable *pd_opthash, *options, *probes;
+	GHashTable *pd_opthash, *options, *channels;
 	GList *leftover, *l;
 	struct srd_decoder_inst *di;
 	int ret;
@@ -127,7 +127,7 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 					       g_free, NULL);
 	ret = 0;
 	pd_name = NULL;
-	pd_opthash = options = probes = pd_probe_maps = NULL;
+	pd_opthash = options = channels = pd_channel_maps = NULL;
 	pdtokens = g_strsplit(opt_pds, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
@@ -144,17 +144,17 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		}
 		dec = srd_decoder_get_by_id(pd_name);
 
-		/* Convert decoder option and probe values to GVariant. */
+		/* Convert decoder option and channel values to GVariant. */
 		if (!opts_to_gvar(dec, pd_opthash, &options)) {
 			ret = 1;
 			break;
 		}
-		probes = extract_probe_map(dec, pd_opthash);
+		channels = extract_channel_map(dec, pd_opthash);
 
 		if (g_hash_table_size(pd_opthash) > 0) {
 			leftover = g_hash_table_get_keys(pd_opthash);
 			for (l = leftover; l; l = l->next)
-				g_critical("Unknown option or probe '%s'", (char *)l->data);
+				g_critical("Unknown option or channel '%s'", (char *)l->data);
 			g_list_free(leftover);
 			break;
 		}
@@ -166,12 +166,14 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		}
 
 		if (pdtok == pdtokens) {
-			/* Save the probe setup for later, but only on the first
-			 * decoder -- stacked decoders don't get probes. */
-			pd_probe_maps = g_hash_table_new_full(g_str_hash,
+			/*
+			 * Save the channel setup for later, but only on the
+			 * first decoder (stacked decoders don't get channels).
+			 */
+			pd_channel_maps = g_hash_table_new_full(g_str_hash,
 					g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
-			g_hash_table_insert(pd_probe_maps, g_strdup(di->inst_id), probes);
-			probes = NULL;
+			g_hash_table_insert(pd_channel_maps, g_strdup(di->inst_id), channels);
+			channels = NULL;
 		}
 
 		/* If no annotation list was specified, add them all in now.
@@ -188,29 +190,29 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		g_hash_table_destroy(pd_opthash);
 	if (options)
 		g_hash_table_destroy(options);
-	if (probes)
-		g_hash_table_destroy(probes);
+	if (channels)
+		g_hash_table_destroy(channels);
 	if (pd_name)
 		g_free(pd_name);
 
 	return ret;
 }
 
-static void map_pd_inst_probes(void *key, void *value, void *user_data)
+static void map_pd_inst_channels(void *key, void *value, void *user_data)
 {
-	GHashTable *probe_map;
-	GHashTable *probe_indices;
-	GSList *probe_list;
+	GHashTable *channel_map;
+	GHashTable *channel_indices;
+	GSList *channel_list;
 	struct srd_decoder_inst *di;
 	GVariant *var;
-	void *probe_id;
+	void *channel_id;
 	void *channel_target;
 	struct sr_channel *ch;
 	GHashTableIter iter;
 	int num_channels;
 
-	probe_map = value;
-	probe_list = user_data;
+	channel_map = value;
+	channel_list = user_data;
 
 	di = srd_inst_find_by_id(srd_sess, key);
 	if (!di) {
@@ -218,12 +220,12 @@ static void map_pd_inst_probes(void *key, void *value, void *user_data)
 			   (char *)key);
 		return;
 	}
-	probe_indices = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+	channel_indices = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
 					      (GDestroyNotify)g_variant_unref);
 
-	g_hash_table_iter_init(&iter, probe_map);
-	while (g_hash_table_iter_next(&iter, &probe_id, &channel_target)) {
-		ch = find_channel(probe_list, channel_target);
+	g_hash_table_iter_init(&iter, channel_map);
+	while (g_hash_table_iter_next(&iter, &channel_id, &channel_target)) {
+		ch = find_channel(channel_list, channel_target);
 		if (!ch) {
 			g_printerr("cli: No channel with name \"%s\" found.\n",
 				   (char *)channel_target);
@@ -235,20 +237,20 @@ static void map_pd_inst_probes(void *key, void *value, void *user_data)
 
 		var = g_variant_new_int32(ch->index);
 		g_variant_ref_sink(var);
-		g_hash_table_insert(probe_indices, g_strdup(probe_id), var);
+		g_hash_table_insert(channel_indices, g_strdup(channel_id), var);
 	}
 
-	num_channels = g_slist_length(probe_list);
-	srd_inst_probe_set_all(di, probe_indices, (num_channels + 7) / 8);
+	num_channels = g_slist_length(channel_list);
+	srd_inst_channel_set_all(di, channel_indices, (num_channels + 7) / 8);
 }
 
-void map_pd_probes(struct sr_dev_inst *sdi)
+void map_pd_channels(struct sr_dev_inst *sdi)
 {
-	if (pd_probe_maps) {
-		g_hash_table_foreach(pd_probe_maps, &map_pd_inst_probes,
+	if (pd_channel_maps) {
+		g_hash_table_foreach(pd_channel_maps, &map_pd_inst_channels,
 				     sdi->channels);
-		g_hash_table_destroy(pd_probe_maps);
-		pd_probe_maps = NULL;
+		g_hash_table_destroy(pd_channel_maps);
+		pd_channel_maps = NULL;
 	}
 }
 
