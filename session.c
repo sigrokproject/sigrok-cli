@@ -154,6 +154,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	static FILE *outfile = NULL;
 	GSList *l;
 	GString *out;
+	GVariant *gvar;
 	uint64_t end_sample;
 	uint64_t output_len, input_len;
 	uint8_t *output_buf;
@@ -197,13 +198,15 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		}
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
+		if (sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
+				&gvar) == SR_OK) {
+			samplerate = g_variant_get_uint64(gvar);
+			g_variant_unref(gvar);
+		}
+
 #ifdef HAVE_SRD
 		if (opt_pds) {
-			GVariant *gvar;
-			if (sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
-					&gvar) == SR_OK) {
-				samplerate = g_variant_get_uint64(gvar);
-				g_variant_unref(gvar);
+			if (samplerate) {
 				if (srd_session_metadata_set(srd_sess, SRD_CONF_SAMPLERATE,
 						g_variant_new_uint64(samplerate)) != SRD_OK) {
 					g_critical("Failed to configure decode session.");
