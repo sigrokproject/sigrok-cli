@@ -112,7 +112,7 @@ for lib in "glib-2.0 >= 2.28.0" "libsigrok >= 0.2.0" "libsigrokdecode >= 0.2.0";
 			answer="no"
 		fi
 	fi
-	echo "  - $lib: $answer"
+	echo "  - (REQUIRED) $lib: $answer"
 done
 
 echo
