@@ -156,8 +156,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	GString *out;
 	GVariant *gvar;
 	uint64_t end_sample;
-	uint64_t output_len, input_len;
-	uint8_t *output_buf;
+	uint64_t input_len;
 	int i;
 	char **channels;
 
@@ -252,9 +251,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	case SR_DF_TRIGGER:
 		g_debug("cli: received SR_DF_TRIGGER");
-		if (o->format->event)
-			o->format->event(o, SR_DF_TRIGGER, &output_buf,
-					 &output_len);
 		triggered = 1;
 		break;
 
@@ -300,16 +296,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 						logic->data, input_len) != SRD_OK)
 					sr_session_stop();
 #endif
-			} else {
-				output_len = 0;
-				if (o->format->data && packet->type == o->format->df_type)
-					o->format->data(o, logic->data, input_len,
-							&output_buf, &output_len);
-				if (output_len) {
-					fwrite(output_buf, 1, output_len, outfile);
-					fflush(outfile);
-					g_free(output_buf);
-				}
 			}
 		}
 
@@ -325,44 +311,15 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		if (limit_samples && rcvd_samples_analog >= limit_samples)
 			break;
 
-		if (o->format->data && packet->type == o->format->df_type) {
-			o->format->data(o, (const uint8_t *)analog->data,
-					analog->num_samples * sizeof(float),
-					&output_buf, &output_len);
-			if (output_buf) {
-				fwrite(output_buf, 1, output_len, outfile);
-				fflush(outfile);
-				g_free(output_buf);
-			}
-		}
-
 		rcvd_samples_analog += analog->num_samples;
 		break;
 
 	case SR_DF_FRAME_BEGIN:
 		g_debug("cli: received SR_DF_FRAME_BEGIN");
-		if (o->format->event) {
-			o->format->event(o, SR_DF_FRAME_BEGIN, &output_buf,
-					 &output_len);
-			if (output_buf) {
-				fwrite(output_buf, 1, output_len, outfile);
-				fflush(outfile);
-				g_free(output_buf);
-			}
-		}
 		break;
 
 	case SR_DF_FRAME_END:
 		g_debug("cli: received SR_DF_FRAME_END");
-		if (o->format->event) {
-			o->format->event(o, SR_DF_FRAME_END, &output_buf,
-					 &output_len);
-			if (output_buf) {
-				fwrite(output_buf, 1, output_len, outfile);
-				fflush(outfile);
-				g_free(output_buf);
-			}
-		}
 		break;
 
 	default:
@@ -381,16 +338,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	 * is called, so it can properly clean up that module. */
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END");
-
-		if (o->format->event) {
-			o->format->event(o, SR_DF_END, &output_buf, &output_len);
-			if (output_buf) {
-				if (outfile)
-					fwrite(output_buf, 1, output_len, outfile);
-				g_free(output_buf);
-				output_len = 0;
-			}
-		}
 
 		if (o->format->cleanup)
 			o->format->cleanup(o);
