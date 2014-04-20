@@ -44,7 +44,6 @@ GSList *device_scan(void);
 struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi);
 
 /* session.c */
-int setup_output_format(void);
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
 int opt_to_gvar(char *key, char *value, struct sr_config *src);

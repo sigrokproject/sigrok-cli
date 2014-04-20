@@ -18,7 +18,6 @@
  */
 
 #include "sigrok-cli.h"
-#include "config.h"
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <string.h>
@@ -26,7 +25,6 @@
 
 static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
-static char *output_format_param = NULL;
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;
 
@@ -84,11 +82,10 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-int setup_output_format(void)
+struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 {
 	GHashTable *fmtargs;
-	GHashTableIter iter;
-	gpointer key, value;
+	struct sr_output *o;
 	struct sr_output_format **outputs;
 	int i;
 	char *fmtspec;
@@ -110,32 +107,22 @@ int setup_output_format(void)
 
 	fmtargs = parse_generic_arg(opt_output_format, TRUE);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
-	if (!fmtspec) {
+	if (!fmtspec)
 		g_critical("Invalid output format.");
-		return 1;
-	}
 	outputs = sr_output_list();
 	for (i = 0; outputs[i]; i++) {
 		if (strcmp(outputs[i]->id, fmtspec))
 			continue;
 		g_hash_table_remove(fmtargs, "sigrok_key");
 		output_format = outputs[i];
-		g_hash_table_iter_init(&iter, fmtargs);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			/* only supporting one parameter per output module
-			 * for now, and only its value */
-			output_format_param = g_strdup(value);
-			break;
-		}
 		break;
 	}
-	if (!output_format) {
-		g_critical("Invalid output format %s.", opt_output_format);
-		return 1;
-	}
+	if (!output_format)
+		g_critical("Invalid output format '%s'.", opt_output_format);
+	o = sr_output_new(output_format, fmtargs, sdi);
 	g_hash_table_destroy(fmtargs);
 
-	return 0;
+	return o;
 }
 
 void datafeed_in(const struct sr_dev_inst *sdi,
@@ -169,20 +156,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		g_debug("cli: Received SR_DF_HEADER");
-		/* Initialize the output module. */
-		if (!(o = g_try_malloc(sizeof(struct sr_output)))) {
-			g_critical("Output module malloc failed.");
-			exit(1);
-		}
-		o->format = output_format;
-		o->sdi = (struct sr_dev_inst *)sdi;
-		o->param = output_format_param;
-		if (o->format->init) {
-			if (o->format->init(o) != SR_OK) {
-				g_critical("Output format initialization failed.");
-				exit(1);
-			}
-		}
+		o = setup_output_format(sdi);
 
 		/* Prepare non-stdout output. */
 		outfile = stdout;
@@ -326,8 +300,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 	}
 
-	if (o && o->format->receive) {
-		if (o->format->receive(o, sdi, packet, &out) == SR_OK && out) {
+	if (o) {
+		if (sr_output_send(o, packet, &out) == SR_OK && out) {
 			fwrite(out->str, 1, out->len, outfile);
 			fflush(outfile);
 			g_string_free(out, TRUE);
@@ -339,9 +313,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END");
 
-		if (o->format->cleanup)
-			o->format->cleanup(o);
-		g_free(o);
+		if (o)
+			sr_output_free(o);
 		o = NULL;
 
 		if (outfile && outfile != stdout)

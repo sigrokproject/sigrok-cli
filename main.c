@@ -18,7 +18,6 @@
  */
 
 #include "sigrok-cli.h"
-#include "config.h"
 #include <stdlib.h>
 #include <glib.h>
 
@@ -252,9 +251,6 @@ int main(int argc, char **argv)
 		}
 	}
 #endif
-
-	if (setup_output_format() != 0)
-		goto done;
 
 	if (opt_version)
 		show_version();
