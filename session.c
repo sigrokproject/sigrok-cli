@@ -300,7 +300,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 	}
 
-	if (o) {
+	if (o && !opt_pds) {
 		if (sr_output_send(o, packet, &out) == SR_OK && out) {
 			fwrite(out->str, 1, out->len, outfile);
 			fflush(outfile);
