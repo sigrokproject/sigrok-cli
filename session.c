@@ -155,7 +155,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	switch (packet->type) {
 	case SR_DF_HEADER:
-		g_debug("cli: Received SR_DF_HEADER");
+		g_debug("cli: Received SR_DF_HEADER.");
 		o = setup_output_format(sdi);
 
 		/* Prepare non-stdout output. */
@@ -195,14 +195,14 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 
 	case SR_DF_META:
-		g_debug("cli: received SR_DF_META");
+		g_debug("cli: Received SR_DF_META.");
 		meta = packet->payload;
 		for (l = meta->config; l; l = l->next) {
 			src = l->data;
 			switch (src->key) {
 			case SR_CONF_SAMPLERATE:
 				samplerate = g_variant_get_uint64(src->data);
-				g_debug("cli: got samplerate %"PRIu64" Hz", samplerate);
+				g_debug("cli: Got samplerate %"PRIu64" Hz.", samplerate);
 #ifdef HAVE_SRD
 				if (opt_pds) {
 					if (srd_session_metadata_set(srd_sess, SRD_CONF_SAMPLERATE,
@@ -214,7 +214,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 				break;
 			case SR_CONF_SAMPLE_INTERVAL:
 				samplerate = g_variant_get_uint64(src->data);
-				g_debug("cli: got sample interval %"PRIu64" ms", samplerate);
+				g_debug("cli: Got sample interval %"PRIu64" ms.", samplerate);
 				break;
 			default:
 				/* Unknown metadata is not an error. */
@@ -224,13 +224,14 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 
 	case SR_DF_TRIGGER:
-		g_debug("cli: received SR_DF_TRIGGER");
+		g_debug("cli: Received SR_DF_TRIGGER.");
 		triggered = 1;
 		break;
 
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		g_message("cli: received SR_DF_LOGIC, %"PRIu64" bytes", logic->length);
+		g_message("cli: Received SR_DF_LOGIC (%"PRIu64" bytes, unitsize = %d).",
+				logic->length, logic->unitsize);
 		if (logic->length == 0)
 			break;
 
@@ -278,7 +279,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	case SR_DF_ANALOG:
 		analog = packet->payload;
-		g_message("cli: received SR_DF_ANALOG, %d samples", analog->num_samples);
+		g_message("cli: Received SR_DF_ANALOG (%d samples).", analog->num_samples);
 		if (analog->num_samples == 0)
 			break;
 
@@ -289,11 +290,11 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 
 	case SR_DF_FRAME_BEGIN:
-		g_debug("cli: received SR_DF_FRAME_BEGIN");
+		g_debug("cli: Received SR_DF_FRAME_BEGIN.");
 		break;
 
 	case SR_DF_FRAME_END:
-		g_debug("cli: received SR_DF_FRAME_END");
+		g_debug("cli: Received SR_DF_FRAME_END.");
 		break;
 
 	default:
@@ -311,7 +312,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	/* SR_DF_END needs to be handled after the output module's receive()
 	 * is called, so it can properly clean up that module. */
 	if (packet->type == SR_DF_END) {
-		g_debug("cli: Received SR_DF_END");
+		g_debug("cli: Received SR_DF_END.");
 
 		if (o)
 			sr_output_free(o);
