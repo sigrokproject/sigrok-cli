@@ -45,12 +45,14 @@ static gint sort_drivers(gconstpointer a, gconstpointer b)
 	return strcmp(sdda->name, sddb->name);
 }
 
+#ifdef HAVE_SRD
 static gint sort_pds(gconstpointer a, gconstpointer b)
 {
 	const struct srd_decoder *sda = a, *sdb = b;
 
 	return strcmp(sda->id, sdb->id);
 }
+#endif
 
 void show_version(void)
 {
