@@ -19,8 +19,6 @@
 
 ACLOCAL_AMFLAGS = -I autostuff
 
-SUBDIRS = contrib doc
-
 bin_PROGRAMS = sigrok-cli
 
 sigrok_cli_SOURCES = \
@@ -33,6 +31,10 @@ sigrok_cli_SOURCES = \
 	sigrok-cli.h \
 	parsers.c \
 	anykey.c
+
+dist_man_MANS = doc/sigrok-cli.1
+
+EXTRA_DIST = contrib/sigrok-cli_cross.nsi contrib/sigrok-logo-notext.ico
 
 MAINTAINERCLEANFILES = ChangeLog
 
