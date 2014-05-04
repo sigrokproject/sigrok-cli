@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "Jan 31, 2014"
+.TH SIGROK\-CLI 1 "May 04, 2014"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -42,7 +42,7 @@ Some USB devices don't use a unique VendorID/ProductID combination, and thus
 need that specified as well. This also uses the \fBconn\fP option, using
 either \fBVendorID.ProductID\fP or \fBbus.address\fP:
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver=nexus-osciprime:conn=04b4.8613"
+.RB "  $ " "sigrok\-cli \-\-driver=uni-t-ut61e:conn=1a86.e008"
 .TP
 .BR "\-c, \-\-config " <device>
 A colon-separated list of device options, where each option takes the form
@@ -155,26 +155,16 @@ Example:
 .sp
 The comma-separated list is processed from left to right, i.e. items farther
 to the right override previous items. For example
-.B "1=CS,1=MISO"
+.B "1=CS,CS=MISO"
 will set the name of channel 1 to
 .BR "MISO" .
-.sp
-Also, while
-.B "5=MOSI,6=MISO"
-will only select channels 5 and 6, and set their names to MISO and MOSI, the
-command line
-.B "5=MOSI,6=MISO,1\-8"
-will select channels 1\-8 (including 5 and 6, of course), but the names specified
-for channels 5 and 6 will be reset to the defaults by the
-.B "1\-8"
-channel selection.
 .TP
 .BR "\-g, \-\-channel\-group "<channel\ group>
 Specify the channel group to operate on.
 
 Some devices organize channels into groups, the settings of which can
 only be changed as a group. The list of channel groups, if any, is displayed
-with the \-\-show command.
+with the \fB\-\-show\fP command.
 .TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form
@@ -238,7 +228,7 @@ Example:
  $
 .B "sigrok\-cli \-i <file.sr>"
 .br
-.B "              \-P spi:wordsize=9:miso=1:mosi=5:sck=3:cs=0"
+.B "              \-P spi:wordsize=9:miso=1:mosi=5:clk=3:cs=0"
 .sp
 In this example,
 .B wordsize
@@ -246,7 +236,7 @@ is an option supported by the
 .B spi
 protocol decoder. Additionally, the user tells sigrok to decode the SPI
 protocol using channel 1 as MISO signal for SPI, channel 5 as MOSI, channel 3
-as SCK, and channel 0 as CS# signal.
+as CLK, and channel 0 as CS# signal.
 .TP
 .BR "\-S, \-\-protocol\-decoder\-stack " <stack>
 This option allows the user to specify a protocol decoder stack, i.e.
@@ -262,13 +252,13 @@ output. In addition to the
 .B \-S
 option, all protocol decoders that are used in a stack, must also be specified
 (together with their options, if any) using the
-.B \-A
+.B \-P
 parameter.
 .sp
 Example:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-A i2c:sda=4:scl=7,rtc8564"
+.B "sigrok\-cli \-i <file.sr> \-P i2c:sda=4:scl=7,rtc8564"
 .br
 .B "              \-S i2c,rtc8564"
 .sp
@@ -367,13 +357,9 @@ Example:
 .br
  The following devices were found:
 .br
- Demo device with 8 channels: 0 1 2 3 4 5 6 7
+ demo - Demo device with 12 channels: D0 D1 D2 D3 D4 D5 D6 D7 A0 A1 A2 A3
 .br
- ChronoVu LA8 with 8 channels: 0 1 2 3 4 5 6 7
-.br
- ALSA: HDA ATI SB ALC270 Analog with 2 channels: Ch_0 Ch_1
-.br
- Saleae Logic with 8 channels: 0 1 2 3 4 5 6 7
+ fx2lafw:conn=3.26 - CWAV USBee SX with 8 channels: 0 1 2 3 4 5 6 7
 .sp
 However, not all devices are auto-detectable (e.g. serial port based ones).
 For those you'll have to provide a \fBconn\fP option, see above.
@@ -390,9 +376,8 @@ Sample for
 .B <ms>
 milliseconds, then quit.
 .sp
-You can optionally follow the number by \fBs\fP, \fBms\fP, \fBus\fP, or
-\fBns\fP to specify the time to sample in seconds, milliseconds, microseconds,
-or nanoseconds, respectively.
+You can optionally follow the number by \fBs\fP to specify the time to
+sample in seconds.
 .sp
 For example,
 .B "\-\-time 2s"
