@@ -64,12 +64,12 @@ AM_CONDITIONAL(WITH_SRD, test x$WITH_SRD = xyes)
 AM_PATH_GLIB_2_0([2.28.0],
 	[CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
-PKG_CHECK_MODULES([libsigrok], [libsigrok >= 0.2.0],
+PKG_CHECK_MODULES([libsigrok], [libsigrok >= 0.3.0],
 	[CFLAGS="$CFLAGS $libsigrok_CFLAGS";
 	LIBS="$LIBS $libsigrok_LIBS"])
 
 if test "x$WITH_SRD" = "xyes"; then
-	PKG_CHECK_MODULES([libsigrokdecode], [libsigrokdecode >= 0.2.0],
+	PKG_CHECK_MODULES([libsigrokdecode], [libsigrokdecode >= 0.3.0],
 		[CFLAGS="$CFLAGS $libsigrokdecode_CFLAGS";
 			LIBS="$LIBS $libsigrokdecode_LIBS";
 			AC_DEFINE(HAVE_SRD, [1], [libsigrokdecode is available.])]
@@ -98,7 +98,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.28.0" "libsigrok >= 0.2.0" "libsigrokdecode >= 0.2.0"; do
+for lib in "glib-2.0 >= 2.28.0" "libsigrok >= 0.3.0" "libsigrokdecode >= 0.3.0"; do
 	if test "$lib" = "libsigrokdecode" -a "$WITH_SRD" != "yes" ; then
 		answer="no"
 	else
