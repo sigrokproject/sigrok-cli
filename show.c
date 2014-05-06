@@ -410,7 +410,7 @@ void show_dev_detail(void)
 			}
 			g_variant_unref(gvar_list);
 
-		} else if (srci->datatype == SR_T_CHAR) {
+		} else if (srci->datatype == SR_T_STRING) {
 			printf("    %s: ", srci->id);
 			if (sr_config_get(sdi->driver, sdi, channel_group, srci->key,
 					&gvar) == SR_OK) {

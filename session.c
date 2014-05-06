@@ -372,7 +372,7 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 			break;
 		src->data = g_variant_new_int32(tmp_u64);
 		break;
-	case SR_T_CHAR:
+	case SR_T_STRING:
 		src->data = g_variant_new_string(value);
 		break;
 	case SR_T_BOOL:
