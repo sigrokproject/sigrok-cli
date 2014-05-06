@@ -1,3 +1,45 @@
+0.5.0 (2014-05-06)
+------------------
+
+ * Update sigrok-cli to the new APIs from both libsigrok 0.3.0 and also
+   libsigrokdecode 0.3.0.
+ * Add support for the new channel groups feature in libsigrok.
+ * Report channel groups (drivers) and annotation rows (PDs) in --show.
+ * The protocol decoder output verbosity now depends on the --loglevel used.
+ * Only show the longest annotation per default if multiple are provided by
+   the PD. Higher numbers for the -l option will show them all.
+ * Allow both hex and decimal numbers as values for command-line options.
+ * Add support for an explicit "sigrok" file format option that can be
+   used with --input-format or --output-format (bug #131).
+ * If no PD annotation class is specified, default to showing all (bug #149).
+ * Fix an issue when running decoders with optional channels (bug #138).
+ * Report possible PD option values in --show output (bug #330).
+ * Allow saving of output in continuous mode (bug #122).
+ * Add support for libsigrok's SR_T_DOUBLE_RANGE config key (bug #335).
+ * Add support for config keys of type G_VARIANT_TYPE_INT32.
+ * Fix a bug which involved trying to save a file containing no data.
+ * Fix an internal probe ordering issue (bug #268).
+ * Fix various memory leak issues (bug #134, others).
+ * Fix a bug causing samplerates in session files being zero (bug #340).
+ * Fix segfault during analog acquisition without '-O analog' (bugs #90, #105).
+ * Fix a compile issue when building without libsigrokdecode (bug #351).
+ * Command line option changes:
+   - Add the -g|--channel-group option.
+   - Add the -M option (for PD meta output type support).
+   - Add the -B option (for PD binary output type support).
+   - Rename the -p|--probes option to -C|--channels.
+ * Various improvements to the NSIS file for better Windows installer support.
+   - Ship (redistributable) firmware files in the Windows installer.
+   - Ship libusb0.dll in the Windows installer (bug #243).
+   - Ship zadig.exe and zadig_xp.exe in the Windows installer.
+   - Ship all sample files from sigrok-dumps in the Windows installer.
+   - Don't ship/run the full Python MSI installer, only the required files.
+   - Fix a working directory issue in the installer.
+ * Build system:
+   - Use a non-recursive automake setup (fewer files, less clutter).
+   - configure output: Show which libs are required and which are optional.
+ * manpage: Various documentation updates.
+
 0.4.0 (2013-05-04)
 ------------------
 
