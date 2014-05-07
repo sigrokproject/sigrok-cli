@@ -58,7 +58,7 @@ PKG_PROG_PKG_CONFIG([0.22])
 AC_ARG_WITH([libsigrokdecode],
 	AS_HELP_STRING([--with-libsigrokdecode],
 			[compile with libsigrokdecode support]),
-	[WITH_SRD=$enableval],[WITH_SRD=yes])
+	[WITH_SRD=$withval],[WITH_SRD=yes])
 AM_CONDITIONAL(WITH_SRD, test x$WITH_SRD = xyes)
 
 AM_PATH_GLIB_2_0([2.28.0],
