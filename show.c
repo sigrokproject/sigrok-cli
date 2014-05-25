@@ -208,11 +208,11 @@ void show_dev_detail(void)
 	double dlow, dhigh, dcur_low, dcur_high;
 	const uint64_t *uint64, p, q, low, high;
 	uint64_t cur_low, cur_high;
-	const int32_t *opts;
+	const int32_t *int32, *opts;
 	unsigned int num_devices, o, i;
 	char *tmp_str;
-	char *s;
-	const char *charopts, **stropts;
+	char *s, c;
+	const char **stropts;
 
 	if (!(devices = device_scan())) {
 		g_critical("No devices found.");
@@ -284,20 +284,43 @@ void show_dev_detail(void)
 		if (!(srci = sr_config_info_get(opts[o])))
 			continue;
 
-		if (srci->key == SR_CONF_TRIGGER_TYPE) {
+		if (srci->key == SR_CONF_TRIGGER_MATCH) {
 			if (sr_config_list(sdi->driver, sdi, channel_group, srci->key,
-					&gvar) != SR_OK) {
+					&gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
 			}
-			charopts = g_variant_get_string(gvar, NULL);
+			int32 = g_variant_get_fixed_array(gvar_list,
+					&num_elements, sizeof(int32_t));
 			printf("    Supported triggers: ");
-			while (*charopts) {
-				printf("%c ", *charopts);
-				charopts++;
+			for (i = 0; i < num_elements; i++) {
+				switch(int32[i]) {
+				case SR_TRIGGER_ZERO:
+					c = '0';
+					break;
+				case SR_TRIGGER_ONE:
+					c = '1';
+					break;
+				case SR_TRIGGER_RISING:
+					c = 'r';
+					break;
+				case SR_TRIGGER_FALLING:
+					c = 'f';
+					break;
+				case SR_TRIGGER_EDGE:
+					c = 'e';
+					break;
+				case SR_TRIGGER_OVER:
+					c = 'o';
+					break;
+				case SR_TRIGGER_UNDER:
+					c = 'u';
+					break;
+				}
+				printf("%c ", c);
 			}
 			printf("\n");
-			g_variant_unref(gvar);
+			g_variant_unref(gvar_list);
 
 		} else if (srci->key == SR_CONF_LIMIT_SAMPLES) {
 			/* If implemented in config_list(), this denotes the

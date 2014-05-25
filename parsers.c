@@ -153,6 +153,113 @@ range_fail:
 	return channellist;
 }
 
+int parse_trigger_match(char c)
+{
+	int match;
+
+	if (c == '0')
+		match = SR_TRIGGER_ZERO;
+	else if (c == '1')
+		match = SR_TRIGGER_ONE;
+	else if (c == 'r')
+		match = SR_TRIGGER_RISING;
+	else if (c == 'f')
+		match = SR_TRIGGER_FALLING;
+	else if (c == 'e')
+		match = SR_TRIGGER_EDGE;
+	else if (c == 'o')
+		match = SR_TRIGGER_OVER;
+	else if (c == 'u')
+		match = SR_TRIGGER_UNDER;
+	else
+		match = 0;
+
+	return match;
+}
+
+int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s)
+{
+	struct sr_channel *ch;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	GVariant *gvar;
+	GSList *l;
+	gsize num_matches;
+	gboolean found_match, error;
+	const int32_t *matches;
+	int32_t match;
+	unsigned int j;
+	int t, i;
+	char **tokens, *sep;
+
+	if (sr_config_list(sdi->driver, sdi, NULL, SR_CONF_TRIGGER_MATCH,
+			&gvar) != SR_OK) {
+		g_critical("Device doesn't support any triggers.");
+		return FALSE;
+	}
+	matches = g_variant_get_fixed_array(gvar, &num_matches, sizeof(int32_t));
+
+	trigger = sr_trigger_new(NULL);
+	error = FALSE;
+	tokens = g_strsplit(s, ",", -1);
+	for (i = 0; tokens[i]; i++) {
+		if (!(sep = strchr(tokens[i], '='))) {
+			g_critical("Invalid trigger '%s'.", tokens[i]);
+			error = TRUE;
+			break;
+		}
+		*sep++ = 0;
+		ch = NULL;
+		for (l = sdi->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->enabled && !strcmp(ch->name, tokens[i]))
+				break;
+			ch = NULL;
+		}
+		if (!ch) {
+			g_critical("Invalid channel '%s'.", tokens[i]);
+			error = TRUE;
+			break;
+		}
+		for (t = 0; sep[t]; t++) {
+			if (!(match = parse_trigger_match(sep[t]))) {
+				g_critical("Invalid trigger match '%c'.", sep[t]);
+				error = TRUE;
+				break;
+			}
+			found_match = FALSE;
+			for (j = 0; j < num_matches; j++) {
+				if (matches[j] == match) {
+					found_match = TRUE;
+					break;
+				}
+			}
+			if (!found_match) {
+				g_critical("Trigger match '%c' not supported by device.", sep[t]);
+				error = TRUE;
+				break;
+			}
+			/* Make sure this ends up in the right stage, creating
+			 * them as needed. */
+			while (!(stage = g_slist_nth_data(trigger->stages, t)))
+				sr_trigger_stage_new(trigger);
+			if (sr_trigger_match_add(stage, ch, match, 0) != SR_OK) {
+				error = TRUE;
+				break;
+			}
+		}
+	}
+	g_strfreev(tokens);
+	g_variant_unref(gvar);
+
+	if (error)
+		sr_trigger_free(trigger);
+	else
+		error = sr_session_trigger_set(trigger) != SR_OK;
+
+	return !error;
+}
+
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 {
 	GHashTable *hash;

@@ -70,6 +70,7 @@ void map_pd_channels(struct sr_dev_inst *sdi);
 /* parsers.c */
 struct sr_channel *find_channel(GSList *channellist, const char *channelname);
 GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring);
+int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s);
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first);
 int canon_cmp(const char *str1, const char *str2);
 

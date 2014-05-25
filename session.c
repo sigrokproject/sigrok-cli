@@ -457,8 +457,6 @@ void run_session(void)
 	GVariant *gvar;
 	struct sr_dev_inst *sdi;
 	uint64_t min_samples, max_samples;
-	int max_channels, i;
-	char **triggerlist;
 
 	devices = device_scan();
 	if (!devices) {
@@ -500,18 +498,10 @@ void run_session(void)
 	}
 
 	if (opt_triggers) {
-		if (!(triggerlist = sr_parse_triggerstring(sdi, opt_triggers))) {
+		if (!parse_triggerstring(sdi, opt_triggers)) {
 			sr_session_destroy();
 			return;
 		}
-		max_channels = g_slist_length(sdi->channels);
-		for (i = 0; i < max_channels; i++) {
-			if (triggerlist[i]) {
-				sr_dev_trigger_set(sdi, i, triggerlist[i]);
-				g_free(triggerlist[i]);
-			}
-		}
-		g_free(triggerlist);
 	}
 
 	if (opt_continuous) {
