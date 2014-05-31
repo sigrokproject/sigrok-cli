@@ -242,7 +242,7 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s)
 			/* Make sure this ends up in the right stage, creating
 			 * them as needed. */
 			while (!(stage = g_slist_nth_data(trigger->stages, t)))
-				sr_trigger_stage_new(trigger);
+				sr_trigger_stage_add(trigger);
 			if (sr_trigger_match_add(stage, ch, match, 0) != SR_OK) {
 				error = TRUE;
 				break;
