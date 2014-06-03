@@ -316,8 +316,12 @@ void show_dev_detail(void)
 				case SR_TRIGGER_UNDER:
 					c = 'u';
 					break;
+				default:
+					c = 0;
+					break;
 				}
-				printf("%c ", c);
+				if (c)
+					printf("%c ", c);
 			}
 			printf("\n");
 			g_variant_unref(gvar_list);
