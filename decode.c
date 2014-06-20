@@ -142,7 +142,11 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 			ret = 1;
 			break;
 		}
-		dec = srd_decoder_get_by_id(pd_name);
+		if (!(dec = srd_decoder_get_by_id(pd_name))) {
+			g_critical("Failed to get decoder %s by id.", pd_name);
+			ret = 1;
+			break;
+		}
 
 		/* Convert decoder option and channel values to GVariant. */
 		if (!opts_to_gvar(dec, pd_opthash, &options)) {
