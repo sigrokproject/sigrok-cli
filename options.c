@@ -88,6 +88,9 @@ CHECK_ONCE(opt_frames)
 
 #undef CHECK_STR_ONCE
 
+static gchar **input_file_array = NULL;
+static gchar **output_file_array = NULL;
+
 static const GOptionEntry optargs[] = {
 	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
 			"Show version and support list", NULL},
@@ -97,11 +100,11 @@ static const GOptionEntry optargs[] = {
 			"The driver to use", NULL},
 	{"config", 'c', 0, G_OPTION_ARG_CALLBACK, &check_opt_config,
 			"Specify device configuration options", NULL},
-	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file,
+	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME_ARRAY, &input_file_array,
 			"Load input from file", NULL},
 	{"input-format", 'I', 0, G_OPTION_ARG_CALLBACK, &check_opt_input_format,
 			"Input format", NULL},
-	{"output-file", 'o', 0, G_OPTION_ARG_FILENAME, &opt_output_file,
+	{"output-file", 'o', 0, G_OPTION_ARG_FILENAME_ARRAY, &output_file_array,
 			"Save output to file", NULL},
 	{"output-format", 'O', 0, G_OPTION_ARG_CALLBACK, &check_opt_output_format,
 			"Output format", NULL},
@@ -156,10 +159,36 @@ int parse_options(int argc, char **argv)
 		goto done;
 	}
 
+	/*
+	 * Because of encoding issues with filenames (mentioned in the glib
+	 * documentation), we don't check them with a callback function, but
+	 * collect them into arrays and then check if the arrays contain at
+	 * most one element.
+	 */
+	if (NULL != input_file_array) {
+		if (NULL != input_file_array[0] && NULL != input_file_array[1]) {
+			g_critical("option \"--input-file/-i\" only allowed once");
+			goto done;
+		}
+		opt_input_file = g_strdup(input_file_array[0]);
+	}
+
+	if (NULL != output_file_array) {
+		if (NULL != output_file_array[0] && NULL != output_file_array[1]) {
+			g_critical("option \"--output-file/-o\" only allowed once");
+			goto done;
+		}
+		opt_output_file = g_strdup(output_file_array[0]);
+	}
+
 	ret = 0;
 
 done:
 	g_option_context_free(context);
+	g_strfreev(input_file_array);
+	g_strfreev(output_file_array);
+	input_file_array = NULL;
+	output_file_array = NULL;
 
 	return ret;
 }
