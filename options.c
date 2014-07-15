@@ -47,52 +47,93 @@ gchar *opt_frames = NULL;
 gchar *opt_continuous = NULL;
 gchar *opt_set = NULL;
 
+/* defines a callback function that generates
+   an error if an option occurs twice */
+#define CHECK_ONCE(option) \
+static gboolean check_ ## option                                          \
+	(const gchar *option_name, const gchar *value,                    \
+	gpointer data, GError **error)                                    \
+{                                                                         \
+	(void)data;                                                       \
+                                                                          \
+	static gboolean seen = FALSE;                                     \
+	if (seen) {                                                       \
+		g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_FAILED, \
+		            "superfluous option \"%s\"", option_name);    \
+		return FALSE;                                             \
+	}                                                                 \
+                                                                          \
+	option = g_strdup(value);                                         \
+	seen = TRUE;                                                      \
+	return TRUE;                                                      \
+}
+
+CHECK_ONCE(opt_drv)
+CHECK_ONCE(opt_config)
+CHECK_ONCE(opt_input_format)
+CHECK_ONCE(opt_output_format)
+CHECK_ONCE(opt_channels)
+CHECK_ONCE(opt_channel_group)
+CHECK_ONCE(opt_triggers)
+#ifdef HAVE_SRD
+CHECK_ONCE(opt_pds)
+CHECK_ONCE(opt_pd_stack)
+CHECK_ONCE(opt_pd_annotations)
+CHECK_ONCE(opt_pd_meta)
+CHECK_ONCE(opt_pd_binary)
+#endif
+CHECK_ONCE(opt_time)
+CHECK_ONCE(opt_samples)
+CHECK_ONCE(opt_frames)
+
+#undef CHECK_STR_ONCE
+
 static const GOptionEntry optargs[] = {
 	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
 			"Show version and support list", NULL},
 	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
 			"Set loglevel (5 is most verbose)", NULL},
-	{"driver", 'd', 0, G_OPTION_ARG_STRING, &opt_drv,
+	{"driver", 'd', 0, G_OPTION_ARG_CALLBACK, &check_opt_drv,
 			"The driver to use", NULL},
-	{"config", 'c', 0, G_OPTION_ARG_STRING, &opt_config,
+	{"config", 'c', 0, G_OPTION_ARG_CALLBACK, &check_opt_config,
 			"Specify device configuration options", NULL},
 	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file,
 			"Load input from file", NULL},
-	{"input-format", 'I', 0, G_OPTION_ARG_STRING, &opt_input_format,
+	{"input-format", 'I', 0, G_OPTION_ARG_CALLBACK, &check_opt_input_format,
 			"Input format", NULL},
 	{"output-file", 'o', 0, G_OPTION_ARG_FILENAME, &opt_output_file,
 			"Save output to file", NULL},
-	{"output-format", 'O', 0, G_OPTION_ARG_STRING, &opt_output_format,
+	{"output-format", 'O', 0, G_OPTION_ARG_CALLBACK, &check_opt_output_format,
 			"Output format", NULL},
-	{"channels", 'C', 0, G_OPTION_ARG_STRING, &opt_channels,
+	{"channels", 'C', 0, G_OPTION_ARG_CALLBACK, &check_opt_channels,
 			"Channels to use", NULL},
-	{"channel-group", 'g', 0, G_OPTION_ARG_STRING, &opt_channel_group,
+	{"channel-group", 'g', 0, G_OPTION_ARG_CALLBACK, &check_opt_channel_group,
 			"Channel groups", NULL},
-	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers,
+	{"triggers", 't', 0, G_OPTION_ARG_CALLBACK, &check_opt_triggers,
 			"Trigger configuration", NULL},
 	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger,
 			"Wait for trigger", NULL},
 #ifdef HAVE_SRD
-	{"protocol-decoders", 'P', 0, G_OPTION_ARG_STRING, &opt_pds,
+	{"protocol-decoders", 'P', 0, G_OPTION_ARG_CALLBACK, &check_opt_pds,
 			"Protocol decoders to run", NULL},
-	{"protocol-decoder-stack", 'S', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
+	{"protocol-decoder-stack", 'S', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_stack,
 			"Protocol decoder stack", NULL},
-	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotations,
+	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_annotations,
 			"Protocol decoder annotation(s) to show", NULL},
-	{"protocol-decoder-meta", 'M', 0, G_OPTION_ARG_STRING, &opt_pd_meta,
+	{"protocol-decoder-meta", 'M', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_meta,
 			"Protocol decoder meta output to show", NULL},
-	{"protocol-decoder-binary", 'B', 0, G_OPTION_ARG_STRING, &opt_pd_binary,
+	{"protocol-decoder-binary", 'B', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_binary,
 			"Protocol decoder binary output to show", NULL},
 #endif
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},
 	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
 			"Show device detail", NULL},
-	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
+	{"time", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_time,
 			"How long to sample (ms)", NULL},
-	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples,
+	{"samples", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_samples,
 			"Number of samples to acquire", NULL},
-	{"frames", 0, 0, G_OPTION_ARG_STRING, &opt_frames,
+	{"frames", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_frames,
 			"Number of frames to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
 			"Sample continuously", NULL},
