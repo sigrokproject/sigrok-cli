@@ -23,8 +23,6 @@
 #include <string.h>
 
 extern struct sr_context *sr_ctx;
-extern gchar *opt_drv;
-extern gchar *opt_channel_group;
 
 /* Convert driver options hash to GSList of struct sr_config. */
 static GSList *hash_to_hwopt(GHashTable *hash)

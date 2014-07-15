@@ -21,9 +21,6 @@
 #include <glib.h>
 #include <string.h>
 
-extern gint opt_loglevel;
-extern gchar *opt_pds;
-
 static gint sort_inputs(gconstpointer a, gconstpointer b)
 {
 	const struct sr_input_format *ia = a, *ib = b;

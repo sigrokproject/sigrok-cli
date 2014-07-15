@@ -28,16 +28,6 @@ static int default_output_format = FALSE;
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;
 
-extern gchar *opt_output_file;
-extern gchar *opt_output_format;
-extern gchar *opt_pds;
-extern gboolean opt_wait_trigger;
-extern gchar *opt_time;
-extern gchar *opt_samples;
-extern gchar *opt_frames;
-extern gchar *opt_continuous;
-extern gchar *opt_config;
-extern gchar *opt_triggers;
 #ifdef HAVE_SRD
 extern struct srd_session *srd_sess;
 #endif

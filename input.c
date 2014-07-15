@@ -25,11 +25,6 @@
 #include <string.h>
 #include <glib.h>
 
-extern gchar *opt_input_file;
-extern gchar *opt_input_format;
-extern gchar *opt_channels;
-
-
 /**
  * Return the input file format which the CLI tool should use.
  *

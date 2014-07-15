@@ -30,8 +30,6 @@ static GHashTable *pd_binary_visible = NULL;
 static GHashTable *pd_channel_maps = NULL;
 
 extern struct srd_session *srd_sess;
-extern gint opt_loglevel;
-
 
 static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 		GHashTable **options)
