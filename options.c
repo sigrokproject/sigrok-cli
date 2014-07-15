@@ -181,6 +181,11 @@ int parse_options(int argc, char **argv)
 		opt_output_file = g_strdup(output_file_array[0]);
 	}
 
+	if (1 != argc) {
+		g_critical("superfluous command line argument \"%s\"", argv[1]);
+		goto done;
+	}
+
 	ret = 0;
 
 done:
