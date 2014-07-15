@@ -30,7 +30,8 @@ sigrok_cli_SOURCES = \
 	decode.c \
 	sigrok-cli.h \
 	parsers.c \
-	anykey.c
+	anykey.c \
+	options.c
 
 dist_man_MANS = doc/sigrok-cli.1
 

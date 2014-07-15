@@ -26,87 +26,6 @@ struct sr_context *sr_ctx = NULL;
 struct srd_session *srd_sess = NULL;
 #endif
 
-static gboolean opt_version = FALSE;
-gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings by default. */
-static gboolean opt_scan_devs = FALSE;
-gboolean opt_wait_trigger = FALSE;
-gchar *opt_input_file = NULL;
-gchar *opt_output_file = NULL;
-gchar *opt_drv = NULL;
-gchar *opt_config = NULL;
-static gchar *opt_channels = NULL;
-gchar *opt_channel_group = NULL;
-gchar *opt_triggers = NULL;
-gchar *opt_pds = NULL;
-#ifdef HAVE_SRD
-static gchar *opt_pd_stack = NULL;
-static gchar *opt_pd_annotations = NULL;
-static gchar *opt_pd_meta = NULL;
-static gchar *opt_pd_binary = NULL;
-#endif
-gchar *opt_input_format = NULL;
-gchar *opt_output_format = NULL;
-static gchar *opt_show = NULL;
-gchar *opt_time = NULL;
-gchar *opt_samples = NULL;
-gchar *opt_frames = NULL;
-gchar *opt_continuous = NULL;
-static gchar *opt_set = NULL;
-
-static GOptionEntry optargs[] = {
-	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
-			"Show version and support list", NULL},
-	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
-			"Set loglevel (5 is most verbose)", NULL},
-	{"driver", 'd', 0, G_OPTION_ARG_STRING, &opt_drv,
-			"The driver to use", NULL},
-	{"config", 'c', 0, G_OPTION_ARG_STRING, &opt_config,
-			"Specify device configuration options", NULL},
-	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME, &opt_input_file,
-			"Load input from file", NULL},
-	{"input-format", 'I', 0, G_OPTION_ARG_STRING, &opt_input_format,
-			"Input format", NULL},
-	{"output-file", 'o', 0, G_OPTION_ARG_FILENAME, &opt_output_file,
-			"Save output to file", NULL},
-	{"output-format", 'O', 0, G_OPTION_ARG_STRING, &opt_output_format,
-			"Output format", NULL},
-	{"channels", 'C', 0, G_OPTION_ARG_STRING, &opt_channels,
-			"Channels to use", NULL},
-	{"channel-group", 'g', 0, G_OPTION_ARG_STRING, &opt_channel_group,
-			"Channel groups", NULL},
-	{"triggers", 't', 0, G_OPTION_ARG_STRING, &opt_triggers,
-			"Trigger configuration", NULL},
-	{"wait-trigger", 'w', 0, G_OPTION_ARG_NONE, &opt_wait_trigger,
-			"Wait for trigger", NULL},
-#ifdef HAVE_SRD
-	{"protocol-decoders", 'P', 0, G_OPTION_ARG_STRING, &opt_pds,
-			"Protocol decoders to run", NULL},
-	{"protocol-decoder-stack", 'S', 0, G_OPTION_ARG_STRING, &opt_pd_stack,
-			"Protocol decoder stack", NULL},
-	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_STRING, &opt_pd_annotations,
-			"Protocol decoder annotation(s) to show", NULL},
-	{"protocol-decoder-meta", 'M', 0, G_OPTION_ARG_STRING, &opt_pd_meta,
-			"Protocol decoder meta output to show", NULL},
-	{"protocol-decoder-binary", 'B', 0, G_OPTION_ARG_STRING, &opt_pd_binary,
-			"Protocol decoder binary output to show", NULL},
-#endif
-	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
-			"Scan for devices", NULL},
-	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
-			"Show device detail", NULL},
-	{"time", 0, 0, G_OPTION_ARG_STRING, &opt_time,
-			"How long to sample (ms)", NULL},
-	{"samples", 0, 0, G_OPTION_ARG_STRING, &opt_samples,
-			"Number of samples to acquire", NULL},
-	{"frames", 0, 0, G_OPTION_ARG_STRING, &opt_frames,
-			"Number of frames to acquire", NULL},
-	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
-			"Sample continuously", NULL},
-	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
-	{NULL, 0, 0, 0, NULL, NULL, NULL}
-};
-
-
 static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 		   const gchar *message, gpointer cb_data)
 {
@@ -187,21 +106,10 @@ static void set_options(void)
 
 int main(int argc, char **argv)
 {
-	GOptionContext *context;
-	GError *error;
-	int ret;
-	char *help;
-
 	g_log_set_default_handler(logger, NULL);
 
-	context = g_option_context_new(NULL);
-	g_option_context_add_main_entries(context, optargs, NULL);
-
-	ret = 1;
-	error = NULL;
-	if (!g_option_context_parse(context, &argc, &argv, &error)) {
-		g_critical("%s", error->message);
-		goto done;
+	if (parse_options(argc, argv)) {
+		return 1;
 	}
 
 	/* Set the loglevel (amount of messages to output) for libsigrok. */
@@ -268,24 +176,17 @@ int main(int argc, char **argv)
 		set_options();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)
 		run_session();
-	else {
-		help = g_option_context_get_help(context, TRUE, NULL);
-		printf("%s", help);
-		g_free(help);
-	}
+	else
+		show_help();
 
 #ifdef HAVE_SRD
 	if (opt_pds)
 		srd_exit();
 #endif
 
-	ret = 0;
-
 done:
 	if (sr_ctx)
 		sr_exit(sr_ctx);
 
-	g_option_context_free(context);
-
-	return ret;
+	return 0;
 }

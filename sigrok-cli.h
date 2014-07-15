@@ -78,4 +78,34 @@ int canon_cmp(const char *str1, const char *str2);
 void add_anykey(void);
 void clear_anykey(void);
 
+/* options.c */
+extern gboolean opt_version;
+extern gint opt_loglevel;
+extern gboolean opt_scan_devs;
+extern gboolean opt_wait_trigger;
+extern gchar *opt_input_file;
+extern gchar *opt_output_file;
+extern gchar *opt_drv;
+extern gchar *opt_config;
+extern gchar *opt_channels;
+extern gchar *opt_channel_group;
+extern gchar *opt_triggers;
+extern gchar *opt_pds;
+#ifdef HAVE_SRD
+extern gchar *opt_pd_stack;
+extern gchar *opt_pd_annotations;
+extern gchar *opt_pd_meta;
+extern gchar *opt_pd_binary;
+#endif
+extern gchar *opt_input_format;
+extern gchar *opt_output_format;
+extern gchar *opt_show;
+extern gchar *opt_time;
+extern gchar *opt_samples;
+extern gchar *opt_frames;
+extern gchar *opt_continuous;
+extern gchar *opt_set;
+int parse_options(int argc, char **argv);
+void show_help(void);
+
 #endif
