@@ -37,18 +37,19 @@ static struct termios term_orig;
 
 static int received_anykey(int fd, int revents, void *cb_data)
 {
+	struct sr_session *session;
 	(void)fd;
 	(void)revents;
-	(void)cb_data;
 
-	sr_session_source_remove(STDIN_FILENO);
-	sr_session_stop();
+	session = cb_data;
+	sr_session_source_remove(session, STDIN_FILENO);
+	sr_session_stop(session);
 
 	return TRUE;
 }
 
 /* Turn off buffering on stdin. */
-void add_anykey(void)
+void add_anykey(struct sr_session *session)
 {
 #ifdef _WIN32
 	stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
@@ -67,7 +68,8 @@ void add_anykey(void)
 	tcsetattr(STDIN_FILENO, TCSADRAIN, &term);
 #endif
 
-	sr_session_source_add(STDIN_FILENO, G_IO_IN, -1, received_anykey, NULL);
+	sr_session_source_add(session, STDIN_FILENO, G_IO_IN, -1,
+			received_anykey, session);
 
 	g_message("Press any key to stop acquisition.");
 }

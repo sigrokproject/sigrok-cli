@@ -177,10 +177,10 @@ int parse_trigger_match(char c)
 	return match;
 }
 
-int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s)
+int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
+		struct sr_trigger **trigger)
 {
 	struct sr_channel *ch;
-	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
 	GVariant *gvar;
 	GSList *l;
@@ -199,7 +199,7 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s)
 	}
 	matches = g_variant_get_fixed_array(gvar, &num_matches, sizeof(int32_t));
 
-	trigger = sr_trigger_new(NULL);
+	*trigger = sr_trigger_new(NULL);
 	error = FALSE;
 	tokens = g_strsplit(s, ",", -1);
 	for (i = 0; tokens[i]; i++) {
@@ -241,8 +241,8 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s)
 			}
 			/* Make sure this ends up in the right stage, creating
 			 * them as needed. */
-			while (!(stage = g_slist_nth_data(trigger->stages, t)))
-				sr_trigger_stage_add(trigger);
+			while (!(stage = g_slist_nth_data((*trigger)->stages, t)))
+				sr_trigger_stage_add(*trigger);
 			if (sr_trigger_match_add(stage, ch, match, 0) != SR_OK) {
 				error = TRUE;
 				break;
@@ -253,9 +253,7 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s)
 	g_variant_unref(gvar);
 
 	if (error)
-		sr_trigger_free(trigger);
-	else
-		error = sr_session_trigger_set(trigger) != SR_OK;
+		sr_trigger_free(*trigger);
 
 	return !error;
 }

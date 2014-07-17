@@ -49,7 +49,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 int opt_to_gvar(char *key, char *value, struct sr_config *src);
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args);
 void run_session(void);
-void save_chunk_logic(uint8_t *data, uint64_t data_len, int unitsize);
+void save_chunk_logic(struct sr_session *session, uint8_t *data,
+		uint64_t data_len, int unitsize);
 
 /* input.c */
 void load_input_file(void);
@@ -70,12 +71,13 @@ void map_pd_channels(struct sr_dev_inst *sdi);
 /* parsers.c */
 struct sr_channel *find_channel(GSList *channellist, const char *channelname);
 GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring);
-int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s);
+int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
+		struct sr_trigger **trigger);
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first);
 int canon_cmp(const char *str1, const char *str2);
 
 /* anykey.c */
-void add_anykey(void);
+void add_anykey(struct sr_session *session);
 void clear_anykey(void);
 
 /* options.c */

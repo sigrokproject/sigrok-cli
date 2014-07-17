@@ -121,6 +121,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog *analog;
+	struct sr_session *session;
 	struct sr_config *src;
 	struct sr_channel *ch;
 	static struct sr_output *o = NULL;
@@ -137,12 +138,11 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	int i;
 	char **channels;
 
-	(void) cb_data;
-
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
 		return;
 
+	session = cb_data;
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		g_debug("cli: Received SR_DF_HEADER.");
@@ -249,17 +249,17 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 						channels[i++] = ch->name;
 				}
 				channels[i] = NULL;
-				sr_session_save_init(opt_output_file, samplerate,
-						channels);
+				sr_session_save_init(session, opt_output_file,
+						samplerate, channels);
 				g_free(channels);
 			}
-			save_chunk_logic(logic->data, input_len, logic->unitsize);
+			save_chunk_logic(session, logic->data, input_len, logic->unitsize);
 		} else {
 			if (opt_pds) {
 #ifdef HAVE_SRD
 				if (srd_session_send(srd_sess, rcvd_samples_logic, end_sample,
 						logic->data, input_len) != SRD_OK)
-					sr_session_stop();
+					sr_session_stop(session);
 #endif
 			}
 		}
@@ -313,7 +313,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 		if (opt_output_file && default_output_format)
 			/* Flush whatever is left out to the session file. */
-			save_chunk_logic(NULL, 0, 0);
+			save_chunk_logic(session, NULL, 0, 0);
 
 		if (limit_samples) {
 			if (rcvd_samples_logic > 0 && rcvd_samples_logic < limit_samples)
@@ -445,6 +445,8 @@ void run_session(void)
 	GSList *devices;
 	GHashTable *devargs;
 	GVariant *gvar;
+	struct sr_session *session;
+	struct sr_trigger *trigger;
 	struct sr_dev_inst *sdi;
 	uint64_t min_samples, max_samples;
 
@@ -459,17 +461,17 @@ void run_session(void)
 	}
 	sdi = devices->data;
 
-	sr_session_new();
-	sr_session_datafeed_callback_add(datafeed_in, NULL);
+	sr_session_new(&session);
+	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
 
 	if (sr_dev_open(sdi) != SR_OK) {
 		g_critical("Failed to open device.");
 		return;
 	}
 
-	if (sr_session_dev_add(sdi) != SR_OK) {
+	if (sr_session_dev_add(session, sdi) != SR_OK) {
 		g_critical("Failed to add device to session.");
-		sr_session_destroy();
+		sr_session_destroy(session);
 		return;
 	}
 
@@ -483,13 +485,17 @@ void run_session(void)
 
 	if (select_channels(sdi) != SR_OK) {
 		g_critical("Failed to set channels.");
-		sr_session_destroy();
+		sr_session_destroy(session);
 		return;
 	}
 
 	if (opt_triggers) {
-		if (!parse_triggerstring(sdi, opt_triggers)) {
-			sr_session_destroy();
+		if (!parse_triggerstring(sdi, opt_triggers, &trigger)) {
+			sr_session_destroy(session);
+			return;
+		}
+		if (sr_session_trigger_set(session, trigger) != SR_OK) {
+			sr_session_destroy(session);
 			return;
 		}
 	}
@@ -497,14 +503,14 @@ void run_session(void)
 	if (opt_continuous) {
 		if (!sr_dev_has_option(sdi, SR_CONF_CONTINUOUS)) {
 			g_critical("This device does not support continuous sampling.");
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
 	}
 
 	if (opt_time) {
 		if (set_limit_time(sdi) != SR_OK) {
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
 	}
@@ -512,7 +518,7 @@ void run_session(void)
 	if (opt_samples) {
 		if ((sr_parse_sizestring(opt_samples, &limit_samples) != SR_OK)) {
 			g_critical("Invalid sample limit '%s'.", opt_samples);
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
 		if (sr_config_list(sdi->driver, sdi, NULL,
@@ -533,7 +539,7 @@ void run_session(void)
 		gvar = g_variant_new_uint64(limit_samples);
 		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
 			g_critical("Failed to configure sample limit.");
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
 	}
@@ -541,38 +547,39 @@ void run_session(void)
 	if (opt_frames) {
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)) {
 			g_critical("Invalid sample limit '%s'.", opt_samples);
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
 		gvar = g_variant_new_uint64(limit_frames);
 		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_FRAMES, gvar) != SR_OK) {
 			g_critical("Failed to configure frame limit.");
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
 	}
 
-	if (sr_session_start() != SR_OK) {
+	if (sr_session_start(session) != SR_OK) {
 		g_critical("Failed to start session.");
-		sr_session_destroy();
+		sr_session_destroy(session);
 		return;
 	}
 
 	if (opt_continuous)
-		add_anykey();
+		add_anykey(session);
 
-	sr_session_run();
+	sr_session_run(session);
 
 	if (opt_continuous)
 		clear_anykey();
 
-	sr_session_datafeed_callback_remove_all();
-	sr_session_destroy();
+	sr_session_datafeed_callback_remove_all(session);
+	sr_session_destroy(session);
 	g_slist_free(devices);
 
 }
 
-void save_chunk_logic(uint8_t *data, uint64_t data_len, int unitsize)
+void save_chunk_logic(struct sr_session *session, uint8_t *data,
+		uint64_t data_len, int unitsize)
 {
 	static uint8_t *buf = NULL;
 	static int buf_len = 0;
@@ -585,13 +592,13 @@ void save_chunk_logic(uint8_t *data, uint64_t data_len, int unitsize)
 	if (buf_len + data_len > SAVE_CHUNK_SIZE) {
 		max = (SAVE_CHUNK_SIZE - buf_len) / unitsize * unitsize;
 		memcpy(buf + buf_len, data, max);
-		sr_session_append(opt_output_file, buf, unitsize,
+		sr_session_append(session, opt_output_file, buf, unitsize,
 				(buf_len + max) / unitsize);
 		memcpy(buf, data + max, data_len - max);
 		buf_len = data_len - max;
 	} else if (data_len == 0 && last_unitsize != 0) {
 		/* End of data, flush the buffer out. */
-		sr_session_append(opt_output_file, buf, last_unitsize,
+		sr_session_append(session, opt_output_file, buf, last_unitsize,
 				buf_len / last_unitsize);
 	} else {
 		/* Buffer chunk. */

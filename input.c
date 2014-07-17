@@ -88,6 +88,7 @@ static void load_input_file_format(void)
 {
 	GHashTable *fmtargs = NULL;
 	struct stat st;
+	struct sr_session *session;
 	struct sr_input *in;
 	struct sr_input_format *input_format;
 	char *fmtspec = NULL;
@@ -129,17 +130,17 @@ static void load_input_file_format(void)
 	if (select_channels(in->sdi) != SR_OK)
 		return;
 
-	sr_session_new();
-	sr_session_datafeed_callback_add(datafeed_in, NULL);
-	if (sr_session_dev_add(in->sdi) != SR_OK) {
+	sr_session_new(&session);
+	sr_session_datafeed_callback_add(session, &datafeed_in, NULL);
+	if (sr_session_dev_add(session, in->sdi) != SR_OK) {
 		g_critical("Failed to use device.");
-		sr_session_destroy();
+		sr_session_destroy(session);
 		return;
 	}
 
 	input_format->loadfile(in, opt_input_file);
 
-	sr_session_destroy();
+	sr_session_destroy(session);
 
 	if (fmtargs)
 		g_hash_table_destroy(fmtargs);
@@ -147,27 +148,28 @@ static void load_input_file_format(void)
 
 void load_input_file(void)
 {
-	GSList *sessions;
+	GSList *devices;
+	struct sr_session *session;
 	struct sr_dev_inst *sdi;
 	int ret;
 
-	if (sr_session_load(opt_input_file) == SR_OK) {
+	if (sr_session_load(opt_input_file, &session) == SR_OK) {
 		/* sigrok session file */
-		ret = sr_session_dev_list(&sessions);
-		if (ret != SR_OK || !sessions->data) {
+		ret = sr_session_dev_list(session, &devices);
+		if (ret != SR_OK || !devices->data) {
 			g_critical("Failed to access session device.");
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
-		sdi = sessions->data;
+		sdi = devices->data;
 		if (select_channels(sdi) != SR_OK) {
-			sr_session_destroy();
+			sr_session_destroy(session);
 			return;
 		}
-		sr_session_datafeed_callback_add(datafeed_in, NULL);
-		sr_session_start();
-		sr_session_run();
-		sr_session_stop();
+		sr_session_datafeed_callback_add(session, datafeed_in, NULL);
+		sr_session_start(session);
+		sr_session_run(session);
+		sr_session_stop(session);
 	}
 	else {
 		/* fall back on input modules */
