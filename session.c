@@ -589,6 +589,12 @@ void save_chunk_logic(struct sr_session *session, uint8_t *data,
 	if (!buf)
 		buf = g_malloc(SAVE_CHUNK_SIZE);
 
+	while (data_len > SAVE_CHUNK_SIZE) {
+		save_chunk_logic(session, data, SAVE_CHUNK_SIZE, unitsize);
+		data += SAVE_CHUNK_SIZE;
+		data_len -= SAVE_CHUNK_SIZE;
+	}
+
 	if (buf_len + data_len > SAVE_CHUNK_SIZE) {
 		max = (SAVE_CHUNK_SIZE - buf_len) / unitsize * unitsize;
 		memcpy(buf + buf_len, data, max);
