@@ -23,7 +23,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-static struct sr_output_format *output_format = NULL;
 static int default_output_format = FALSE;
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;
@@ -72,12 +71,28 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+struct sr_output_format *find_output_module(char *name)
+{
+	struct sr_output_format **outputs, *omod;
+	int i;
+
+	omod = NULL;
+	outputs = sr_output_list();
+	for (i = 0; outputs[i]; i++) {
+		if (!strcmp(outputs[i]->id, name)) {
+			omod = outputs[i];
+			break;
+		}
+	}
+
+	return omod;
+}
+
 struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 {
+	struct sr_output_format *omod;
 	GHashTable *fmtargs;
 	struct sr_output *o;
-	struct sr_output_format **outputs;
-	int i;
 	char *fmtspec;
 
 	if (opt_output_format && !strcmp(opt_output_format, "sigrok")) {
@@ -99,17 +114,10 @@ struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
 		g_critical("Invalid output format.");
-	outputs = sr_output_list();
-	for (i = 0; outputs[i]; i++) {
-		if (strcmp(outputs[i]->id, fmtspec))
-			continue;
-		g_hash_table_remove(fmtargs, "sigrok_key");
-		output_format = outputs[i];
-		break;
-	}
-	if (!output_format)
-		g_critical("Invalid output format '%s'.", opt_output_format);
-	o = sr_output_new(output_format, fmtargs, sdi);
+	if (!(omod = find_output_module(fmtspec)))
+		g_critical("Unknown output format '%s'.", fmtspec);
+	g_hash_table_remove(fmtargs, "sigrok_key");
+	o = sr_output_new(omod, fmtargs, sdi);
 	g_hash_table_destroy(fmtargs);
 
 	return o;
@@ -125,6 +133,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	struct sr_config *src;
 	struct sr_channel *ch;
 	static struct sr_output *o = NULL;
+	static struct sr_output *oa = NULL;
 	static uint64_t rcvd_samples_logic = 0;
 	static uint64_t rcvd_samples_analog = 0;
 	static uint64_t samplerate = 0;
@@ -147,6 +156,9 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	case SR_DF_HEADER:
 		g_debug("cli: Received SR_DF_HEADER.");
 		o = setup_output_format(sdi);
+
+		/* Set up backup analog output module. */
+		oa = sr_output_new(find_output_module("analog"), NULL, sdi);
 
 		/* Prepare non-stdout output. */
 		outfile = stdout;
@@ -292,10 +304,19 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	}
 
 	if (o && outfile && !opt_pds) {
-		if (sr_output_send(o, packet, &out) == SR_OK && out) {
-			fwrite(out->str, 1, out->len, outfile);
-			fflush(outfile);
-			g_string_free(out, TRUE);
+		if (sr_output_send(o, packet, &out) == SR_OK) {
+			if (!out || (out->len == 0 && default_output_format
+					&& packet->type == SR_DF_ANALOG)) {
+				/* The user didn't specify an output module,
+				 * but needs to see this analog data. */
+				sr_output_send(oa, packet, &out);
+			}
+			if (out && out->len > 0) {
+				fwrite(out->str, 1, out->len, outfile);
+				fflush(outfile);
+			}
+			if (out)
+				g_string_free(out, TRUE);
 		}
 	}
 
@@ -307,6 +328,9 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		if (o)
 			sr_output_free(o);
 		o = NULL;
+
+		sr_output_free(oa);
+		oa = NULL;
 
 		if (outfile && outfile != stdout)
 			fclose(outfile);
