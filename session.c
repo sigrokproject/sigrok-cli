@@ -481,9 +481,11 @@ void run_session(void)
 	}
 	if (g_slist_length(devices) > 1) {
 		g_critical("sigrok-cli only supports one device for capturing.");
+		g_slist_free(devices);
 		return;
 	}
 	sdi = devices->data;
+	g_slist_free(devices);
 
 	sr_session_new(&session);
 	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
@@ -598,7 +600,6 @@ void run_session(void)
 
 	sr_session_datafeed_callback_remove_all(session);
 	sr_session_destroy(session);
-	g_slist_free(devices);
 
 }
 

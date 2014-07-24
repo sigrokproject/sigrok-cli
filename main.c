@@ -90,6 +90,7 @@ static void set_options(void)
 		return;
 	}
 	sdi = devices->data;
+	g_slist_free(devices);
 
 	if (sr_dev_open(sdi) != SR_OK) {
 		g_critical("Failed to open device.");
@@ -99,7 +100,6 @@ static void set_options(void)
 	set_dev_options(sdi, devargs);
 
 	sr_dev_close(sdi);
-	g_slist_free(devices);
 	g_hash_table_destroy(devargs);
 
 }

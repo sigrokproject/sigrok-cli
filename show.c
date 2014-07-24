@@ -224,6 +224,7 @@ void show_dev_detail(void)
 	}
 
 	sdi = devices->data;
+	g_slist_free(devices);
 	print_dev_line(sdi);
 
 	if (sr_dev_open(sdi) != SR_OK) {
@@ -543,7 +544,6 @@ void show_dev_detail(void)
 	g_variant_unref(gvar_opts);
 
 	sr_dev_close(sdi);
-	g_slist_free(devices);
 
 }
 
