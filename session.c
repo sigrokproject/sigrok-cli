@@ -71,28 +71,38 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-struct sr_output_format *find_output_module(char *name)
+GHashTable *generic_arg_to_opt(const struct sr_option *opts, GHashTable *genargs)
 {
-	struct sr_output_format **outputs, *omod;
-	int i;
+	GHashTable *hash;
+	GVariant *gvar;
+	const struct sr_option *opt;
+	char *s;
 
-	omod = NULL;
-	outputs = sr_output_list();
-	for (i = 0; outputs[i]; i++) {
-		if (!strcmp(outputs[i]->id, name)) {
-			omod = outputs[i];
-			break;
-		}
+	hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+	for (opt = opts; opt->id && opt->def; opt++) {
+		if (!(s = g_hash_table_lookup(genargs, opt->id)))
+			continue;
+		if (g_variant_is_of_type(opt->def, G_VARIANT_TYPE_UINT32)) {
+			gvar = g_variant_new_uint32(strtoul(s, NULL, 10));
+			g_hash_table_insert(hash, g_strdup(opt->id),
+					g_variant_ref_sink(gvar));
+			printf("opt %s value %s\n", opt->id, s);
+		} else {
+			g_critical("Don't know how to convert option '%s' to %s!",
+					opt->id, g_variant_get_type_string(opt->def));
+		 }
 	}
 
-	return omod;
+	return hash;
 }
 
-struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
+const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 {
-	struct sr_output_format *omod;
-	GHashTable *fmtargs;
-	struct sr_output *o;
+	const struct sr_output_module *omod;
+	const struct sr_option *opts;
+	const struct sr_output *o;
+	GHashTable *fmtargs, *fmtopts;
 	char *fmtspec;
 
 	if (opt_output_format && !strcmp(opt_output_format, "sigrok")) {
@@ -114,10 +124,17 @@ struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
 		g_critical("Invalid output format.");
-	if (!(omod = find_output_module(fmtspec)))
+	if (!(omod = sr_output_find(fmtspec)))
 		g_critical("Unknown output format '%s'.", fmtspec);
 	g_hash_table_remove(fmtargs, "sigrok_key");
-	o = sr_output_new(omod, fmtargs, sdi);
+	if ((opts = sr_output_options_get(omod))) {
+		fmtopts = generic_arg_to_opt(opts, fmtargs);
+		sr_output_options_free(omod);
+	} else
+		fmtopts = NULL;
+	o = sr_output_new(omod, fmtopts, sdi);
+	if (fmtopts)
+		g_hash_table_destroy(fmtopts);
 	g_hash_table_destroy(fmtargs);
 
 	return o;
@@ -132,8 +149,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	struct sr_session *session;
 	struct sr_config *src;
 	struct sr_channel *ch;
-	static struct sr_output *o = NULL;
-	static struct sr_output *oa = NULL;
+	static const struct sr_output *o = NULL;
+	static const struct sr_output *oa = NULL;
 	static uint64_t rcvd_samples_logic = 0;
 	static uint64_t rcvd_samples_analog = 0;
 	static uint64_t samplerate = 0;
@@ -158,7 +175,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		o = setup_output_format(sdi);
 
 		/* Set up backup analog output module. */
-		oa = sr_output_new(find_output_module("analog"), NULL, sdi);
+		oa = sr_output_new(sr_output_find("analog"), NULL, sdi);
 
 		/* Prepare non-stdout output. */
 		outfile = stdout;

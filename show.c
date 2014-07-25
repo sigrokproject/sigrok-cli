@@ -30,9 +30,8 @@ static gint sort_inputs(gconstpointer a, gconstpointer b)
 
 static gint sort_outputs(gconstpointer a, gconstpointer b)
 {
-	const struct sr_output_format *oa = a, *ob = b;
-
-	return strcmp(oa->id, ob->id);
+	return strcmp(sr_output_id_get((struct sr_output_module *)a),
+			sr_output_id_get((struct sr_output_module *)b));
 }
 
 static gint sort_drivers(gconstpointer a, gconstpointer b)
@@ -55,7 +54,7 @@ void show_version(void)
 {
 	struct sr_dev_driver **drivers, *driver;
 	struct sr_input_format **inputs, *input;
-	struct sr_output_format **outputs, *output;
+	const struct sr_output_module **outputs, *output;
 	const GSList *l;
 	GSList *sl;
 	int i;
@@ -99,11 +98,12 @@ void show_version(void)
 	printf("Supported output formats:\n");
 	outputs = sr_output_list();
 	for (sl = NULL, i = 0; outputs[i]; i++)
-		sl = g_slist_append(sl, outputs[i]);
+		sl = g_slist_append(sl, (gpointer)outputs[i]);
 	sl = g_slist_sort(sl, sort_outputs);
 	for (l = sl; l; l = l->next) {
 		output = l->data;
-		printf("  %-20s %s\n", output->id, output->description);
+		printf("  %-20s %s\n", sr_output_id_get(output),
+				sr_output_description_get(output));
 	}
 	printf("\n");
 	g_slist_free(sl);
@@ -637,4 +637,42 @@ void show_pd_detail(void)
 	g_strfreev(pdtokens);
 }
 #endif
+
+void show_output(void)
+{
+	const struct sr_output_module *omod;
+	const struct sr_option *opt;
+	GSList *l;
+	char *s;
+
+	if (!(omod = sr_output_find(opt_output_format)))
+		g_critical("Output module '%s' not found.", opt_output_format);
+
+	printf("ID: %s\nName: %s\n", sr_output_id_get(omod),
+			sr_output_name_get(omod));
+	printf("Description: %s\n", sr_output_description_get(omod));
+	if ((opt = sr_output_options_get(omod))) {
+		printf("Options:\n");
+		while (opt->id) {
+			printf("  %s: %s", opt->id, opt->desc);
+			if (opt->def) {
+				s = g_variant_print(opt->def, FALSE);
+				printf(" (default %s", s);
+				g_free(s);
+				if (opt->values) {
+					printf(", possible values ");
+					for (l = opt->values; l; l = l->next) {
+						s = g_variant_print((GVariant *)l->data, FALSE);
+						printf("%s%s", s, l->next ? ", " : "");
+						g_free(s);
+					}
+				}
+				printf(")");
+			}
+			printf("\n");
+			opt++;
+		}
+		sr_output_options_free(omod);
+	}
+}
 

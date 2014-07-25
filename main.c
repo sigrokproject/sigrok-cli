@@ -162,6 +162,8 @@ int main(int argc, char **argv)
 
 	if (opt_version)
 		show_version();
+	else if (opt_output_format && opt_show)
+		show_output();
 	else if (opt_scan_devs)
 		show_dev_list();
 #ifdef HAVE_SRD

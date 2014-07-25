@@ -379,10 +379,12 @@ need a serial port specified:
  $
 .B "sigrok\-cli \-\-driver ols:conn=/dev/ttyACM0 \-\-show
 .sp
-To view the documentation for a protocol decoder:
+This also works for protocol decoders and output modules:
 .sp
  $
-.B "sigrok\-cli \-\-protocol-decoders i2c \-\-show
+.B "sigrok\-cli \-\-protocol\-decoders i2c \-\-show
+ $
+.B "sigrok\-cli \-\-output\-format bits \-\-show
 .TP
 .B "\-\-scan"
 Scan for devices that can be detected automatically.
