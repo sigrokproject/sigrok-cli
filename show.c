@@ -550,12 +550,13 @@ void show_dev_detail(void)
 #ifdef HAVE_SRD
 void show_pd_detail(void)
 {
-	GSList *l, *ll, *ol;
 	struct srd_decoder *dec;
 	struct srd_decoder_option *o;
-	char **pdtokens, **pdtok, *optsep, **ann, *val, *doc;
 	struct srd_channel *pdch;
 	struct srd_decoder_annotation_row *r;
+	GSList *l, *ll, *ol;
+	int idx;
+	char **pdtokens, **pdtok, *optsep, **ann, *val, *doc;
 
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
@@ -583,8 +584,13 @@ void show_pd_detail(void)
 			for (l = dec->annotation_rows; l; l = l->next) {
 				r = l->data;
 				printf("- %s (%s): ", r->id, r->desc);
-				for (ll = r->ann_classes; ll; ll = ll->next)
-					printf("%d ", GPOINTER_TO_INT(ll->data));
+				for (ll = r->ann_classes; ll; ll = ll->next) {
+					idx = GPOINTER_TO_INT(ll->data);
+					ann = g_slist_nth_data(dec->annotations, idx);
+					printf("%s", ann[0]);
+					if (ll->next)
+						printf(", ");
+				}
 				printf("\n");
 			}
 		} else {
