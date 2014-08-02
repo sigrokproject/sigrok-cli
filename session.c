@@ -87,9 +87,12 @@ GHashTable *generic_arg_to_opt(const struct sr_option *opts, GHashTable *genargs
 			gvar = g_variant_new_uint32(strtoul(s, NULL, 10));
 			g_hash_table_insert(hash, g_strdup(opt->id),
 					g_variant_ref_sink(gvar));
+		} else if (g_variant_is_of_type(opt->def, G_VARIANT_TYPE_DOUBLE)) {
+			gvar = g_variant_new_double(strtod(s, NULL));
+			g_hash_table_insert(hash, g_strdup(opt->id),
+					g_variant_ref_sink(gvar));
 		} else {
-			g_critical("Don't know how to convert option '%s' to %s!",
-					opt->id, g_variant_get_type_string(opt->def));
+			g_critical("Don't know GVariant type for option '%s'!", opt->id);
 		 }
 	}
 
