@@ -174,7 +174,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		g_debug("cli: Received SR_DF_HEADER.");
-		o = setup_output_format(sdi);
+		if (!(o = setup_output_format(sdi)))
+			g_critical("Failed to initialize output module.");
 
 		/* Set up backup analog output module. */
 		oa = sr_output_new(sr_output_find("analog"), NULL, sdi);

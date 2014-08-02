@@ -649,9 +649,10 @@ void show_output(void)
 	const struct sr_output_module *omod;
 	const struct sr_option *opt;
 	GSList *l;
-	char *s;
+	char *s, **tok;
 
-	if (!(omod = sr_output_find(opt_output_format)))
+	tok = g_strsplit(opt_output_format, ":", 0);
+	if (!tok[0] || !(omod = sr_output_find(tok[0])))
 		g_critical("Output module '%s' not found.", opt_output_format);
 
 	printf("ID: %s\nName: %s\n", sr_output_id_get(omod),
@@ -680,5 +681,6 @@ void show_output(void)
 		}
 		sr_output_options_free(omod);
 	}
+	g_strfreev(tok);
 }
 
