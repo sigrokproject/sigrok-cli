@@ -38,6 +38,7 @@ void show_version(void);
 void show_dev_list(void);
 void show_dev_detail(void);
 void show_pd_detail(void);
+void show_input(void);
 void show_output(void);
 
 /* device.c */

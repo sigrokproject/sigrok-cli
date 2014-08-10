@@ -23,9 +23,8 @@
 
 static gint sort_inputs(gconstpointer a, gconstpointer b)
 {
-	const struct sr_input_format *ia = a, *ib = b;
-
-	return strcmp(ia->id, ib->id);
+	return strcmp(sr_input_id_get((struct sr_input_module *)a),
+			sr_input_id_get((struct sr_input_module *)b));
 }
 
 static gint sort_outputs(gconstpointer a, gconstpointer b)
@@ -53,7 +52,7 @@ static gint sort_pds(gconstpointer a, gconstpointer b)
 void show_version(void)
 {
 	struct sr_dev_driver **drivers, *driver;
-	struct sr_input_format **inputs, *input;
+	const struct sr_input_module **inputs, *input;
 	const struct sr_output_module **outputs, *output;
 	const GSList *l;
 	GSList *sl;
@@ -86,11 +85,12 @@ void show_version(void)
 	printf("Supported input formats:\n");
 	inputs = sr_input_list();
 	for (sl = NULL, i = 0; inputs[i]; i++)
-		sl = g_slist_append(sl, inputs[i]);
+		sl = g_slist_append(sl, (gpointer)inputs[i]);
 	sl = g_slist_sort(sl, sort_inputs);
 	for (l = sl; l; l = l->next) {
 		input = l->data;
-		printf("  %-20s %s\n", input->id, input->description);
+		printf("  %-20s %s\n", sr_input_id_get(input),
+				sr_input_description_get(input));
 	}
 	printf("\n");
 	g_slist_free(sl);
@@ -643,6 +643,46 @@ void show_pd_detail(void)
 	g_strfreev(pdtokens);
 }
 #endif
+
+void show_input(void)
+{
+	const struct sr_input_module *imod;
+	const struct sr_option **opts;
+	GSList *l;
+	int i;
+	char *s, **tok;
+
+	tok = g_strsplit(opt_input_format, ":", 0);
+	if (!tok[0] || !(imod = sr_input_find(tok[0])))
+		g_critical("Input module '%s' not found.", opt_input_format);
+
+	printf("ID: %s\nName: %s\n", sr_input_id_get(imod),
+			sr_input_name_get(imod));
+	printf("Description: %s\n", sr_input_description_get(imod));
+	if ((opts = sr_input_options_get(imod))) {
+		printf("Options:\n");
+		for (i = 0; opts[i]; i++) {
+			printf("  %s: %s", opts[i]->id, opts[i]->desc);
+			if (opts[i]->def) {
+				s = g_variant_print(opts[i]->def, FALSE);
+				printf(" (default %s", s);
+				g_free(s);
+				if (opts[i]->values) {
+					printf(", possible values ");
+					for (l = opts[i]->values; l; l = l->next) {
+						s = g_variant_print((GVariant *)l->data, FALSE);
+						printf("%s%s", s, l->next ? ", " : "");
+						g_free(s);
+					}
+				}
+				printf(")");
+			}
+			printf("\n");
+		}
+		sr_input_options_free(opts);
+	}
+	g_strfreev(tok);
+}
 
 void show_output(void)
 {

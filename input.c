@@ -19,139 +19,113 @@
 
 #include "sigrok-cli.h"
 #include "config.h"
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
 
-/**
- * Return the input file format which the CLI tool should use.
- *
- * If the user specified -I / --input-format, use that one. Otherwise, try to
- * autodetect the format as good as possible. Failing that, return NULL.
- *
- * @param filename The filename of the input file. Must not be NULL.
- * @param opt The -I / --input-file option the user specified (or NULL).
- *
- * @return A pointer to the 'struct sr_input_format' that should be used,
- *         or NULL if no input format was selected or auto-detected.
- */
-static struct sr_input_format *determine_input_file_format(
-			const char *filename, const char *opt)
+#define BUFSIZE 16384
+
+static void load_input_file_module(void)
 {
-	int i;
-	struct sr_input_format **inputs;
-
-	/* If there are no input formats, return NULL right away. */
-	inputs = sr_input_list();
-	if (!inputs) {
-		g_critical("No supported input formats available.");
-		return NULL;
-	}
-
-	/* If the user specified -I / --input-format, use that one. */
-	if (opt) {
-		for (i = 0; inputs[i]; i++) {
-			if (strcasecmp(inputs[i]->id, opt))
-				continue;
-			g_debug("Using user-specified input file format '%s'.",
-					inputs[i]->id);
-			return inputs[i];
-		}
-
-		/* The user specified an unknown input format, return NULL. */
-		g_critical("Error: specified input file format '%s' is "
-			"unknown.", opt);
-		return NULL;
-	}
-
-	/* Otherwise, try to find an input module that can handle this file. */
-	for (i = 0; inputs[i]; i++) {
-		if (inputs[i]->format_match(filename))
-			break;
-	}
-
-	/* Return NULL if no input module wanted to touch this. */
-	if (!inputs[i]) {
-		g_critical("Error: no matching input module found.");
-		return NULL;
-	}
-
-	g_debug("cli: Autodetected '%s' input format for file '%s'.",
-		inputs[i]->id, filename);
-
-	return inputs[i];
-}
-
-static void load_input_file_format(void)
-{
-	GHashTable *fmtargs = NULL;
-	struct stat st;
 	struct sr_session *session;
-	struct sr_input *in;
-	struct sr_input_format *input_format;
-	char *fmtspec = NULL;
+	const struct sr_input *in;
+	const struct sr_input_module *imod;
+	const struct sr_option **options;
+	struct sr_dev_inst *sdi;
+	GHashTable *mod_args, *mod_opts;
+	GString *buf;
+	int fd;
+	ssize_t len;
+	char *mod_id;
 
+	if (!sr_input_list())
+		g_critical("No supported input formats available.");
+
+	mod_id = NULL;
+	mod_args = NULL;
 	if (opt_input_format) {
-		fmtargs = parse_generic_arg(opt_input_format, TRUE);
-		fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
+		mod_args = parse_generic_arg(opt_input_format, TRUE);
+		mod_id = g_hash_table_lookup(mod_args, "sigrok_key");
 	}
 
-	if (!(input_format = determine_input_file_format(opt_input_file,
-						   fmtspec))) {
-		/* The exact cause was already logged. */
-		return;
+	buf = g_string_sized_new(BUFSIZE);
+	if (mod_id) {
+		/* User specified an input module to use. */
+		if (!(imod = sr_input_find(mod_id)))
+			g_critical("Error: unknown input module '%s'.", mod_id);
+		g_hash_table_remove(mod_args, "sigrok_key");
+		if ((options = sr_input_options_get(imod))) {
+			mod_opts = generic_arg_to_opt(options, mod_args);
+			sr_output_options_free(options);
+		} else
+			mod_opts = NULL;
+		if (!(in = sr_input_new(imod, mod_opts)))
+			g_critical("Error: failed to initialize input module.");
+		if (mod_opts)
+			g_hash_table_destroy(mod_opts);
+		if (mod_args)
+			g_hash_table_destroy(mod_args);
+		if ((fd = open(opt_input_file, O_RDONLY)) == -1)
+			g_critical("Failed to load %s: %s.", opt_input_file,
+					strerror(errno));
+	} else {
+		/* Let the input modules try to identify the file. */
+		if ((fd = open(opt_input_file, O_RDONLY)) == -1)
+			g_critical("Failed to load %s: %s.", opt_input_file,
+					strerror(errno));
+		if ((len = read(fd, buf->str, BUFSIZE)) < 1)
+			g_critical("Failed to read %s: %s.", opt_input_file,
+					strerror(errno));
+		buf->len = len;
+		if (!(in = sr_input_scan_buffer(buf)))
+			g_critical("Error: no input module found for this file.");
 	}
+	sdi = sr_input_dev_inst_get(in);
 
-	if (fmtargs)
-		g_hash_table_remove(fmtargs, "sigrok_key");
-
-	if (stat(opt_input_file, &st) == -1) {
-		g_critical("Failed to load %s: %s", opt_input_file,
-			strerror(errno));
-		exit(1);
-	}
-
-	/* Initialize the input module. */
-	if (!(in = g_try_malloc(sizeof(struct sr_input)))) {
-		g_critical("Failed to allocate input module.");
-		exit(1);
-	}
-	in->format = input_format;
-	in->param = fmtargs;
-	if (in->format->init) {
-		if (in->format->init(in, opt_input_file) != SR_OK) {
-			g_critical("Input format init failed.");
-			exit(1);
-		}
-	}
-
-	if (select_channels(in->sdi) != SR_OK)
+	if (select_channels(sdi) != SR_OK)
 		return;
 
 	sr_session_new(&session);
 	sr_session_datafeed_callback_add(session, &datafeed_in, NULL);
-	if (sr_session_dev_add(session, in->sdi) != SR_OK) {
+	if (sr_session_dev_add(session, sdi) != SR_OK) {
 		g_critical("Failed to use device.");
 		sr_session_destroy(session);
 		return;
 	}
 
-	input_format->loadfile(in, opt_input_file);
+	while(TRUE) {
+		g_string_truncate(buf, 0);
+		len = read(fd, buf->str, BUFSIZE);
+		if (len < 0)
+			g_critical("Read failed: %s", strerror(errno));
+		buf->len = len;
+		if (sr_input_send(in, buf) != SR_OK)
+			break;
+		if (len < BUFSIZE)
+			break;
+	}
+	sr_input_free(in);
+	g_string_free(buf, TRUE);
 
 	sr_session_destroy(session);
 
-	if (fmtargs)
-		g_hash_table_destroy(fmtargs);
 }
 
 void load_input_file(void)
 {
-	GSList *devices;
 	struct sr_session *session;
 	struct sr_dev_inst *sdi;
+	GSList *devices;
+	struct stat st;
 	int ret;
+
+	if (stat(opt_input_file, &st) == -1)
+		g_critical("Failed to load %s: %s.", opt_input_file, strerror(errno));
 
 	if (sr_session_load(opt_input_file, &session) == SR_OK) {
 		/* sigrok session file */
@@ -173,6 +147,6 @@ void load_input_file(void)
 	}
 	else {
 		/* fall back on input modules */
-		load_input_file_format();
+		load_input_file_module();
 	}
 }
