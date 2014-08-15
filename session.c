@@ -71,7 +71,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-GHashTable *generic_arg_to_opt(const struct sr_option *opts, GHashTable *genargs)
+GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genargs)
 {
 	GHashTable *hash;
 	GVariant *gvar;
@@ -80,7 +80,7 @@ GHashTable *generic_arg_to_opt(const struct sr_option *opts, GHashTable *genargs
 
 	hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
 			(GDestroyNotify)g_variant_unref);
-	for (opt = opts; opt->id && opt->def; opt++) {
+	for (opt = opts[0]; opt; opt++) {
 		if (!(s = g_hash_table_lookup(genargs, opt->id)))
 			continue;
 		if (g_variant_is_of_type(opt->def, G_VARIANT_TYPE_UINT32)) {
@@ -102,7 +102,7 @@ GHashTable *generic_arg_to_opt(const struct sr_option *opts, GHashTable *genargs
 const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 {
 	const struct sr_output_module *omod;
-	const struct sr_option *opts;
+	const struct sr_option **opts;
 	const struct sr_output *o;
 	GHashTable *fmtargs, *fmtopts;
 	char *fmtspec;
@@ -131,7 +131,7 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	g_hash_table_remove(fmtargs, "sigrok_key");
 	if ((opts = sr_output_options_get(omod))) {
 		fmtopts = generic_arg_to_opt(opts, fmtargs);
-		sr_output_options_free(omod);
+		sr_output_options_free(opts);
 	} else
 		fmtopts = NULL;
 	o = sr_output_new(omod, fmtopts, sdi);

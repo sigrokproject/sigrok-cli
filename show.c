@@ -647,7 +647,7 @@ void show_pd_detail(void)
 void show_output(void)
 {
 	const struct sr_output_module *omod;
-	const struct sr_option *opt;
+	const struct sr_option *opt, **opts;
 	GSList *l;
 	char *s, **tok;
 
@@ -658,9 +658,9 @@ void show_output(void)
 	printf("ID: %s\nName: %s\n", sr_output_id_get(omod),
 			sr_output_name_get(omod));
 	printf("Description: %s\n", sr_output_description_get(omod));
-	if ((opt = sr_output_options_get(omod))) {
+	if ((opts = sr_output_options_get(omod))) {
 		printf("Options:\n");
-		while (opt->id) {
+		for (opt = opts[0]; opt; opt++) {
 			printf("  %s: %s", opt->id, opt->desc);
 			if (opt->def) {
 				s = g_variant_print(opt->def, FALSE);
@@ -679,7 +679,7 @@ void show_output(void)
 			printf("\n");
 			opt++;
 		}
-		sr_output_options_free(omod);
+		sr_output_options_free(opts);
 	}
 	g_strfreev(tok);
 }
