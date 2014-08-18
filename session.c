@@ -102,7 +102,7 @@ GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genarg
 const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 {
 	const struct sr_output_module *omod;
-	const struct sr_option **opts;
+	const struct sr_option **options;
 	const struct sr_output *o;
 	GHashTable *fmtargs, *fmtopts;
 	char *fmtspec;
@@ -127,11 +127,11 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	if (!fmtspec)
 		g_critical("Invalid output format.");
 	if (!(omod = sr_output_find(fmtspec)))
-		g_critical("Unknown output format '%s'.", fmtspec);
+		g_critical("Unknown output module '%s'.", fmtspec);
 	g_hash_table_remove(fmtargs, "sigrok_key");
-	if ((opts = sr_output_options_get(omod))) {
-		fmtopts = generic_arg_to_opt(opts, fmtargs);
-		sr_output_options_free(opts);
+	if ((options = sr_output_options_get(omod))) {
+		fmtopts = generic_arg_to_opt(options, fmtargs);
+		sr_output_options_free(options);
 	} else
 		fmtopts = NULL;
 	o = sr_output_new(omod, fmtopts, sdi);

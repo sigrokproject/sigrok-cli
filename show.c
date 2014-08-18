@@ -647,8 +647,9 @@ void show_pd_detail(void)
 void show_output(void)
 {
 	const struct sr_output_module *omod;
-	const struct sr_option *opt, **opts;
+	const struct sr_option **opts;
 	GSList *l;
+	int i;
 	char *s, **tok;
 
 	tok = g_strsplit(opt_output_format, ":", 0);
@@ -660,15 +661,15 @@ void show_output(void)
 	printf("Description: %s\n", sr_output_description_get(omod));
 	if ((opts = sr_output_options_get(omod))) {
 		printf("Options:\n");
-		for (opt = opts[0]; opt; opt++) {
-			printf("  %s: %s", opt->id, opt->desc);
-			if (opt->def) {
-				s = g_variant_print(opt->def, FALSE);
+		for (i = 0; opts[i]; i++) {
+			printf("  %s: %s", opts[i]->id, opts[i]->desc);
+			if (opts[i]->def) {
+				s = g_variant_print(opts[i]->def, FALSE);
 				printf(" (default %s", s);
 				g_free(s);
-				if (opt->values) {
+				if (opts[i]->values) {
 					printf(", possible values ");
-					for (l = opt->values; l; l = l->next) {
+					for (l = opts[i]->values; l; l = l->next) {
 						s = g_variant_print((GVariant *)l->data, FALSE);
 						printf("%s%s", s, l->next ? ", " : "");
 						g_free(s);
@@ -677,7 +678,6 @@ void show_output(void)
 				printf(")");
 			}
 			printf("\n");
-			opt++;
 		}
 		sr_output_options_free(opts);
 	}
