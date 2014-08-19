@@ -74,15 +74,34 @@ static void load_input_file_module(void)
 			g_critical("Failed to load %s: %s.", opt_input_file,
 					strerror(errno));
 	} else {
-		/* Let the input modules try to identify the file. */
-		if ((fd = open(opt_input_file, O_RDONLY)) == -1)
-			g_critical("Failed to load %s: %s.", opt_input_file,
-					strerror(errno));
-		if ((len = read(fd, buf->str, BUFSIZE)) < 1)
-			g_critical("Failed to read %s: %s.", opt_input_file,
-					strerror(errno));
-		buf->len = len;
-		if (!(in = sr_input_scan_buffer(buf)))
+		if (strcmp(opt_input_file, "-")) {
+			/*
+			 * An actual filename: let the input modules try to
+			 * identify the file.
+			 */
+			in = sr_input_scan_file(opt_input_file);
+			/* That worked, reopen the file for reading. */
+			fd = open(opt_input_file, O_RDONLY);
+		} else {
+			/*
+			 * Taking input from a pipe: let the input modules try
+			 * to identify the stream content.
+			 */
+			if (!strcmp(opt_input_file, "-")) {
+				/* stdin */
+				fd = 0;
+			} else {
+				if ((fd = open(opt_input_file, O_RDONLY)) == -1)
+					g_critical("Failed to load %s: %s.", opt_input_file,
+							strerror(errno));
+			}
+			if ((len = read(fd, buf->str, BUFSIZE)) < 1)
+				g_critical("Failed to read %s: %s.", opt_input_file,
+						strerror(errno));
+			buf->len = len;
+			in = sr_input_scan_buffer(buf);
+		}
+		if (!in)
 			g_critical("Error: no input module found for this file.");
 	}
 	sdi = sr_input_dev_inst_get(in);
@@ -121,13 +140,9 @@ void load_input_file(void)
 	struct sr_session *session;
 	struct sr_dev_inst *sdi;
 	GSList *devices;
-	struct stat st;
 	int ret;
 
-	if (stat(opt_input_file, &st) == -1)
-		g_critical("Failed to load %s: %s.", opt_input_file, strerror(errno));
-
-	if (sr_session_load(opt_input_file, &session) == SR_OK) {
+	if (!strcmp(opt_input_file, "-") || sr_session_load(opt_input_file, &session) == SR_OK) {
 		/* sigrok session file */
 		ret = sr_session_dev_list(session, &devices);
 		if (ret != SR_OK || !devices->data) {
