@@ -288,6 +288,42 @@ GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 	return hash;
 }
 
+GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genargs)
+{
+	GHashTable *hash;
+	GVariant *gvar;
+	int i;
+	char *s;
+
+	hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+	for (i = 0; opts[i]; i++) {
+		if (!(s = g_hash_table_lookup(genargs, opts[i]->id)))
+			continue;
+		if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_UINT32)) {
+			gvar = g_variant_new_uint32(strtoul(s, NULL, 10));
+			g_hash_table_insert(hash, g_strdup(opts[i]->id),
+					g_variant_ref_sink(gvar));
+		} else if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_INT32)) {
+			gvar = g_variant_new_int32(strtoul(s, NULL, 10));
+			g_hash_table_insert(hash, g_strdup(opts[i]->id),
+					g_variant_ref_sink(gvar));
+		} else if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_DOUBLE)) {
+			gvar = g_variant_new_double(strtod(s, NULL));
+			g_hash_table_insert(hash, g_strdup(opts[i]->id),
+					g_variant_ref_sink(gvar));
+		} else if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_STRING)) {
+			gvar = g_variant_new_string(s);
+			g_hash_table_insert(hash, g_strdup(opts[i]->id),
+					g_variant_ref_sink(gvar));
+		} else {
+			g_critical("Don't know GVariant type for option '%s'!", opts[i]->id);
+		 }
+	}
+
+	return hash;
+}
+
 static char *strcanon(const char *str)
 {
 	int p0, p1;

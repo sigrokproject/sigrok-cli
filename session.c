@@ -71,34 +71,6 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genargs)
-{
-	GHashTable *hash;
-	GVariant *gvar;
-	const struct sr_option *opt;
-	char *s;
-
-	hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
-			(GDestroyNotify)g_variant_unref);
-	for (opt = opts[0]; opt; opt++) {
-		if (!(s = g_hash_table_lookup(genargs, opt->id)))
-			continue;
-		if (g_variant_is_of_type(opt->def, G_VARIANT_TYPE_UINT32)) {
-			gvar = g_variant_new_uint32(strtoul(s, NULL, 10));
-			g_hash_table_insert(hash, g_strdup(opt->id),
-					g_variant_ref_sink(gvar));
-		} else if (g_variant_is_of_type(opt->def, G_VARIANT_TYPE_DOUBLE)) {
-			gvar = g_variant_new_double(strtod(s, NULL));
-			g_hash_table_insert(hash, g_strdup(opt->id),
-					g_variant_ref_sink(gvar));
-		} else {
-			g_critical("Don't know GVariant type for option '%s'!", opt->id);
-		 }
-	}
-
-	return hash;
-}
-
 const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 {
 	const struct sr_output_module *omod;
