@@ -458,26 +458,61 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 
 void run_session(void)
 {
-	GSList *devices;
+	GSList *devices, *real_devices, *sd;
 	GHashTable *devargs;
 	GVariant *gvar;
 	struct sr_session *session;
 	struct sr_trigger *trigger;
 	struct sr_dev_inst *sdi;
 	uint64_t min_samples, max_samples;
+	gsize n_elements, i;
+	const uint32_t *dev_opts;
+	int is_demo_dev;
 
 	devices = device_scan();
 	if (!devices) {
 		g_critical("No devices found.");
 		return;
 	}
-	if (g_slist_length(devices) > 1) {
-		g_critical("sigrok-cli only supports one device for capturing.");
-		g_slist_free(devices);
-		return;
+
+	real_devices = NULL;
+	for (sd = devices; sd; sd = sd->next) {
+		sdi = sd->data;
+
+		if (sr_config_list(sdi->driver, sdi, NULL, SR_CONF_DEVICE_OPTIONS, &gvar) != SR_OK) {
+			g_critical("Failed to query sr_config_list(SR_CONF_DEVICE_OPTIONS).");
+			return;
+		}
+
+		dev_opts = g_variant_get_fixed_array(gvar, &n_elements, sizeof(uint32_t));
+
+		is_demo_dev = 0;
+		for (i = 0; i < n_elements; i++) {
+			if (dev_opts[i] == SR_CONF_DEMO_DEV)
+				is_demo_dev = 1;
+		}
+
+		g_variant_unref(gvar);
+
+		if (!is_demo_dev)
+			real_devices = g_slist_append(real_devices, sdi);
 	}
+
+	if (g_slist_length(devices) > 1) {
+		if (g_slist_length(real_devices) != 1) {
+			g_critical("sigrok-cli only supports one device for capturing.");
+			return;
+		} else {
+			/* We only have one non-demo device. */
+			g_slist_free(devices);
+			devices = real_devices;
+			real_devices = NULL;
+		}
+	}
+
 	sdi = devices->data;
 	g_slist_free(devices);
+	g_slist_free(real_devices);
 
 	sr_session_new(&session);
 	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
