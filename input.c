@@ -142,7 +142,7 @@ void load_input_file(void)
 	GSList *devices;
 	int ret;
 
-	if (!strcmp(opt_input_file, "-") || sr_session_load(opt_input_file, &session) == SR_OK) {
+	if (strcmp(opt_input_file, "-") || sr_session_load(opt_input_file, &session) == SR_OK) {
 		/* sigrok session file */
 		ret = sr_session_dev_list(session, &devices);
 		if (ret != SR_OK || !devices->data) {
