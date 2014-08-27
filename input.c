@@ -79,9 +79,10 @@ static void load_input_file_module(void)
 			 * An actual filename: let the input modules try to
 			 * identify the file.
 			 */
-			in = sr_input_scan_file(opt_input_file);
-			/* That worked, reopen the file for reading. */
-			fd = open(opt_input_file, O_RDONLY);
+			if (sr_input_scan_file(opt_input_file, &in) == SR_OK) {
+				/* That worked, reopen the file for reading. */
+				fd = open(opt_input_file, O_RDONLY);
+			}
 		} else {
 			/*
 			 * Taking input from a pipe: let the input modules try
@@ -99,7 +100,7 @@ static void load_input_file_module(void)
 				g_critical("Failed to read %s: %s.", opt_input_file,
 						strerror(errno));
 			buf->len = len;
-			in = sr_input_scan_buffer(buf);
+			sr_input_scan_buffer(buf, &in);
 		}
 		if (!in)
 			g_critical("Error: no input module found for this file.");
