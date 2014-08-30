@@ -308,6 +308,10 @@ GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genarg
 			gvar = g_variant_new_int32(strtoul(s, NULL, 10));
 			g_hash_table_insert(hash, g_strdup(opts[i]->id),
 					g_variant_ref_sink(gvar));
+		} else if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_UINT64)) {
+			gvar = g_variant_new_uint64(strtoul(s, NULL, 10));
+			g_hash_table_insert(hash, g_strdup(opts[i]->id),
+					g_variant_ref_sink(gvar));
 		} else if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_DOUBLE)) {
 			gvar = g_variant_new_double(strtod(s, NULL));
 			g_hash_table_insert(hash, g_strdup(opts[i]->id),
