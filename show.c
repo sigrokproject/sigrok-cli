@@ -446,6 +446,10 @@ void show_dev_detail(void)
 
 			if (sr_config_list(sdi->driver, sdi, channel_group, srci->key,
 					&gvar) != SR_OK) {
+				if (tmp_str) {
+					/* Can't list it, but we have a value to show. */
+					printf("%s (current)", tmp_str);
+				}
 				printf("\n");
 				continue;
 			}
@@ -471,7 +475,7 @@ void show_dev_detail(void)
 				continue;
 			}
 
-			if (sr_config_get(sdi->driver, sdi, NULL, srci->key, &gvar) == SR_OK) {
+			if (sr_config_get(sdi->driver, sdi, channel_group, srci->key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(tt)", &cur_low, &cur_high);
 				g_variant_unref(gvar);
 			} else {
@@ -495,7 +499,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_BOOL) {
 			printf("    %s: ", srci->id);
-			if (sr_config_get(sdi->driver, sdi, NULL, srci->key,
+			if (sr_config_get(sdi->driver, sdi, channel_group, srci->key,
 					&gvar) == SR_OK) {
 				if (g_variant_get_boolean(gvar))
 					printf("on (current), off\n");
@@ -513,7 +517,7 @@ void show_dev_detail(void)
 				continue;
 			}
 
-			if (sr_config_get(sdi->driver, sdi, NULL, srci->key, &gvar) == SR_OK) {
+			if (sr_config_get(sdi->driver, sdi, channel_group, srci->key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(dd)", &dcur_low, &dcur_high);
 				g_variant_unref(gvar);
 			} else {
@@ -534,6 +538,15 @@ void show_dev_detail(void)
 			}
 			printf("\n");
 			g_variant_unref(gvar_list);
+
+		} else if (srci->datatype == SR_T_FLOAT) {
+			printf("    %s: ", srci->id);
+			if (sr_config_get(sdi->driver, sdi, channel_group, srci->key,
+					&gvar) == SR_OK) {
+				printf("%f\n", g_variant_get_double(gvar));
+				g_variant_unref(gvar);
+			} else
+				printf("on, off\n");
 
 		} else {
 
