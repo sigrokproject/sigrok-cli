@@ -133,6 +133,7 @@ struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 			return cg;
 		}
 	}
+	g_critical("Invalid channel group '%s'", opt_channel_group);
 
 	return NULL;
 }
