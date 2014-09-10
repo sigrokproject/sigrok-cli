@@ -71,6 +71,42 @@ int select_channels(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static void get_option(void)
+{
+	struct sr_dev_inst *sdi;
+	struct sr_channel_group *cg;
+	const struct sr_config_info *ci;
+	GSList *devices;
+	GVariant *gvar;
+	int ret;
+	char *s;
+
+	if (!(devices = device_scan())) {
+		g_critical("No devices found.");
+		return;
+	}
+	sdi = devices->data;
+	g_slist_free(devices);
+
+	if (sr_dev_open(sdi) != SR_OK) {
+		g_critical("Failed to open device.");
+		return;
+	}
+
+	cg = select_channel_group(sdi);
+	if (!(ci = sr_config_info_name_get(opt_get)))
+		g_critical("Unknown option '%s'", opt_get);
+
+	if ((ret = sr_config_get(sdi->driver, sdi, cg, ci->key, &gvar)) != SR_OK)
+		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
+	s = g_variant_print(gvar, FALSE);
+	printf("%s\n", s);
+	g_free(s);
+
+	g_variant_unref(gvar);
+	sr_dev_close(sdi);
+}
+
 static void set_options(void)
 {
 	struct sr_dev_inst *sdi;
@@ -176,6 +212,8 @@ int main(int argc, char **argv)
 		show_dev_detail();
 	else if (opt_input_file)
 		load_input_file();
+	else if (opt_get)
+		get_option();
 	else if (opt_set)
 		set_options();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)

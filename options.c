@@ -45,6 +45,7 @@ gchar *opt_time = NULL;
 gchar *opt_samples = NULL;
 gchar *opt_frames = NULL;
 gchar *opt_continuous = NULL;
+gchar *opt_get = NULL;
 gchar *opt_set = NULL;
 
 /* defines a callback function that generates
@@ -85,6 +86,7 @@ CHECK_ONCE(opt_pd_binary)
 CHECK_ONCE(opt_time)
 CHECK_ONCE(opt_samples)
 CHECK_ONCE(opt_frames)
+CHECK_ONCE(opt_get)
 
 #undef CHECK_STR_ONCE
 
@@ -140,6 +142,7 @@ static const GOptionEntry optargs[] = {
 			"Number of frames to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
 			"Sample continuously", NULL},
+	{"get", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_get, "Get device option only", NULL},
 	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };

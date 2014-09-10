@@ -109,6 +109,7 @@ extern gchar *opt_time;
 extern gchar *opt_samples;
 extern gchar *opt_frames;
 extern gchar *opt_continuous;
+extern gchar *opt_get;
 extern gchar *opt_set;
 int parse_options(int argc, char **argv);
 void show_help(void);
