@@ -249,7 +249,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 				channels = g_malloc(sizeof(char *) * g_slist_length(sdi->channels));
 				for (i = 0, l = sdi->channels; l; l = l->next) {
 					ch = l->data;
-					if (ch->enabled && ch->type == SR_CHANNEL_LOGIC)
+					if (ch->type == SR_CHANNEL_LOGIC)
 						channels[i++] = ch->name;
 				}
 				channels[i] = NULL;
