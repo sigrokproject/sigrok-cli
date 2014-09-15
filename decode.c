@@ -465,7 +465,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	show = FALSE;
 	for (l = ann_list; l; l = l->next) {
 		if (GPOINTER_TO_INT(l->data) == -1
-				|| GPOINTER_TO_INT(l->data) == pda->ann_format) {
+				|| GPOINTER_TO_INT(l->data) == pda->ann_class) {
 			show = TRUE;
 			break;
 		}
@@ -484,7 +484,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		} else {
 			/* Protocol decoder id, annotation class,
 			 * all annotation strings. */
-			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_format);
+			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
 			printf(" %s: %s:", pdata->pdo->proto_id, ann_descr[0]);
 			for (i = 0; pda->ann_text[i]; i++)
 				printf(" \"%s\"", pda->ann_text[i]);
