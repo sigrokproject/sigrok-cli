@@ -39,7 +39,7 @@ static void load_input_file_module(void)
 	struct sr_dev_inst *sdi;
 	GHashTable *mod_args, *mod_opts;
 	GString *buf;
-	int fd;
+	int fd = 0;
 	ssize_t len;
 	char *mod_id;
 
