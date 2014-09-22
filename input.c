@@ -39,7 +39,8 @@ static void load_input_file_module(void)
 	struct sr_dev_inst *sdi;
 	GHashTable *mod_args, *mod_opts;
 	GString *buf;
-	int fd = 0;
+	gboolean got_sdi;
+	int fd;
 	ssize_t len;
 	char *mod_id;
 
@@ -53,6 +54,7 @@ static void load_input_file_module(void)
 		mod_id = g_hash_table_lookup(mod_args, "sigrok_key");
 	}
 
+	fd = 0;
 	buf = g_string_sized_new(BUFSIZE);
 	if (mod_id) {
 		/* User specified an input module to use. */
@@ -105,29 +107,35 @@ static void load_input_file_module(void)
 		if (!in)
 			g_critical("Error: no input module found for this file.");
 	}
-	sdi = sr_input_dev_inst_get(in);
-
-	if (select_channels(sdi) != SR_OK)
-		return;
-
 	sr_session_new(&session);
 	sr_session_datafeed_callback_add(session, &datafeed_in, NULL);
-	if (sr_session_dev_add(session, sdi) != SR_OK) {
-		g_critical("Failed to use device.");
-		sr_session_destroy(session);
-		return;
-	}
 
+	got_sdi = FALSE;
 	while(TRUE) {
 		g_string_truncate(buf, 0);
 		len = read(fd, buf->str, BUFSIZE);
 		if (len < 0)
 			g_critical("Read failed: %s", strerror(errno));
+		if (len == 0)
+			/* End of file or stream. */
+			break;
 		buf->len = len;
 		if (sr_input_send(in, buf) != SR_OK)
 			break;
-		if (len < BUFSIZE)
-			break;
+
+		sdi = sr_input_dev_inst_get(in);
+		if(!got_sdi && sdi) {
+			/* First time we got a valid sdi. */
+			if (select_channels(sdi) != SR_OK)
+				return;
+			if (sr_session_dev_add(session, sdi) != SR_OK) {
+				g_critical("Failed to use device.");
+				sr_session_destroy(session);
+				return;
+			}
+			got_sdi = TRUE;
+		}
+
 	}
 	sr_input_free(in);
 	g_string_free(buf, TRUE);
