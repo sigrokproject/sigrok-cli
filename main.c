@@ -78,6 +78,7 @@ static void get_option(void)
 	const struct sr_config_info *ci;
 	GSList *devices;
 	GVariant *gvar;
+	GHashTable *devargs;
 	int ret;
 	char *s;
 
@@ -97,6 +98,10 @@ static void get_option(void)
 	if (!(ci = sr_config_info_name_get(opt_get)))
 		g_critical("Unknown option '%s'", opt_get);
 
+	if ((devargs = parse_generic_arg(opt_config, FALSE)))
+		set_dev_options(sdi, devargs);
+	else devargs = NULL;
+
 	if ((ret = sr_config_get(sdi->driver, sdi, cg, ci->key, &gvar)) != SR_OK)
 		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
 	s = g_variant_print(gvar, FALSE);
@@ -105,6 +110,8 @@ static void get_option(void)
 
 	g_variant_unref(gvar);
 	sr_dev_close(sdi);
+	if (devargs)
+		g_hash_table_destroy(devargs);
 }
 
 static void set_options(void)
