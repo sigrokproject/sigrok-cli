@@ -137,6 +137,7 @@ static void load_input_file_module(void)
 		}
 
 	}
+	sr_input_end(in);
 	sr_input_free(in);
 	g_string_free(buf, TRUE);
 
