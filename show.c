@@ -207,8 +207,8 @@ void show_dev_detail(void)
 	uint64_t cur_low, cur_high;
 	const uint32_t *opts;
 	const int32_t *int32;
-	uint32_t key;
-	unsigned int num_devices, o, i;
+	uint32_t key, o;
+	unsigned int num_devices, i;
 	char *tmp_str, *s, c;
 	const char **stropts;
 
@@ -278,7 +278,7 @@ void show_dev_detail(void)
 			printf(" on channel group %s", channel_group->name);
 	}
 	printf(":\n");
-	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(int32_t));
+	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
 	for (o = 0; o < num_opts; o++) {
 		key = opts[o] & SR_CONF_MASK;
 		if (!(srci = sr_config_info_get(key)))
