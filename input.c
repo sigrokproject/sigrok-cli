@@ -152,25 +152,33 @@ void load_input_file(void)
 	GSList *devices;
 	int ret;
 
-	if (strcmp(opt_input_file, "-") && sr_session_load(opt_input_file, &session) == SR_OK) {
-		/* sigrok session file */
-		ret = sr_session_dev_list(session, &devices);
-		if (ret != SR_OK || !devices->data) {
-			g_critical("Failed to access session device.");
-			sr_session_destroy(session);
-			return;
-		}
-		sdi = devices->data;
-		if (select_channels(sdi) != SR_OK) {
-			sr_session_destroy(session);
-			return;
-		}
-		sr_session_datafeed_callback_add(session, datafeed_in, NULL);
-		sr_session_start(session);
-		sr_session_run(session);
-		sr_session_stop(session);
-	} else {
-		/* fall back on input modules */
+	if (!strcmp(opt_input_file, "-")) {
+		/* Input from stdin is never a session file. */
 		load_input_file_module();
+	} else {
+		if ((ret = sr_session_load(opt_input_file, &session)) == SR_OK) {
+			/* sigrok session file */
+			ret = sr_session_dev_list(session, &devices);
+			if (ret != SR_OK || !devices || !devices->data) {
+				g_critical("Failed to access session device.");
+				sr_session_destroy(session);
+				return;
+			}
+			sdi = devices->data;
+			if (select_channels(sdi) != SR_OK) {
+				sr_session_destroy(session);
+				return;
+			}
+			sr_session_datafeed_callback_add(session, datafeed_in, NULL);
+			sr_session_start(session);
+			sr_session_run(session);
+			sr_session_stop(session);
+		} else if (ret != SR_ERR) {
+			/* It's a session file, but it didn't work out somehow. */
+			g_critical("Failed to load session file.");
+		} else {
+			/* Fall back on input modules. */
+			load_input_file_module();
+		}
 	}
 }
