@@ -294,6 +294,7 @@ GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genarg
 	GVariant *gvar;
 	int i;
 	char *s;
+	gboolean b;
 
 	hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
 			(GDestroyNotify)g_variant_unref);
@@ -318,6 +319,17 @@ GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genarg
 					g_variant_ref_sink(gvar));
 		} else if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_STRING)) {
 			gvar = g_variant_new_string(s);
+			g_hash_table_insert(hash, g_strdup(opts[i]->id),
+					g_variant_ref_sink(gvar));
+		} else if (g_variant_is_of_type(opts[i]->def, G_VARIANT_TYPE_BOOLEAN)) {
+			b = TRUE;
+			if (0 == strcmp(s, "false") || 0 == strcmp(s, "no")) {
+				b = FALSE;
+			} else if (!(0 == strcmp(s, "true") || 0 == strcmp(s, "yes"))) {
+				g_critical("Unable to convert '%s' to boolean!", s);
+			}
+
+			gvar = g_variant_new_boolean(b);
 			g_hash_table_insert(hash, g_strdup(opts[i]->id),
 					g_variant_ref_sink(gvar));
 		} else {
