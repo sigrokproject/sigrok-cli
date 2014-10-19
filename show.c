@@ -453,6 +453,7 @@ void show_dev_detail(void)
 					printf("%s (current)", tmp_str);
 				}
 				printf("\n");
+				g_free(tmp_str);
 				continue;
 			}
 
