@@ -204,7 +204,7 @@ void show_dev_detail(void)
 	gsize num_opts, num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
 	const uint64_t *uint64, p, q, low, high;
-	uint64_t cur_low, cur_high;
+	uint64_t tmp_uint64, cur_low, cur_high, cur_p, cur_q;
 	const uint32_t *opts;
 	const int32_t *int32;
 	uint32_t key, o;
@@ -384,56 +384,32 @@ void show_dev_detail(void)
 			}
 			g_variant_unref(gvar_dict);
 
-		} else if (key == SR_CONF_BUFFERSIZE) {
-			/* Supported buffer sizes */
+		} else if (srci->datatype == SR_T_UINT64) {
 			printf("    %s", srci->id);
+			gvar = NULL;
+			if (sr_config_get(sdi->driver, sdi, channel_group, key,
+					&gvar) == SR_OK) {
+				tmp_uint64 = g_variant_get_uint64(gvar);
+				g_variant_unref(gvar);
+			} else
+				tmp_uint64 = 0;
 			if (sr_config_list(sdi->driver, sdi, channel_group,
 					SR_CONF_BUFFERSIZE, &gvar_list) != SR_OK) {
+				if (gvar) {
+					/* Can't list it, but we have a value to show. */
+					printf("%"PRIu64" (current)", tmp_uint64);
+				}
 				printf("\n");
 				continue;
 			}
 			uint64 = g_variant_get_fixed_array(gvar_list,
 					&num_elements, sizeof(uint64_t));
-			printf(" - supported buffer sizes:\n");
-			for (i = 0; i < num_elements; i++)
-				printf("      %"PRIu64"\n", uint64[i]);
-			g_variant_unref(gvar_list);
-
-		} else if (key == SR_CONF_TIMEBASE) {
-			/* Supported time bases */
-			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, channel_group,
-					SR_CONF_TIMEBASE, &gvar_list) != SR_OK) {
-				printf("\n");
-				continue;
-			}
-			printf(" - supported time bases:\n");
-			num_elements = g_variant_n_children(gvar_list);
+			printf(" - supported values:\n");
 			for (i = 0; i < num_elements; i++) {
-				gvar = g_variant_get_child_value(gvar_list, i);
-				g_variant_get(gvar, "(tt)", &p, &q);
-				s = sr_period_string(p * q);
-				printf("      %s\n", s);
-				g_free(s);
-			}
-			g_variant_unref(gvar_list);
-
-		} else if (key == SR_CONF_VDIV) {
-			/* Supported volts/div values */
-			printf("    %s", srci->id);
-			if (sr_config_list(sdi->driver, sdi, channel_group,
-					SR_CONF_VDIV, &gvar_list) != SR_OK) {
+				printf("      %"PRIu64, uint64[i]);
+				if (gvar && tmp_uint64 == uint64[i])
+					printf(" (current)");
 				printf("\n");
-				continue;
-			}
-			printf(" - supported volts/div:\n");
-			num_elements = g_variant_n_children(gvar_list);
-			for (i = 0; i < num_elements; i++) {
-				gvar = g_variant_get_child_value(gvar_list, i);
-				g_variant_get(gvar, "(tt)", &p, &q);
-				s = sr_voltage_string(p, q);
-				printf("      %s\n", s);
-				g_free(s);
 			}
 			g_variant_unref(gvar_list);
 
@@ -549,7 +525,39 @@ void show_dev_detail(void)
 				printf("%f\n", g_variant_get_double(gvar));
 				g_variant_unref(gvar);
 			} else
-				printf("on, off\n");
+				printf("\n");
+
+		} else if (srci->datatype == SR_T_RATIONAL_PERIOD
+				|| srci->datatype == SR_T_RATIONAL_VOLT) {
+			printf("    %s", srci->id);
+			if (sr_config_get(sdi->driver, sdi, channel_group, key,
+					&gvar) == SR_OK) {
+				g_variant_get(gvar, "(tt)", &cur_p, &cur_q);
+				g_variant_unref(gvar);
+			} else
+				cur_p = cur_q = 0;
+
+			if (sr_config_list(sdi->driver, sdi, channel_group,
+					key, &gvar_list) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported values:\n");
+			num_elements = g_variant_n_children(gvar_list);
+			for (i = 0; i < num_elements; i++) {
+				gvar = g_variant_get_child_value(gvar_list, i);
+				g_variant_get(gvar, "(tt)", &p, &q);
+				if (srci->datatype == SR_T_RATIONAL_PERIOD)
+					s = sr_period_string(p * q);
+				else
+					s = sr_voltage_string(p, q);
+				printf("      %s", s);
+				g_free(s);
+				if (p == cur_p && q == cur_q)
+					printf(" (current)");
+				printf("\n");
+			}
+			g_variant_unref(gvar_list);
 
 		} else {
 
