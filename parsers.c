@@ -24,6 +24,8 @@
 #include <string.h>
 #include <glib.h>
 
+extern struct sr_context *sr_ctx;
+
 struct sr_channel *find_channel(GSList *channellist, const char *channelname)
 {
 	struct sr_channel *ch;
@@ -370,3 +372,73 @@ int canon_cmp(const char *str1, const char *str2)
 
 	return ret;
 }
+
+/* Convert driver options hash to GSList of struct sr_config. */
+static GSList *hash_to_hwopt(GHashTable *hash)
+{
+	struct sr_config *src;
+	GList *gl, *keys;
+	GSList *opts;
+	char *key;
+
+	keys = g_hash_table_get_keys(hash);
+	opts = NULL;
+	for (gl = keys; gl; gl = gl->next) {
+		key = gl->data;
+		src = g_malloc(sizeof(struct sr_config));
+		if (opt_to_gvar(key, g_hash_table_lookup(hash, key), src) != 0)
+			return NULL;
+		opts = g_slist_append(opts, src);
+	}
+	g_list_free(keys);
+
+	return opts;
+}
+
+int parse_driver(char *arg, struct sr_dev_driver **driver, GSList **drvopts)
+{
+	struct sr_dev_driver **drivers;
+	GHashTable *drvargs;
+	int i;
+	char *drvname;
+
+	drvargs = parse_generic_arg(arg, TRUE);
+
+	drvname = g_strdup(g_hash_table_lookup(drvargs, "sigrok_key"));
+	g_hash_table_remove(drvargs, "sigrok_key");
+	*driver = NULL;
+	drivers = sr_driver_list();
+	for (i = 0; drivers[i]; i++) {
+		if (strcmp(drivers[i]->name, drvname))
+			continue;
+		*driver = drivers[i];
+	}
+	if (!*driver) {
+		g_critical("Driver %s not found.", drvname);
+		g_hash_table_destroy(drvargs);
+		g_free(drvname);
+		return FALSE;
+	}
+	g_free(drvname);
+	if (sr_driver_init(sr_ctx, *driver) != SR_OK) {
+		g_critical("Failed to initialize driver.");
+		g_hash_table_destroy(drvargs);
+		return FALSE;
+	}
+
+	if (drvopts) {
+		*drvopts = NULL;
+		if (g_hash_table_size(drvargs) > 0) {
+			if (!(*drvopts = hash_to_hwopt(drvargs))) {
+				/* Unknown options, already logged. */
+				g_hash_table_destroy(drvargs);
+				return FALSE;
+			}
+		}
+	}
+
+	g_hash_table_destroy(drvargs);
+
+	return TRUE;
+}
+

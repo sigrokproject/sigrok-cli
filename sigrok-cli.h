@@ -78,6 +78,7 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 GHashTable *parse_generic_arg(const char *arg, gboolean sep_first);
 GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genargs);
 int canon_cmp(const char *str1, const char *str2);
+int parse_driver(char *arg, struct sr_dev_driver **driver, GSList **drvopts);
 
 /* anykey.c */
 void add_anykey(struct sr_session *session);

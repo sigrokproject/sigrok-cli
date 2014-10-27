@@ -193,8 +193,47 @@ void show_dev_list(void)
 
 }
 
+void show_drv_detail(struct sr_dev_driver *driver)
+{
+	const struct sr_config_info *srci;
+	GVariant *gvar_opts;
+	const uint32_t *opts;
+	gsize num_elements, i;
+
+	if ((sr_config_list(driver, NULL, NULL, SR_CONF_DEVICE_OPTIONS,
+			&gvar_opts) == SR_OK)) {
+		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
+				sizeof(uint32_t));
+		if (num_elements) {
+			printf("Driver functions:\n");
+			for (i = 0; i < num_elements; i++) {
+				if (!(srci = sr_config_info_get(opts[i] & SR_CONF_MASK)))
+					continue;
+				printf("    %s\n", srci->name);
+			}
+		}
+		g_variant_unref(gvar_opts);
+	}
+
+	if ((sr_config_list(driver, NULL, NULL, SR_CONF_SCAN_OPTIONS,
+			&gvar_opts) == SR_OK)) {
+		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
+				sizeof(uint32_t));
+		if (num_elements) {
+			printf("Scan options:\n");
+			for (i = 0; i < num_elements; i++) {
+				if (!(srci = sr_config_info_get(opts[i] & SR_CONF_MASK)))
+					continue;
+				printf("    %s\n", srci->id);
+			}
+		}
+		g_variant_unref(gvar_opts);
+	}
+}
+
 void show_dev_detail(void)
 {
+	struct sr_dev_driver *driver;
 	struct sr_dev_inst *sdi;
 	const struct sr_config_info *srci;
 	struct sr_channel *ch;
@@ -211,6 +250,11 @@ void show_dev_detail(void)
 	unsigned int num_devices, i;
 	char *tmp_str, *s, c;
 	const char **stropts;
+
+	if (parse_driver(opt_drv, &driver, NULL)) {
+		/* A driver was specified, report driver-wide options now. */
+		show_drv_detail(driver);
+	}
 
 	if (!(devices = device_scan())) {
 		g_critical("No devices found.");
@@ -231,19 +275,6 @@ void show_dev_detail(void)
 	if (sr_dev_open(sdi) != SR_OK) {
 		g_critical("Failed to open device.");
 		return;
-	}
-
-	if ((sr_config_list(sdi->driver, NULL, NULL, SR_CONF_SCAN_OPTIONS,
-			&gvar_opts) == SR_OK)) {
-		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
-				sizeof(int32_t));
-		printf("Supported driver options:\n");
-		for (i = 0; i < num_elements; i++) {
-			if (!(srci = sr_config_info_get(opts[i])))
-				continue;
-			printf("    %s\n", srci->id);
-		}
-		g_variant_unref(gvar_opts);
 	}
 
 	/* Selected channels and channel group may affect which options are
