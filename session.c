@@ -23,9 +23,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-static int default_output_format = FALSE;
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;
+static char *srzip_and_filename = NULL;
 
 #ifdef HAVE_SRD
 extern struct srd_session *srd_sess;
@@ -80,21 +80,18 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	const struct sr_option **options;
 	const struct sr_output *o;
 	GHashTable *fmtargs, *fmtopts;
+	int size;
 	char *fmtspec;
 
-	if (opt_output_format && !strcmp(opt_output_format, "sigrok")) {
-		/* Doesn't really exist as an output module - this is
-		 * the session save mode. */
-		g_free(opt_output_format);
-		opt_output_format = NULL;
-	}
-
 	if (!opt_output_format) {
-		opt_output_format = DEFAULT_OUTPUT_FORMAT;
-		/* we'll need to remember this so when saving to a file
-		 * later, sigrok session format will be used.
-		 */
-		default_output_format = TRUE;
+		if (opt_output_file) {
+			size = strlen(opt_output_file) + 32;
+			srzip_and_filename = g_malloc(size);
+			snprintf(srzip_and_filename, size, "srzip:filename=%s", opt_output_file);
+			opt_output_format = srzip_and_filename;
+		} else {
+			opt_output_format = DEFAULT_OUTPUT_FORMAT;
+		}
 	}
 
 	fmtargs = parse_generic_arg(opt_output_format, TRUE);
@@ -125,7 +122,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_analog *analog;
 	struct sr_session *session;
 	struct sr_config *src;
-	struct sr_channel *ch;
 	static const struct sr_output *o = NULL;
 	static const struct sr_output *oa = NULL;
 	static uint64_t rcvd_samples_logic = 0;
@@ -133,17 +129,14 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	static uint64_t samplerate = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
-	GSList *l, *channels_sdi;
+	GSList *l;
 	GString *out;
 	GVariant *gvar;
 	uint64_t end_sample;
 	uint64_t input_len;
-	int i;
-	char **channels;
 	struct sr_dev_driver *driver;
 
 	driver = sr_dev_inst_driver_get(sdi);
-	channels_sdi = sr_dev_inst_channels_get(sdi);
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -159,17 +152,11 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		/* Set up backup analog output module. */
 		oa = sr_output_new(sr_output_find("analog"), NULL, sdi);
 
-		/* Prepare non-stdout output. */
-		outfile = stdout;
-		if (opt_output_file) {
-			if (default_output_format) {
-				outfile = NULL;
-			} else {
-				/* saving to a file in whatever format was set
-				 * with --format, so all we need is a filehandle */
-				outfile = g_fopen(opt_output_file, "wb");
-			}
-		}
+		if (opt_output_file)
+			outfile = g_fopen(opt_output_file, "wb");
+		else
+			outfile = stdout;
+
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
 		if (sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE,
@@ -249,30 +236,12 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			end_sample = limit_samples;
 		input_len = (end_sample - rcvd_samples_logic) * logic->unitsize;
 
-		if (opt_output_file && default_output_format) {
-			/* Saving to a session file. */
-			if (rcvd_samples_logic == 0) {
-				/* First packet with logic data, init session file. */
-				channels = g_malloc(sizeof(char *) * g_slist_length(channels_sdi));
-				for (i = 0, l = channels_sdi; l; l = l->next) {
-					ch = l->data;
-					if (ch->type == SR_CHANNEL_LOGIC)
-						channels[i++] = ch->name;
-				}
-				channels[i] = NULL;
-				sr_session_save_init(session, opt_output_file,
-						samplerate, channels);
-				g_free(channels);
-			}
-			save_chunk_logic(session, logic->data, input_len, logic->unitsize);
-		} else {
-			if (opt_pds) {
+		if (opt_pds) {
 #ifdef HAVE_SRD
-				if (srd_session_send(srd_sess, rcvd_samples_logic, end_sample,
-						logic->data, input_len) != SRD_OK)
-					sr_session_stop(session);
+			if (srd_session_send(srd_sess, rcvd_samples_logic, end_sample,
+					logic->data, input_len) != SRD_OK)
+				sr_session_stop(session);
 #endif
-			}
 		}
 
 		rcvd_samples_logic = end_sample;
@@ -304,7 +273,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	if (o && outfile && !opt_pds) {
 		if (sr_output_send(o, packet, &out) == SR_OK) {
-			if (!out || (out->len == 0 && default_output_format
+			if (!out || (out->len == 0
+					&& !opt_output_format
 					&& packet->type == SR_DF_ANALOG)) {
 				/* The user didn't specify an output module,
 				 * but needs to see this analog data. */
@@ -324,8 +294,11 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END.");
 
-		if (o)
+		if (o) {
 			sr_output_free(o);
+			if (srzip_and_filename)
+				g_free(srzip_and_filename);
+		}
 		o = NULL;
 
 		sr_output_free(oa);
@@ -333,10 +306,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 		if (outfile && outfile != stdout)
 			fclose(outfile);
-
-		if (opt_output_file && default_output_format)
-			/* Flush whatever is left out to the session file. */
-			save_chunk_logic(session, NULL, 0, 0);
 
 		if (limit_samples) {
 			if (rcvd_samples_logic > 0 && rcvd_samples_logic < limit_samples)
@@ -640,39 +609,3 @@ void run_session(void)
 
 }
 
-void save_chunk_logic(struct sr_session *session, uint8_t *data,
-		uint64_t data_len, int unitsize)
-{
-	static uint8_t *buf = NULL;
-	static int buf_len = 0;
-	static int last_unitsize = 0;
-	int max;
-
-	if (!buf)
-		buf = g_malloc(SAVE_CHUNK_SIZE);
-
-	while (data_len > SAVE_CHUNK_SIZE) {
-		save_chunk_logic(session, data, SAVE_CHUNK_SIZE, unitsize);
-		data += SAVE_CHUNK_SIZE;
-		data_len -= SAVE_CHUNK_SIZE;
-	}
-
-	if (buf_len + data_len > SAVE_CHUNK_SIZE) {
-		max = (SAVE_CHUNK_SIZE - buf_len) / unitsize * unitsize;
-		memcpy(buf + buf_len, data, max);
-		sr_session_append(session, opt_output_file, buf, unitsize,
-				(buf_len + max) / unitsize);
-		memcpy(buf, data + max, data_len - max);
-		buf_len = data_len - max;
-	} else if (data_len == 0 && last_unitsize != 0) {
-		/* End of data, flush the buffer out. */
-		sr_session_append(session, opt_output_file, buf, last_unitsize,
-				buf_len / last_unitsize);
-	} else {
-		/* Buffer chunk. */
-		memcpy(buf + buf_len, data, data_len);
-		buf_len += data_len;
-	}
-	last_unitsize = unitsize;
-
-}
