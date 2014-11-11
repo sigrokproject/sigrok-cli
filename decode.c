@@ -250,9 +250,13 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 
 void map_pd_channels(struct sr_dev_inst *sdi)
 {
+	GSList *channels;
+
+	channels = sr_dev_inst_channels_get(sdi);
+
 	if (pd_channel_maps) {
 		g_hash_table_foreach(pd_channel_maps, &map_pd_inst_channels,
-				     sdi->channels);
+				     channels);
 		g_hash_table_destroy(pd_channel_maps);
 		pd_channel_maps = NULL;
 	}

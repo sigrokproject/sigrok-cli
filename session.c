@@ -36,6 +36,9 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	GVariant *gvar;
 	uint64_t time_msec;
 	uint64_t samplerate;
+	struct sr_dev_driver *driver;
+
+	driver = sr_dev_inst_driver_get(sdi);
 
 	if (!(time_msec = sr_parse_timestring(opt_time))) {
 		g_critical("Invalid time '%s'", opt_time);
@@ -50,7 +53,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		}
 	} else if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
 		/* Convert to samples based on the samplerate.  */
-		sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE, &gvar);
+		sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE, &gvar);
 		samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
 		limit_samples = (samplerate) * time_msec / (uint64_t)1000;
@@ -130,13 +133,17 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	static uint64_t samplerate = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
-	GSList *l;
+	GSList *l, *channels_sdi;
 	GString *out;
 	GVariant *gvar;
 	uint64_t end_sample;
 	uint64_t input_len;
 	int i;
 	char **channels;
+	struct sr_dev_driver *driver;
+
+	driver = sr_dev_inst_driver_get(sdi);
+	channels_sdi = sr_dev_inst_channels_get(sdi);
 
 	/* If the first packet to come in isn't a header, don't even try. */
 	if (packet->type != SR_DF_HEADER && o == NULL)
@@ -165,7 +172,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		}
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
-		if (sr_config_get(sdi->driver, sdi, NULL, SR_CONF_SAMPLERATE,
+		if (sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE,
 				&gvar) == SR_OK) {
 			samplerate = g_variant_get_uint64(gvar);
 			g_variant_unref(gvar);
@@ -246,8 +253,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			/* Saving to a session file. */
 			if (rcvd_samples_logic == 0) {
 				/* First packet with logic data, init session file. */
-				channels = g_malloc(sizeof(char *) * g_slist_length(sdi->channels));
-				for (i = 0, l = sdi->channels; l; l = l->next) {
+				channels = g_malloc(sizeof(char *) * g_slist_length(channels_sdi));
+				for (i = 0, l = channels_sdi; l; l = l->next) {
 					ch = l->data;
 					if (ch->type == SR_CHANNEL_LOGIC)
 						channels[i++] = ch->name;
@@ -468,6 +475,7 @@ void run_session(void)
 	gsize n_elements, i;
 	const uint32_t *dev_opts;
 	int is_demo_dev;
+	struct sr_dev_driver *driver;
 
 	devices = device_scan();
 	if (!devices) {
@@ -479,7 +487,9 @@ void run_session(void)
 	for (sd = devices; sd; sd = sd->next) {
 		sdi = sd->data;
 
-		if (sr_config_list(sdi->driver, sdi, NULL, SR_CONF_DEVICE_OPTIONS, &gvar) != SR_OK) {
+		driver = sr_dev_inst_driver_get(sdi);
+
+		if (sr_config_list(driver, sdi, NULL, SR_CONF_DEVICE_OPTIONS, &gvar) != SR_OK) {
 			g_critical("Failed to query sr_config_list(SR_CONF_DEVICE_OPTIONS).");
 			return;
 		}
@@ -574,7 +584,7 @@ void run_session(void)
 			sr_session_destroy(session);
 			return;
 		}
-		if (sr_config_list(sdi->driver, sdi, NULL,
+		if (sr_config_list(driver, sdi, NULL,
 				SR_CONF_LIMIT_SAMPLES, &gvar) == SR_OK) {
 			/* The device has no compression, or compression is turned
 			 * off, and publishes its sample memory size. */

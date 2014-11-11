@@ -50,13 +50,15 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 int select_channels(struct sr_dev_inst *sdi)
 {
 	struct sr_channel *ch;
-	GSList *selected_channels, *l;
+	GSList *selected_channels, *l, *channels;
+
+	channels = sr_dev_inst_channels_get(sdi);
 
 	if (opt_channels) {
 		if (!(selected_channels = parse_channelstring(sdi, opt_channels)))
 			return SR_ERR;
 
-		for (l = sdi->channels; l; l = l->next) {
+		for (l = channels; l; l = l->next) {
 			ch = l->data;
 			if (g_slist_find(selected_channels, ch))
 				ch->enabled = TRUE;
@@ -81,6 +83,7 @@ static void get_option(void)
 	GHashTable *devargs;
 	int ret;
 	char *s;
+	struct sr_dev_driver *driver;
 
 	if (!(devices = device_scan())) {
 		g_critical("No devices found.");
@@ -88,6 +91,8 @@ static void get_option(void)
 	}
 	sdi = devices->data;
 	g_slist_free(devices);
+
+	driver = sr_dev_inst_driver_get(sdi);
 
 	if (sr_dev_open(sdi) != SR_OK) {
 		g_critical("Failed to open device.");
@@ -102,7 +107,7 @@ static void get_option(void)
 		set_dev_options(sdi, devargs);
 	else devargs = NULL;
 
-	if ((ret = sr_config_get(sdi->driver, sdi, cg, ci->key, &gvar)) != SR_OK)
+	if ((ret = sr_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
 		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
 	s = g_variant_print(gvar, FALSE);
 	printf("%s\n", s);

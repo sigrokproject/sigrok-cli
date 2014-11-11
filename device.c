@@ -64,17 +64,19 @@ GSList *device_scan(void)
 struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 {
 	struct sr_channel_group *cg;
-	GSList *l;
+	GSList *l, *channel_groups;
 
 	if (!opt_channel_group)
 		return NULL;
 
-	if (!sdi->channel_groups) {
+	channel_groups = sr_dev_inst_channel_groups_get(sdi);
+
+	if (!channel_groups) {
 		g_critical("This device does not have any channel groups.");
 		return NULL;
 	}
 
-	for (l = sdi->channel_groups; l; l = l->next) {
+	for (l = channel_groups; l; l = l->next) {
 		cg = l->data;
 		if (!strcasecmp(opt_channel_group, cg->name)) {
 			return cg;

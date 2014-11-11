@@ -45,13 +45,15 @@ struct sr_channel *find_channel(GSList *channellist, const char *channelname)
 GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 {
 	struct sr_channel *ch;
-	GSList *channellist;
+	GSList *channellist, *channels;
 	int ret, n, b, e, i;
 	char **tokens, **range, **names, *eptr, str[8];
 
+	channels = sr_dev_inst_channels_get(sdi);
+
 	if (!channelstring || !channelstring[0])
 		/* Use all channels by default. */
-		return g_slist_copy(sdi->channels);
+		return g_slist_copy(channels);
 
 	ret = SR_OK;
 	range = NULL;
@@ -102,7 +104,7 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 					ret = SR_ERR;
 					break;
 				}
-				ch = find_channel(sdi->channels, str);
+				ch = find_channel(channels, str);
 				if (!ch) {
 					g_critical("unknown channel '%d'.", b);
 					ret = SR_ERR;
@@ -127,7 +129,7 @@ range_fail:
 				break;
 			}
 
-			ch = find_channel(sdi->channels, names[0]);
+			ch = find_channel(channels, names[0]);
 			if (!ch) {
 				g_critical("unknown channel '%s'.", names[0]);
 				g_strfreev(names);
@@ -185,7 +187,7 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 	struct sr_channel *ch;
 	struct sr_trigger_stage *stage;
 	GVariant *gvar;
-	GSList *l;
+	GSList *l, *channels;
 	gsize num_matches;
 	gboolean found_match, error;
 	const int32_t *matches;
@@ -193,8 +195,12 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 	unsigned int j;
 	int t, i;
 	char **tokens, *sep;
+	struct sr_dev_driver *driver;
 
-	if (sr_config_list(sdi->driver, sdi, NULL, SR_CONF_TRIGGER_MATCH,
+	driver = sr_dev_inst_driver_get(sdi);
+	channels = sr_dev_inst_channels_get(sdi);
+
+	if (sr_config_list(driver, sdi, NULL, SR_CONF_TRIGGER_MATCH,
 			&gvar) != SR_OK) {
 		g_critical("Device doesn't support any triggers.");
 		return FALSE;
@@ -212,7 +218,7 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 		}
 		*sep++ = 0;
 		ch = NULL;
-		for (l = sdi->channels; l; l = l->next) {
+		for (l = channels; l; l = l->next) {
 			ch = l->data;
 			if (ch->enabled && !strcmp(ch->name, tokens[i]))
 				break;
