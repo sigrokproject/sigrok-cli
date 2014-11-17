@@ -135,6 +135,33 @@ static gint sort_channels(gconstpointer a, gconstpointer b)
 	return pa->index - pb->index;
 }
 
+static gboolean config_key_has_cap(const struct sr_dev_inst *sdi,
+	   struct sr_channel_group *cg, uint32_t key, uint32_t capability)
+{
+	struct sr_dev_driver *driver;
+	GVariant *gvar_opts;
+	const uint32_t *opts;
+	gsize num_opts, i;
+
+	driver = sr_dev_inst_driver_get(sdi);
+	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS,
+			&gvar_opts) != SR_OK)
+		return FALSE;
+
+	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
+	for (i = 0; i < num_opts; i++) {
+		if ((opts[i] & SR_CONF_MASK) == key) {
+			if (opts[i] & capability)
+				return TRUE;
+			else
+				return FALSE;
+		}
+	}
+
+	return FALSE;
+}
+
+
 static void print_dev_line(const struct sr_dev_inst *sdi)
 {
 	struct sr_channel *ch;
@@ -152,7 +179,8 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 
 	s = g_string_sized_new(128);
 	g_string_assign(s, driver->name);
-	if (sr_config_get(driver, sdi, NULL, SR_CONF_CONN, &gvar) == SR_OK) {
+	if (config_key_has_cap(sdi, NULL, SR_CONF_CONN, SR_CONF_GET)
+			&& sr_config_get(driver, sdi, NULL, SR_CONF_CONN, &gvar) == SR_OK) {
 		g_string_append(s, ":conn=");
 		g_string_append(s, g_variant_get_string(gvar, NULL));
 		g_variant_unref(gvar);
@@ -208,8 +236,8 @@ void show_drv_detail(struct sr_dev_driver *driver)
 	const uint32_t *opts;
 	gsize num_elements, i;
 
-	if ((sr_config_list(driver, NULL, NULL, SR_CONF_DEVICE_OPTIONS,
-			&gvar_opts) == SR_OK)) {
+	if (sr_config_list(driver, NULL, NULL, SR_CONF_DEVICE_OPTIONS,
+			&gvar_opts) == SR_OK) {
 		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
 				sizeof(uint32_t));
 		if (num_elements) {
@@ -223,8 +251,8 @@ void show_drv_detail(struct sr_dev_driver *driver)
 		g_variant_unref(gvar_opts);
 	}
 
-	if ((sr_config_list(driver, NULL, NULL, SR_CONF_SCAN_OPTIONS,
-			&gvar_opts) == SR_OK)) {
+	if (sr_config_list(driver, NULL, NULL, SR_CONF_SCAN_OPTIONS,
+			&gvar_opts) == SR_OK) {
 		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
 				sizeof(uint32_t));
 		if (num_elements) {
@@ -293,8 +321,8 @@ void show_dev_detail(void)
 	select_channels(sdi);
 	channel_group = select_channel_group(sdi);
 
-	if ((sr_config_list(driver, sdi, channel_group, SR_CONF_DEVICE_OPTIONS,
-			&gvar_opts)) != SR_OK)
+	if (sr_config_list(driver, sdi, channel_group, SR_CONF_DEVICE_OPTIONS,
+			&gvar_opts) != SR_OK)
 		/* Driver supports no device instance options. */
 		return;
 
