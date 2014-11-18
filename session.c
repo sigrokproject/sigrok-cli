@@ -45,13 +45,14 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (sr_dev_has_option(sdi, SR_CONF_LIMIT_MSEC)) {
+	if (config_key_has_cap(driver, sdi, NULL, SR_CONF_LIMIT_MSEC, SR_CONF_SET)) {
 		gvar = g_variant_new_uint64(time_msec);
 		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_MSEC, gvar) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			return SR_ERR;
 		}
-	} else if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
+	} else if (config_key_has_cap(driver, sdi, NULL, SR_CONF_SAMPLERATE,
+			SR_CONF_GET | SR_CONF_SET)) {
 		/* Convert to samples based on the samplerate.  */
 		sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE, &gvar);
 		samplerate = g_variant_get_uint64(gvar);
@@ -159,7 +160,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
-		if (sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE,
+		if (maybe_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE,
 				&gvar) == SR_OK) {
 			samplerate = g_variant_get_uint64(gvar);
 			g_variant_unref(gvar);
@@ -422,8 +423,8 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 		if ((ret = opt_to_gvar(key, value, &src)) != 0)
 			return ret;
 		cg = select_channel_group(sdi);
-		ret = sr_config_set(sdi, cg, src.key, src.data);
-		if (ret != SR_OK) {
+		if ((ret = maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, cg,
+				src.key, src.data)) != SR_OK) {
 			g_critical("Failed to set device option '%s'.", (char *)key);
 			return ret;
 		}
@@ -459,7 +460,7 @@ void run_session(void)
 		driver = sr_dev_inst_driver_get(sdi);
 
 		if (sr_config_list(driver, sdi, NULL, SR_CONF_DEVICE_OPTIONS, &gvar) != SR_OK) {
-			g_critical("Failed to query sr_config_list(SR_CONF_DEVICE_OPTIONS).");
+			g_critical("Failed to query list device options.");
 			return;
 		}
 
@@ -553,8 +554,8 @@ void run_session(void)
 			sr_session_destroy(session);
 			return;
 		}
-		if (sr_config_list(driver, sdi, NULL,
-				SR_CONF_LIMIT_SAMPLES, &gvar) == SR_OK) {
+		if (maybe_config_list(driver, sdi, NULL, SR_CONF_LIMIT_SAMPLES,
+				&gvar) == SR_OK) {
 			/* The device has no compression, or compression is turned
 			 * off, and publishes its sample memory size. */
 			g_variant_get(gvar, "(tt)", &min_samples, &max_samples);
@@ -569,7 +570,7 @@ void run_session(void)
 			}
 		}
 		gvar = g_variant_new_uint64(limit_samples);
-		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
+		if (maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, NULL, SR_CONF_LIMIT_SAMPLES, gvar) != SR_OK) {
 			g_critical("Failed to configure sample limit.");
 			sr_session_destroy(session);
 			return;
@@ -583,7 +584,7 @@ void run_session(void)
 			return;
 		}
 		gvar = g_variant_new_uint64(limit_frames);
-		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_FRAMES, gvar) != SR_OK) {
+		if (maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, NULL, SR_CONF_LIMIT_FRAMES, gvar) != SR_OK) {
 			g_critical("Failed to configure frame limit.");
 			sr_session_destroy(session);
 			return;

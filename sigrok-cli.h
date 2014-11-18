@@ -32,6 +32,18 @@
 
 /* main.c */
 int select_channels(struct sr_dev_inst *sdi);
+gboolean config_key_has_cap(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, uint32_t capability);
+int maybe_config_get(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant **gvar);
+int maybe_config_set(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant *gvar);
+int maybe_config_list(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant **gvar);
 
 /* show.c */
 void show_version(void);

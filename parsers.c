@@ -200,7 +200,7 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 	driver = sr_dev_inst_driver_get(sdi);
 	channels = sr_dev_inst_channels_get(sdi);
 
-	if (sr_config_list(driver, sdi, NULL, SR_CONF_TRIGGER_MATCH,
+	if (maybe_config_list(driver, sdi, NULL, SR_CONF_TRIGGER_MATCH,
 			&gvar) != SR_OK) {
 		g_critical("Device doesn't support any triggers.");
 		return FALSE;

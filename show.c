@@ -135,33 +135,6 @@ static gint sort_channels(gconstpointer a, gconstpointer b)
 	return pa->index - pb->index;
 }
 
-static gboolean config_key_has_cap(const struct sr_dev_inst *sdi,
-	   struct sr_channel_group *cg, uint32_t key, uint32_t capability)
-{
-	struct sr_dev_driver *driver;
-	GVariant *gvar_opts;
-	const uint32_t *opts;
-	gsize num_opts, i;
-
-	driver = sr_dev_inst_driver_get(sdi);
-	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS,
-			&gvar_opts) != SR_OK)
-		return FALSE;
-
-	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
-	for (i = 0; i < num_opts; i++) {
-		if ((opts[i] & SR_CONF_MASK) == key) {
-			if (opts[i] & capability)
-				return TRUE;
-			else
-				return FALSE;
-		}
-	}
-
-	return FALSE;
-}
-
-
 static void print_dev_line(const struct sr_dev_inst *sdi)
 {
 	struct sr_channel *ch;
@@ -179,8 +152,7 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 
 	s = g_string_sized_new(128);
 	g_string_assign(s, driver->name);
-	if (config_key_has_cap(sdi, NULL, SR_CONF_CONN, SR_CONF_GET)
-			&& sr_config_get(driver, sdi, NULL, SR_CONF_CONN, &gvar) == SR_OK) {
+	if (maybe_config_get(driver, sdi, NULL, SR_CONF_CONN, &gvar) == SR_OK) {
 		g_string_append(s, ":conn=");
 		g_string_append(s, g_variant_get_string(gvar, NULL));
 		g_variant_unref(gvar);
@@ -355,7 +327,7 @@ void show_dev_detail(void)
 			continue;
 
 		if (key == SR_CONF_TRIGGER_MATCH) {
-			if (sr_config_list(driver, sdi, channel_group, key,
+			if (maybe_config_list(driver, sdi, channel_group, key,
 					&gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
@@ -396,7 +368,8 @@ void show_dev_detail(void)
 			printf("\n");
 			g_variant_unref(gvar_list);
 
-		} else if (key == SR_CONF_LIMIT_SAMPLES) {
+		} else if (key == SR_CONF_LIMIT_SAMPLES
+				&& config_key_has_cap(driver, sdi, cg, key, SR_CONF_LIST)) {
 			/* If implemented in config_list(), this denotes the
 			 * maximum number of samples a device can send. This
 			 * really applies only to logic analyzers, and then
@@ -404,17 +377,16 @@ void show_dev_detail(void)
 			 * have it turned off by default. The values returned
 			 * are the low/high limits. */
 			if (sr_config_list(driver, sdi, channel_group, key,
-					&gvar) != SR_OK) {
-				continue;
+					&gvar) == SR_OK) {
+				g_variant_get(gvar, "(tt)", &low, &high);
+				g_variant_unref(gvar);
+				printf("    Maximum number of samples: %"PRIu64"\n", high);
 			}
-			g_variant_get(gvar, "(tt)", &low, &high);
-			g_variant_unref(gvar);
-			printf("    Maximum number of samples: %"PRIu64"\n", high);
 
 		} else if (key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
-			if (sr_config_list(driver, sdi, channel_group, SR_CONF_SAMPLERATE,
+			if (maybe_config_list(driver, sdi, channel_group, SR_CONF_SAMPLERATE,
 					&gvar_dict) != SR_OK) {
 				printf("\n");
 				continue;
@@ -455,16 +427,16 @@ void show_dev_detail(void)
 			g_variant_unref(gvar_dict);
 
 		} else if (srci->datatype == SR_T_UINT64) {
-			printf("    %s", srci->id);
+			printf("    %s: ", srci->id);
 			gvar = NULL;
-			if (sr_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				tmp_uint64 = g_variant_get_uint64(gvar);
 				g_variant_unref(gvar);
 			} else
 				tmp_uint64 = 0;
-			if (sr_config_list(driver, sdi, channel_group,
-					SR_CONF_BUFFERSIZE, &gvar_list) != SR_OK) {
+			if (maybe_config_list(driver, sdi, channel_group,
+					key, &gvar_list) != SR_OK) {
 				if (gvar) {
 					/* Can't list it, but we have a value to show. */
 					printf("%"PRIu64" (current)", tmp_uint64);
@@ -485,14 +457,14 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_STRING) {
 			printf("    %s: ", srci->id);
-			if (sr_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				tmp_str = g_strdup(g_variant_get_string(gvar, NULL));
 				g_variant_unref(gvar);
 			} else
 				tmp_str = NULL;
 
-			if (sr_config_list(driver, sdi, channel_group, key,
+			if (maybe_config_list(driver, sdi, channel_group, key,
 					&gvar) != SR_OK) {
 				if (tmp_str) {
 					/* Can't list it, but we have a value to show. */
@@ -518,13 +490,13 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_UINT64_RANGE) {
 			printf("    %s: ", srci->id);
-			if (sr_config_list(driver, sdi, channel_group, key,
+			if (maybe_config_list(driver, sdi, channel_group, key,
 					&gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 
-			if (sr_config_get(driver, sdi, channel_group, key, &gvar) == SR_OK) {
+			if (maybe_config_get(driver, sdi, channel_group, key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(tt)", &cur_low, &cur_high);
 				g_variant_unref(gvar);
 			} else {
@@ -548,7 +520,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_BOOL) {
 			printf("    %s: ", srci->id);
-			if (sr_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				if (g_variant_get_boolean(gvar))
 					printf("on (current), off\n");
@@ -560,13 +532,13 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_DOUBLE_RANGE) {
 			printf("    %s: ", srci->id);
-			if (sr_config_list(driver, sdi, channel_group, key,
+			if (maybe_config_list(driver, sdi, channel_group, key,
 					&gvar_list) != SR_OK) {
 				printf("\n");
 				continue;
 			}
 
-			if (sr_config_get(driver, sdi, channel_group, key, &gvar) == SR_OK) {
+			if (maybe_config_get(driver, sdi, channel_group, key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(dd)", &dcur_low, &dcur_high);
 				g_variant_unref(gvar);
 			} else {
@@ -590,7 +562,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_FLOAT) {
 			printf("    %s: ", srci->id);
-			if (sr_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				printf("%f\n", g_variant_get_double(gvar));
 				g_variant_unref(gvar);
@@ -600,14 +572,14 @@ void show_dev_detail(void)
 		} else if (srci->datatype == SR_T_RATIONAL_PERIOD
 				|| srci->datatype == SR_T_RATIONAL_VOLT) {
 			printf("    %s", srci->id);
-			if (sr_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				g_variant_get(gvar, "(tt)", &cur_p, &cur_q);
 				g_variant_unref(gvar);
 			} else
 				cur_p = cur_q = 0;
 
-			if (sr_config_list(driver, sdi, channel_group,
+			if (maybe_config_list(driver, sdi, channel_group,
 					key, &gvar_list) != SR_OK) {
 				printf("\n");
 				continue;

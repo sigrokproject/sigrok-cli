@@ -73,6 +73,61 @@ int select_channels(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+gboolean config_key_has_cap(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, uint32_t capability)
+{
+	GVariant *gvar_opts;
+	const uint32_t *opts;
+	gsize num_opts, i;
+
+	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS,
+			&gvar_opts) != SR_OK)
+		return FALSE;
+
+	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
+	for (i = 0; i < num_opts; i++) {
+		if ((opts[i] & SR_CONF_MASK) == key) {
+			if ((opts[i] & capability) == capability)
+				return TRUE;
+			else
+				return FALSE;
+		}
+	}
+
+	return FALSE;
+}
+
+int maybe_config_get(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant **gvar)
+{
+	if (config_key_has_cap(driver, sdi, cg, key, SR_CONF_GET))
+		return sr_config_get(driver, sdi, cg, key, gvar);
+
+	return SR_ERR_NA;
+}
+
+int maybe_config_set(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant *gvar)
+{
+	if (config_key_has_cap(driver, sdi, cg, key, SR_CONF_SET))
+		return sr_config_set(sdi, cg, key, gvar);
+
+	return SR_ERR_NA;
+}
+
+int maybe_config_list(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant **gvar)
+{
+	if (config_key_has_cap(driver, sdi, cg, key, SR_CONF_LIST))
+		return sr_config_list(driver, sdi, cg, key, gvar);
+
+	return SR_ERR_NA;
+}
+
 static void get_option(void)
 {
 	struct sr_dev_inst *sdi;
@@ -107,7 +162,7 @@ static void get_option(void)
 		set_dev_options(sdi, devargs);
 	else devargs = NULL;
 
-	if ((ret = sr_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
+	if ((ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
 		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
 	s = g_variant_print(gvar, FALSE);
 	printf("%s\n", s);
