@@ -337,7 +337,7 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	}
 	src->key = srci->key;
 
-	if ((value == NULL) &&
+	if ((value == NULL || strlen(value) == 0) &&
 		(srci->datatype != SR_T_BOOL)) {
 		g_critical("Option '%s' needs a value.", (char *)key);
 		return -1;
@@ -425,6 +425,9 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 			   "(driver implementation bug?).", key);
 		ret = -1;
 	}
+
+	if (ret < 0)
+		g_critical("Invalid value: '%s' for option '%s'", value, key);
 
 	return ret;
 }
