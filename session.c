@@ -326,7 +326,9 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	double tmp_double, dlow, dhigh;
 	uint64_t tmp_u64, p, q, low, high;
 	GVariant *rational[2], *range[2];
+	GVariantBuilder *vbl;
 	gboolean tmp_bool;
+	gchar **keyval;
 	int ret;
 
 	if (!(srci = sr_config_info_name_get(key))) {
@@ -401,6 +403,21 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 			range[0] = g_variant_new_double(dlow);
 			range[1] = g_variant_new_double(dhigh);
 			src->data = g_variant_new_tuple(range, 2);
+		}
+		break;
+	case SR_T_KEYVALUE:
+		/* Expects the argument to be in the form of key=value. */
+		keyval = g_strsplit(value, "=", 2);
+		if (!keyval[0] || !keyval[1]) {
+			g_strfreev(keyval);
+			ret = -1;
+			break;
+		} else {
+			vbl = g_variant_builder_new(G_VARIANT_TYPE_DICTIONARY);
+			g_variant_builder_add(vbl, "{ss}",
+					      keyval[0], keyval[1]);
+			src->data = g_variant_builder_end(vbl);
+			g_strfreev(keyval);
 		}
 		break;
 	default:
