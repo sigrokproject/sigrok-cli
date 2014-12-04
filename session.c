@@ -404,6 +404,8 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 		}
 		break;
 	default:
+		g_critical("Unknown data type specified for option '%s' "
+			   "(driver implementation bug?).", key);
 		ret = -1;
 	}
 
