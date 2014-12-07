@@ -128,10 +128,7 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	# sigrok-cli.exe.
 	File "${CROSS}/bin/@PACKAGE_NAME@.exe"
 
-	# libusb0.dll (needed for libusb-0.1).
-	File "${CROSS}/libusb0.dll"
-
-	# Zadig (used for installing libusb-win32 and WinUSB drivers).
+	# Zadig (used for installing WinUSB drivers).
 	File "${CROSS}/zadig.exe"
 	File "${CROSS}/zadig_xp.exe"
 
@@ -211,7 +208,6 @@ Section "Uninstall"
 	# Delete the application, the application data, and related libs.
 	Delete "$INSTDIR\COPYING"
 	Delete "$INSTDIR\@PACKAGE_NAME@.exe"
-	Delete "$INSTDIR\libusb0.dll"
 	Delete "$INSTDIR\zadig.exe"
 	Delete "$INSTDIR\zadig_xp.exe"
 	Delete "$INSTDIR\python32.dll"
