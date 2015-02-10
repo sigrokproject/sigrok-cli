@@ -269,6 +269,8 @@ int main(int argc, char **argv)
 		show_input();
 	else if (opt_output_format && opt_show)
 		show_output();
+	else if (opt_transform_module && opt_show)
+		show_transform();
 	else if (opt_scan_devs)
 		show_dev_list();
 #ifdef HAVE_SRD

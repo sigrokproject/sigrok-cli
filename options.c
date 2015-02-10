@@ -40,6 +40,7 @@ gchar *opt_pd_binary = NULL;
 #endif
 gchar *opt_input_format = NULL;
 gchar *opt_output_format = NULL;
+gchar *opt_transform_module = NULL;
 gchar *opt_show = NULL;
 gchar *opt_time = NULL;
 gchar *opt_samples = NULL;
@@ -73,6 +74,7 @@ CHECK_ONCE(opt_drv)
 CHECK_ONCE(opt_config)
 CHECK_ONCE(opt_input_format)
 CHECK_ONCE(opt_output_format)
+CHECK_ONCE(opt_transform_module)
 CHECK_ONCE(opt_channels)
 CHECK_ONCE(opt_channel_group)
 CHECK_ONCE(opt_triggers)
@@ -110,6 +112,8 @@ static const GOptionEntry optargs[] = {
 			"Save output to file", NULL},
 	{"output-format", 'O', 0, G_OPTION_ARG_CALLBACK, &check_opt_output_format,
 			"Output format", NULL},
+	{"transform-module", 'T', 0, G_OPTION_ARG_CALLBACK, &check_opt_transform_module,
+			"Transform module", NULL},
 	{"channels", 'C', 0, G_OPTION_ARG_CALLBACK, &check_opt_channels,
 			"Channels to use", NULL},
 	{"channel-group", 'g', 0, G_OPTION_ARG_CALLBACK, &check_opt_channel_group,

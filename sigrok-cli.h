@@ -52,6 +52,7 @@ void show_dev_detail(void);
 void show_pd_detail(void);
 void show_input(void);
 void show_output(void);
+void show_transform(void);
 
 /* device.c */
 GSList *device_scan(void);
@@ -117,6 +118,7 @@ extern gchar *opt_pd_binary;
 #endif
 extern gchar *opt_input_format;
 extern gchar *opt_output_format;
+extern gchar *opt_transform_module;
 extern gchar *opt_show;
 extern gchar *opt_time;
 extern gchar *opt_samples;

@@ -33,6 +33,12 @@ static gint sort_outputs(gconstpointer a, gconstpointer b)
 			sr_output_id_get((struct sr_output_module *)b));
 }
 
+static gint sort_transforms(gconstpointer a, gconstpointer b)
+{
+	return strcmp(sr_transform_id_get((struct sr_transform_module *)a),
+			sr_transform_id_get((struct sr_transform_module *)b));
+}
+
 static gint sort_drivers(gconstpointer a, gconstpointer b)
 {
 	const struct sr_dev_driver *sdda = a, *sddb = b;
@@ -54,6 +60,7 @@ void show_version(void)
 	struct sr_dev_driver **drivers, *driver;
 	const struct sr_input_module **inputs, *input;
 	const struct sr_output_module **outputs, *output;
+	const struct sr_transform_module **transforms, *transform;
 	const GSList *l;
 	GSList *sl;
 	int i;
@@ -104,6 +111,19 @@ void show_version(void)
 		output = l->data;
 		printf("  %-20s %s\n", sr_output_id_get(output),
 				sr_output_description_get(output));
+	}
+	printf("\n");
+	g_slist_free(sl);
+
+	printf("Supported transform modules:\n");
+	transforms = sr_transform_list();
+	for (sl = NULL, i = 0; transforms[i]; i++)
+		sl = g_slist_append(sl, (gpointer)transforms[i]);
+	sl = g_slist_sort(sl, sort_transforms);
+	for (l = sl; l; l = l->next) {
+		transform = l->data;
+		printf("  %-20s %s\n", sr_transform_id_get(transform),
+				sr_transform_description_get(transform));
 	}
 	printf("\n");
 	g_slist_free(sl);
@@ -790,3 +810,42 @@ void show_output(void)
 	g_strfreev(tok);
 }
 
+void show_transform(void)
+{
+	const struct sr_transform_module *tmod;
+	const struct sr_option **opts;
+	GSList *l;
+	int i;
+	char *s, **tok;
+
+	tok = g_strsplit(opt_transform_module, ":", 0);
+	if (!tok[0] || !(tmod = sr_transform_find(tok[0])))
+		g_critical("Transform module '%s' not found.", opt_transform_module);
+
+	printf("ID: %s\nName: %s\n", sr_transform_id_get(tmod),
+			sr_transform_name_get(tmod));
+	printf("Description: %s\n", sr_transform_description_get(tmod));
+	if ((opts = sr_transform_options_get(tmod))) {
+		printf("Options:\n");
+		for (i = 0; opts[i]; i++) {
+			printf("  %s: %s", opts[i]->id, opts[i]->desc);
+			if (opts[i]->def) {
+				s = g_variant_print(opts[i]->def, FALSE);
+				printf(" (default %s", s);
+				g_free(s);
+				if (opts[i]->values) {
+					printf(", possible values ");
+					for (l = opts[i]->values; l; l = l->next) {
+						s = g_variant_print((GVariant *)l->data, FALSE);
+						printf("%s%s", s, l->next ? ", " : "");
+						g_free(s);
+					}
+				}
+				printf(")");
+			}
+			printf("\n");
+		}
+		sr_transform_options_free(opts);
+	}
+	g_strfreev(tok);
+}
