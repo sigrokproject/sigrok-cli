@@ -115,6 +115,38 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	return o;
 }
 
+const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
+{
+	const struct sr_transform_module *tmod;
+	const struct sr_option **options;
+	const struct sr_transform *t;
+	GHashTable *fmtargs, *fmtopts;
+	int size;
+	char *fmtspec;
+
+	if (!opt_transform_module)
+		opt_transform_module = "nop";
+
+	fmtargs = parse_generic_arg(opt_transform_module, TRUE);
+	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
+	if (!fmtspec)
+		g_critical("Invalid transform module.");
+	if (!(tmod = sr_transform_find(fmtspec)))
+		g_critical("Unknown transform module '%s'.", fmtspec);
+	g_hash_table_remove(fmtargs, "sigrok_key");
+	if ((options = sr_transform_options_get(tmod))) {
+		fmtopts = generic_arg_to_opt(options, fmtargs);
+		sr_transform_options_free(options);
+	} else
+		fmtopts = NULL;
+	t = sr_transform_new(tmod, fmtopts, sdi);
+	if (fmtopts)
+		g_hash_table_destroy(fmtopts);
+	g_hash_table_destroy(fmtargs);
+
+	return t;
+}
+
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data)
 {
@@ -468,6 +500,7 @@ void run_session(void)
 	const uint32_t *dev_opts;
 	int is_demo_dev;
 	struct sr_dev_driver *driver;
+	const struct sr_transform *t;
 
 	devices = device_scan();
 	if (!devices) {
@@ -612,6 +645,9 @@ void run_session(void)
 			return;
 		}
 	}
+
+	if (!(t = setup_transform_module(sdi)))
+		g_critical("Failed to initialize transform module.");
 
 	if (sr_session_start(session) != SR_OK) {
 		g_critical("Failed to start session.");
