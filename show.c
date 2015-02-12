@@ -389,7 +389,7 @@ void show_dev_detail(void)
 			g_variant_unref(gvar_list);
 
 		} else if (key == SR_CONF_LIMIT_SAMPLES
-				&& config_key_has_cap(driver, sdi, cg, key, SR_CONF_LIST)) {
+				&& config_key_has_cap(driver, sdi, NULL, key, SR_CONF_LIST)) {
 			/* If implemented in config_list(), this denotes the
 			 * maximum number of samples a device can send. This
 			 * really applies only to logic analyzers, and then
