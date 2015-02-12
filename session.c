@@ -121,7 +121,6 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	const struct sr_option **options;
 	const struct sr_transform *t;
 	GHashTable *fmtargs, *fmtopts;
-	int size;
 	char *fmtspec;
 
 	if (!opt_transform_module)
