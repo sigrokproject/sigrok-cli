@@ -478,7 +478,8 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 		cg = select_channel_group(sdi);
 		if ((ret = maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, cg,
 				src.key, src.data)) != SR_OK) {
-			g_critical("Failed to set device option '%s'.", (char *)key);
+			g_critical("Failed to set device option '%s': %s.",
+				   (char *)key, sr_strerror(ret));
 			return ret;
 		}
 	}
