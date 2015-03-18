@@ -80,22 +80,26 @@ gboolean config_key_has_cap(struct sr_dev_driver *driver,
 	GVariant *gvar_opts;
 	const uint32_t *opts;
 	gsize num_opts, i;
+	gboolean result;
 
 	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS,
 			&gvar_opts) != SR_OK)
 		return FALSE;
 
 	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
+	result = FALSE;
 	for (i = 0; i < num_opts; i++) {
 		if ((opts[i] & SR_CONF_MASK) == key) {
 			if ((opts[i] & capability) == capability)
-				return TRUE;
+				result = TRUE;
 			else
-				return FALSE;
+				result = FALSE;
+			break;
 		}
 	}
+	g_variant_unref(gvar_opts);
 
-	return FALSE;
+	return result;
 }
 
 int maybe_config_get(struct sr_dev_driver *driver,
