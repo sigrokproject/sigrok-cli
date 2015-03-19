@@ -50,6 +50,7 @@ static void logger(const gchar *log_domain, GLogLevelFlags log_level,
 int select_channels(struct sr_dev_inst *sdi)
 {
 	struct sr_channel *ch;
+	gboolean enabled;
 	GSList *selected_channels, *l, *channels;
 
 	channels = sr_dev_inst_channels_get(sdi);
@@ -60,10 +61,9 @@ int select_channels(struct sr_dev_inst *sdi)
 
 		for (l = channels; l; l = l->next) {
 			ch = l->data;
-			if (g_slist_find(selected_channels, ch))
-				ch->enabled = TRUE;
-			else
-				ch->enabled = FALSE;
+			enabled = (g_slist_find(selected_channels, ch) != NULL);
+			if (sr_dev_channel_enable(ch, enabled) != SR_OK)
+				return SR_ERR;
 		}
 		g_slist_free(selected_channels);
 	}
