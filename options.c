@@ -49,8 +49,10 @@ gchar *opt_continuous = NULL;
 gchar *opt_get = NULL;
 gchar *opt_set = NULL;
 
-/* defines a callback function that generates
-   an error if an option occurs twice */
+/*
+ * Defines a callback function that generates an error if an
+ * option occurs twice.
+ */
 #define CHECK_ONCE(option) \
 static gboolean check_ ## option                                          \
 	(const gchar *option_name, const gchar *value,                    \
@@ -151,8 +153,10 @@ static const GOptionEntry optargs[] = {
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
 
-/* Parses the command line and sets all the 'opt_...' variables.
-   Returns zero on success, non-zero otherwise. */
+/*
+ * Parses the command line and sets all the 'opt_...' variables.
+ * Returns zero on success, non-zero otherwise.
+ */
 int parse_options(int argc, char **argv)
 {
 	GError *error = NULL;

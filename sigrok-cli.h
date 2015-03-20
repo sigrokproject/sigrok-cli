@@ -28,7 +28,7 @@
 #include <libsigrok/libsigrok.h>
 
 #define DEFAULT_OUTPUT_FORMAT "bits:width=64"
-#define SAVE_CHUNK_SIZE 524288
+#define SAVE_CHUNK_SIZE (512 * 1024)
 
 /* main.c */
 int select_channels(struct sr_dev_inst *sdi);

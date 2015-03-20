@@ -38,6 +38,7 @@ static struct termios term_orig;
 static int received_anykey(int fd, int revents, void *cb_data)
 {
 	struct sr_session *session;
+
 	(void)fd;
 	(void)revents;
 

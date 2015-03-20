@@ -86,4 +86,3 @@ struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 
 	return NULL;
 }
-

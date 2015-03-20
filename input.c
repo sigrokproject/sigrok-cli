@@ -28,7 +28,7 @@
 #include <string.h>
 #include <glib.h>
 
-#define BUFSIZE 16384
+#define BUFSIZE (16 * 1024)
 
 static void load_input_file_module(void)
 {
@@ -111,7 +111,7 @@ static void load_input_file_module(void)
 	sr_session_datafeed_callback_add(session, &datafeed_in, NULL);
 
 	got_sdi = FALSE;
-	while(TRUE) {
+	while (TRUE) {
 		g_string_truncate(buf, 0);
 		len = read(fd, buf->str, BUFSIZE);
 		if (len < 0)
@@ -124,7 +124,7 @@ static void load_input_file_module(void)
 			break;
 
 		sdi = sr_input_dev_inst_get(in);
-		if(!got_sdi && sdi) {
+		if (!got_sdi && sdi) {
 			/* First time we got a valid sdi. */
 			if (select_channels(sdi) != SR_OK)
 				return;
@@ -135,7 +135,6 @@ static void load_input_file_module(void)
 			}
 			got_sdi = TRUE;
 		}
-
 	}
 	sr_input_end(in);
 	sr_input_free(in);

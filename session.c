@@ -308,8 +308,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			if (!out || (out->len == 0
 					&& !opt_output_format
 					&& packet->type == SR_DF_ANALOG)) {
-				/* The user didn't specify an output module,
-				 * but needs to see this analog data. */
+				/*
+				 * The user didn't specify an output module,
+				 * but needs to see this analog data.
+				 */
 				sr_output_send(oa, packet, &out);
 			}
 			if (out && out->len > 0) {
@@ -321,8 +323,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		}
 	}
 
-	/* SR_DF_END needs to be handled after the output module's receive()
-	 * is called, so it can properly clean up that module. */
+	/*
+	 * SR_DF_END needs to be handled after the output module's receive()
+	 * is called, so it can properly clean up that module.
+	 */
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END.");
 
@@ -611,8 +615,10 @@ void run_session(void)
 		}
 		if (maybe_config_list(driver, sdi, NULL, SR_CONF_LIMIT_SAMPLES,
 				&gvar) == SR_OK) {
-			/* The device has no compression, or compression is turned
-			 * off, and publishes its sample memory size. */
+			/*
+			 * The device has no compression, or compression is turned
+			 * off, and publishes its sample memory size.
+			 */
 			g_variant_get(gvar, "(tt)", &min_samples, &max_samples);
 			g_variant_unref(gvar);
 			if (limit_samples < min_samples) {
@@ -667,4 +673,3 @@ void run_session(void)
 	sr_session_destroy(session);
 
 }
-

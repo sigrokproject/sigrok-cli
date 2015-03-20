@@ -67,10 +67,12 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 			break;
 		}
 		if (strchr(tokens[i], '-')) {
-			/* A range of channels in the form a-b. This will only work
+			/*
+			 * A range of channels in the form a-b. This will only work
 			 * if the channels are named as numbers -- so every channel
 			 * in the range must exist as a channel name string in the
-			 * device. */
+			 * device.
+			 */
 			range = g_strsplit(tokens[i], "-", 2);
 			if (!range[0] || !range[1] || range[2]) {
 				/* Need exactly two arguments. */
@@ -447,4 +449,3 @@ int parse_driver(char *arg, struct sr_dev_driver **driver, GSList **drvopts)
 
 	return TRUE;
 }
-

@@ -17,10 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <string.h>
 #include "sigrok-cli.h"
 #include "config.h"
+#include <stdlib.h>
+#include <string.h>
 #include <glib.h>
 
 #ifdef HAVE_SRD
@@ -109,7 +109,8 @@ static GHashTable *extract_channel_map(struct srd_decoder *dec, GHashTable *hash
 	return channel_map;
 }
 
-/* Register the given PDs for this session.
+/*
+ * Register the given PDs for this session.
  * Accepts a string of the form: "spi:sck=3:sdata=4,spi:sck=3:sdata=5"
  * That will instantiate two SPI decoders on the clock but different data
  * lines.
@@ -180,7 +181,8 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 			channels = NULL;
 		}
 
-		/* If no annotation list was specified, add them all in now.
+		/*
+		 * If no annotation list was specified, add them all in now.
 		 * This will be pared down later to leave only the last PD
 		 * in the stack.
 		 */
@@ -305,7 +307,8 @@ int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations)
 			if ((ret = srd_inst_stack(srd_sess, di_from, di_to)) != SRD_OK)
 				return 1;
 
-			/* Don't show annotation from this PD. Only the last PD in
+			/*
+			 * Don't show annotation from this PD. Only the last PD in
 			 * the stack will be left on the annotation list (unless
 			 * the annotation list was specifically provided).
 			 */
@@ -453,7 +456,6 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	char **ann_descr;
 	gboolean show;
 
-	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
 
 	if (!pd_ann_visible)
@@ -500,8 +502,6 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 
 void show_pd_meta(struct srd_proto_data *pdata, void *cb_data)
 {
-
-	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
 
 	if (!g_hash_table_lookup_extended(pd_meta_visible,
@@ -523,7 +523,6 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 	gpointer classp;
 	int class;
 
-	/* 'cb_data' is not used in this specific callback. */
 	(void)cb_data;
 
 	if (!g_hash_table_lookup_extended(pd_binary_visible,
@@ -542,4 +541,3 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 	fflush(stdout);
 }
 #endif
-

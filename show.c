@@ -308,8 +308,10 @@ void show_dev_detail(void)
 		return;
 	}
 
-	/* Selected channels and channel group may affect which options are
-	 * returned, or which values for them. */
+	/*
+	 * Selected channels and channel group may affect which options are
+	 * returned, or which values for them.
+	 */
 	select_channels(sdi);
 	channel_group = select_channel_group(sdi);
 
@@ -356,7 +358,7 @@ void show_dev_detail(void)
 					&num_elements, sizeof(int32_t));
 			printf("    Supported triggers: ");
 			for (i = 0; i < num_elements; i++) {
-				switch(int32[i]) {
+				switch (int32[i]) {
 				case SR_TRIGGER_ZERO:
 					c = '0';
 					break;
@@ -390,12 +392,14 @@ void show_dev_detail(void)
 
 		} else if (key == SR_CONF_LIMIT_SAMPLES
 				&& config_key_has_cap(driver, sdi, NULL, key, SR_CONF_LIST)) {
-			/* If implemented in config_list(), this denotes the
+			/*
+			 * If implemented in config_list(), this denotes the
 			 * maximum number of samples a device can send. This
 			 * really applies only to logic analyzers, and then
 			 * only to those that don't support compression, or
 			 * have it turned off by default. The values returned
-			 * are the low/high limits. */
+			 * are the low/high limits.
+			 */
 			if (sr_config_list(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				g_variant_get(gvar, "(tt)", &low, &high);
