@@ -553,7 +553,7 @@ void run_session(void)
 	g_slist_free(devices);
 	g_slist_free(real_devices);
 
-	sr_session_new(&session);
+	sr_session_new(sr_ctx, &session);
 	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
 
 	if (sr_dev_open(sdi) != SR_OK) {

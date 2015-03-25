@@ -107,7 +107,7 @@ static void load_input_file_module(void)
 		if (!in)
 			g_critical("Error: no input module found for this file.");
 	}
-	sr_session_new(&session);
+	sr_session_new(sr_ctx, &session);
 	sr_session_datafeed_callback_add(session, &datafeed_in, NULL);
 
 	got_sdi = FALSE;
@@ -155,7 +155,8 @@ void load_input_file(void)
 		/* Input from stdin is never a session file. */
 		load_input_file_module();
 	} else {
-		if ((ret = sr_session_load(opt_input_file, &session)) == SR_OK) {
+		if ((ret = sr_session_load(sr_ctx, opt_input_file,
+				&session)) == SR_OK) {
 			/* sigrok session file */
 			ret = sr_session_dev_list(session, &devices);
 			if (ret != SR_OK || !devices || !devices->data) {
