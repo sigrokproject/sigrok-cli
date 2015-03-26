@@ -17,11 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok-cli.h"
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "sigrok-cli.h"
 
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;

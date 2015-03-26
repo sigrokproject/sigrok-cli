@@ -17,10 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok-cli.h"
-#include "config.h"
 #include <glib.h>
 #include <string.h>
+#include "sigrok-cli.h"
+#include "config.h"
 
 extern struct sr_context *sr_ctx;
 

@@ -17,9 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok-cli.h"
 #include <stdlib.h>
 #include <glib.h>
+#include "sigrok-cli.h"
 
 struct sr_context *sr_ctx = NULL;
 #ifdef HAVE_SRD

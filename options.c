@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok-cli.h"
 #include <glib.h>
+#include "sigrok-cli.h"
 
 gboolean opt_version = FALSE;
 gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings by default. */

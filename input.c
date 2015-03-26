@@ -17,8 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok-cli.h"
-#include "config.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -27,6 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include "sigrok-cli.h"
+#include "config.h"
 
 #define BUFSIZE (16 * 1024)
 
