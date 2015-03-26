@@ -198,8 +198,7 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		g_hash_table_destroy(options);
 	if (channels)
 		g_hash_table_destroy(channels);
-	if (pd_name)
-		g_free(pd_name);
+	g_free(pd_name);
 
 	return ret;
 }

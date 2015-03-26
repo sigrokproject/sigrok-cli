@@ -332,8 +332,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 		if (o) {
 			sr_output_free(o);
-			if (srzip_and_filename)
-				g_free(srzip_and_filename);
+			g_free(srzip_and_filename);
 		}
 		o = NULL;
 
