@@ -53,7 +53,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		}
 	} else if (config_key_has_cap(driver, sdi, NULL, SR_CONF_SAMPLERATE,
 			SR_CONF_GET | SR_CONF_SET)) {
-		/* Convert to samples based on the samplerate.  */
+		/* Convert to samples based on the samplerate. */
 		sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE, &gvar);
 		samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
@@ -171,7 +171,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	driver = sr_dev_inst_driver_get(sdi);
 
 	/* If the first packet to come in isn't a header, don't even try. */
-	if (packet->type != SR_DF_HEADER && o == NULL)
+	if (packet->type != SR_DF_HEADER && !o)
 		return;
 
 	session = cb_data;
@@ -371,7 +371,7 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	}
 	src->key = srci->key;
 
-	if ((value == NULL || strlen(value) == 0) &&
+	if ((!value || strlen(value) == 0) &&
 		(srci->datatype != SR_T_BOOL)) {
 		g_critical("Option '%s' needs a value.", (char *)key);
 		return -1;
