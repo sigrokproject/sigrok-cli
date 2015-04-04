@@ -31,7 +31,7 @@
 #define SAVE_CHUNK_SIZE (512 * 1024)
 
 /* main.c */
-struct sr_context *sr_ctx;
+extern struct sr_context *sr_ctx;
 int select_channels(struct sr_dev_inst *sdi);
 gboolean config_key_has_cap(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,

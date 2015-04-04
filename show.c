@@ -78,7 +78,7 @@ void show_version(void)
 #endif
 
 	printf("Supported hardware drivers:\n");
-	drivers = sr_driver_list();
+	drivers = sr_driver_list(sr_ctx);
 	for (sl = NULL, i = 0; drivers[i]; i++)
 		sl = g_slist_append(sl, drivers[i]);
 	sl = g_slist_sort(sl, sort_drivers);

@@ -22,8 +22,6 @@
 #include "sigrok-cli.h"
 #include "config.h"
 
-extern struct sr_context *sr_ctx;
-
 static void free_drvopts(struct sr_config *src)
 {
 	g_variant_unref(src->data);
@@ -44,7 +42,7 @@ GSList *device_scan(void)
 	} else {
 		/* No driver specified, let them all scan on their own. */
 		devices = NULL;
-		drivers = sr_driver_list();
+		drivers = sr_driver_list(sr_ctx);
 		for (i = 0; drivers[i]; i++) {
 			driver = drivers[i];
 			if (sr_driver_init(sr_ctx, driver) != SR_OK) {

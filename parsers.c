@@ -24,8 +24,6 @@
 #include <glib.h>
 #include "sigrok-cli.h"
 
-extern struct sr_context *sr_ctx;
-
 struct sr_channel *find_channel(GSList *channellist, const char *channelname)
 {
 	struct sr_channel *ch;
@@ -415,7 +413,7 @@ int parse_driver(char *arg, struct sr_dev_driver **driver, GSList **drvopts)
 	drvname = g_strdup(g_hash_table_lookup(drvargs, "sigrok_key"));
 	g_hash_table_remove(drvargs, "sigrok_key");
 	*driver = NULL;
-	drivers = sr_driver_list();
+	drivers = sr_driver_list(sr_ctx);
 	for (i = 0; drivers[i]; i++) {
 		if (strcmp(drivers[i]->name, drvname))
 			continue;
