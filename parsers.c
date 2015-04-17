@@ -408,6 +408,9 @@ int parse_driver(char *arg, struct sr_dev_driver **driver, GSList **drvopts)
 	int i;
 	char *drvname;
 
+	if (!arg)
+		return FALSE;
+
 	drvargs = parse_generic_arg(arg, TRUE);
 
 	drvname = g_strdup(g_hash_table_lookup(drvargs, "sigrok_key"));
