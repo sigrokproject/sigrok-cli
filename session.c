@@ -25,7 +25,6 @@
 
 static uint64_t limit_samples = 0;
 static uint64_t limit_frames = 0;
-static char *srzip_and_filename = NULL;
 
 #ifdef HAVE_SRD
 extern struct srd_session *srd_sess;
@@ -81,17 +80,13 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	const struct sr_option **options;
 	const struct sr_output *o;
 	GHashTable *fmtargs, *fmtopts;
-	int size;
 	char *fmtspec;
 
 	if (!opt_output_format) {
 		if (opt_output_file) {
-			size = strlen(opt_output_file) + 32;
-			srzip_and_filename = g_malloc(size);
-			snprintf(srzip_and_filename, size, "srzip:filename=%s", opt_output_file);
-			opt_output_format = srzip_and_filename;
+			opt_output_format = DEFAULT_OUTPUT_FORMAT_FILE;
 		} else {
-			opt_output_format = DEFAULT_OUTPUT_FORMAT;
+			opt_output_format = DEFAULT_OUTPUT_FORMAT_NOFILE;
 		}
 	}
 
@@ -107,7 +102,8 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 		sr_output_options_free(options);
 	} else
 		fmtopts = NULL;
-	o = sr_output_new(omod, fmtopts, sdi);
+	o = sr_output_new(omod, fmtopts, sdi, opt_output_file);
+
 	if (fmtopts)
 		g_hash_table_destroy(fmtopts);
 	g_hash_table_destroy(fmtargs);
@@ -182,7 +178,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			g_critical("Failed to initialize output module.");
 
 		/* Set up backup analog output module. */
-		oa = sr_output_new(sr_output_find("analog"), NULL, sdi);
+		oa = sr_output_new(sr_output_find("analog"), NULL, sdi, NULL);
 
 		if (opt_output_file)
 			outfile = g_fopen(opt_output_file, "wb");
@@ -330,10 +326,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END.");
 
-		if (o) {
+		if (o)
 			sr_output_free(o);
-			g_free(srzip_and_filename);
-		}
 		o = NULL;
 
 		sr_output_free(oa);
