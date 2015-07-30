@@ -180,10 +180,24 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		/* Set up backup analog output module. */
 		oa = sr_output_new(sr_output_find("analog"), NULL, sdi, NULL);
 
-		if (opt_output_file)
-			outfile = g_fopen(opt_output_file, "wb");
-		else
+		/*
+		 * Don't open a file when using the "srzip" output format.
+		 * The srzip output module does open/write/rename/close
+		 * on its own. This is especially important on Windows since
+		 * libzip (used by srzip) will try to rename a temporary
+		 * ZIP file to the final *.sr filename as specified by
+		 * the sigrok-cli user. However, on Windows file renames
+		 * of files that are already opened by any process are not
+		 * possible. Thus, we don't open the *.sr file here,
+		 * but rather let srzip perform all file operations.
+		 */
+		if (opt_output_file) {
+			/* Only open the file if output format != srzip. */
+			if (!g_str_has_prefix(opt_output_format, "srzip"))
+				outfile = g_fopen(opt_output_file, "wb");
+		} else {
 			outfile = stdout;
+		}
 
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
@@ -299,7 +313,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 	}
 
-	if (o && outfile && !opt_pds) {
+	if (o && (outfile || g_str_has_prefix(opt_output_format, "srzip")) && !opt_pds) {
 		if (sr_output_send(o, packet, &out) == SR_OK) {
 			if (!out || (out->len == 0
 					&& !opt_output_format
