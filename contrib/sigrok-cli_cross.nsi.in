@@ -170,6 +170,16 @@ Section "@PACKAGE_NAME@ (required)" Section1
 		"$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0 \
 		SW_SHOWNORMAL "" "Uninstall @PACKAGE_NAME@"
 
+	# Create a shortcut for the Zadig executable.
+	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig.lnk" \
+		"$INSTDIR\zadig.exe" "" "$INSTDIR\zadig.exe" 0 \
+		SW_SHOWNORMAL "" "Zadig"
+
+	# Create a shortcut for the Zadig executable (for Win XP).
+	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (Win XP).lnk" \
+		"$INSTDIR\zadig_xp.exe" "" "$INSTDIR\zadig_xp.exe" 0 \
+		SW_SHOWNORMAL "" "Zadig (Win XP)"
+
 	# Create registry keys for "Add/remove programs" in the control panel.
 	WriteRegStr HKLM "${REGSTR}" "DisplayName" "@PACKAGE_STRING@"
 	WriteRegStr HKLM "${REGSTR}" "UninstallString" \
@@ -232,6 +242,8 @@ Section "Uninstall"
 	# Delete the links from the start menu.
 	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\sigrok command-line tool.lnk"
 	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Uninstall.lnk"
+	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig.lnk"
+	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (Win XP).lnk"
 
 	# Delete the sub-directory in the start menu.
 	RMDir "$SMPROGRAMS\sigrok\@PACKAGE_NAME@"
