@@ -74,7 +74,7 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
+const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi, FILE **outfile)
 {
 	const struct sr_output_module *omod;
 	const struct sr_option **options;
@@ -103,6 +103,15 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi)
 	} else
 		fmtopts = NULL;
 	o = sr_output_new(omod, fmtopts, sdi, opt_output_file);
+
+	if (opt_output_file) {
+		if (!sr_output_test_flag(omod, SR_OUTPUT_INTERNAL_IO_HANDLING))
+			*outfile = g_fopen(opt_output_file, "wb");
+		else
+			*outfile = NULL;
+	} else {
+		*outfile = stdout;
+	}
 
 	if (fmtopts)
 		g_hash_table_destroy(fmtopts);
@@ -174,30 +183,11 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		g_debug("cli: Received SR_DF_HEADER.");
-		if (!(o = setup_output_format(sdi)))
+		if (!(o = setup_output_format(sdi, &outfile)))
 			g_critical("Failed to initialize output module.");
 
 		/* Set up backup analog output module. */
 		oa = sr_output_new(sr_output_find("analog"), NULL, sdi, NULL);
-
-		/*
-		 * Don't open a file when using the "srzip" output format.
-		 * The srzip output module does open/write/rename/close
-		 * on its own. This is especially important on Windows since
-		 * libzip (used by srzip) will try to rename a temporary
-		 * ZIP file to the final *.sr filename as specified by
-		 * the sigrok-cli user. However, on Windows file renames
-		 * of files that are already opened by any process are not
-		 * possible. Thus, we don't open the *.sr file here,
-		 * but rather let srzip perform all file operations.
-		 */
-		if (opt_output_file) {
-			/* Only open the file if output format != srzip. */
-			if (!g_str_has_prefix(opt_output_format, "srzip"))
-				outfile = g_fopen(opt_output_file, "wb");
-		} else {
-			outfile = stdout;
-		}
 
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
@@ -313,7 +303,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 	}
 
-	if (o && (outfile || g_str_has_prefix(opt_output_format, "srzip")) && !opt_pds) {
+	if (o && !opt_pds) {
 		if (sr_output_send(o, packet, &out) == SR_OK) {
 			if (!out || (out->len == 0
 					&& !opt_output_format
@@ -324,7 +314,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 				 */
 				sr_output_send(oa, packet, &out);
 			}
-			if (out && out->len > 0) {
+			if (outfile && out && out->len > 0) {
 				fwrite(out->str, 1, out->len, outfile);
 				fflush(outfile);
 			}
