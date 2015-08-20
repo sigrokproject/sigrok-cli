@@ -214,7 +214,6 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 	void *channel_target;
 	struct sr_channel *ch;
 	GHashTableIter iter;
-	int num_channels;
 
 	channel_map = value;
 	channel_list = user_data;
@@ -245,8 +244,7 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 		g_hash_table_insert(channel_indices, g_strdup(channel_id), var);
 	}
 
-	num_channels = g_slist_length(channel_list);
-	srd_inst_channel_set_all(di, channel_indices, (num_channels + 7) / 8);
+	srd_inst_channel_set_all(di, channel_indices);
 }
 
 void map_pd_channels(struct sr_dev_inst *sdi)

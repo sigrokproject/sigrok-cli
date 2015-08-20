@@ -281,7 +281,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		if (opt_pds) {
 #ifdef HAVE_SRD
 			if (srd_session_send(srd_sess, rcvd_samples_logic, end_sample,
-					logic->data, input_len) != SRD_OK)
+					logic->data, input_len, logic->unitsize) != SRD_OK)
 				sr_session_stop(session);
 #endif
 		}
