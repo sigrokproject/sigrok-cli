@@ -263,19 +263,20 @@ void show_dev_detail(void)
 {
 	struct sr_dev_driver *driver_from_opt, *driver;
 	struct sr_dev_inst *sdi;
-	const struct sr_config_info *srci;
+	const struct sr_key_info *srci, *srmqi, *srmqfi;
 	struct sr_channel *ch;
 	struct sr_channel_group *channel_group, *cg;
 	GSList *devices, *cgl, *chl, *channel_groups;
-	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
+	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar, *element;
 	gsize num_opts, num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
 	const uint64_t *uint64, p, q, low, high;
-	uint64_t tmp_uint64, cur_low, cur_high, cur_p, cur_q;
+	uint64_t tmp_uint64, mask, cur_low, cur_high, cur_p, cur_q;
 	const uint32_t *opts;
 	const int32_t *int32;
-	uint32_t key, o;
-	unsigned int num_devices, i;
+	uint32_t key, o, cur_mq, mq;
+	uint64_t cur_mqflags, mqflags;
+	unsigned int num_devices, i, j;
 	char *tmp_str, *s, c;
 	const char **stropts;
 
@@ -620,6 +621,48 @@ void show_dev_detail(void)
 				printf("      %s", s);
 				g_free(s);
 				if (p == cur_p && q == cur_q)
+					printf(" (current)");
+				printf("\n");
+			}
+			g_variant_unref(gvar_list);
+
+		} else if (srci->datatype == SR_T_MQLIST) {
+			printf("    %s: ", srci->id);
+			if (maybe_config_get(driver, sdi, channel_group, key,
+					&gvar) == SR_OK
+					&& g_variant_is_of_type(gvar, G_VARIANT_TYPE_ARRAY)
+					&& g_variant_n_children(gvar) == 1) {
+				element = g_variant_get_child_value(gvar, 0);
+				g_variant_get(element, "(ut)", &cur_mq, &cur_mqflags);
+				g_variant_unref(element);
+				g_variant_unref(gvar);
+			} else
+				cur_mq = cur_mqflags = 0;
+
+			if (maybe_config_list(driver, sdi, channel_group,
+					key, &gvar_list) != SR_OK) {
+				printf("\n");
+				continue;
+			}
+			printf(" - supported measurements:\n");
+			num_elements = g_variant_n_children(gvar_list);
+			for (i = 0; i < num_elements; i++) {
+				printf("      ");
+				gvar = g_variant_get_child_value(gvar_list, i);
+				g_variant_get(gvar, "(ut)", &mq, &mqflags);
+				if ((srmqi = sr_key_info_get(SR_KEY_MQ, mq)))
+					printf("%s", srmqi->id);
+				else
+					printf("%d", mq);
+				for (j = 0, mask = 1; j < 32; j++, mask <<= 1) {
+					if (!(mqflags & mask))
+						continue;
+					if ((srmqfi = sr_key_info_get(SR_KEY_MQFLAGS, mqflags & mask)))
+						printf("/%s", srmqfi->id);
+					else
+						printf("/%ld", mqflags & mask);
+				}
+				if (mq == cur_mq && mqflags == cur_mqflags)
 					printf(" (current)");
 				printf("\n");
 			}
