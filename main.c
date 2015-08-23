@@ -136,7 +136,7 @@ static void get_option(void)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_channel_group *cg;
-	const struct sr_config_info *ci;
+	const struct sr_key_info *ci;
 	GSList *devices;
 	GVariant *gvar;
 	GHashTable *devargs;
@@ -159,7 +159,7 @@ static void get_option(void)
 	}
 
 	cg = select_channel_group(sdi);
-	if (!(ci = sr_config_info_name_get(opt_get)))
+	if (!(ci = sr_key_info_name_get(SR_KEY_CONFIG, opt_get)))
 		g_critical("Unknown option '%s'", opt_get);
 
 	if ((devargs = parse_generic_arg(opt_config, FALSE)))

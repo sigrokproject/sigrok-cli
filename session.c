@@ -354,7 +354,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 int opt_to_gvar(char *key, char *value, struct sr_config *src)
 {
-	const struct sr_config_info *srci;
+	const struct sr_key_info *srci;
 	double tmp_double, dlow, dhigh;
 	uint64_t tmp_u64, p, q, low, high;
 	GVariant *rational[2], *range[2];
@@ -363,7 +363,7 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	gchar **keyval;
 	int ret;
 
-	if (!(srci = sr_config_info_name_get(key))) {
+	if (!(srci = sr_key_info_name_get(SR_KEY_CONFIG, key))) {
 		g_critical("Unknown device option '%s'.", (char *) key);
 		return -1;
 	}

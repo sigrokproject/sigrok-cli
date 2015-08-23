@@ -223,7 +223,7 @@ void show_dev_list(void)
 
 void show_drv_detail(struct sr_dev_driver *driver)
 {
-	const struct sr_config_info *srci;
+	const struct sr_key_info *srci;
 	GVariant *gvar_opts;
 	const uint32_t *opts;
 	gsize num_elements, i;
@@ -235,7 +235,7 @@ void show_drv_detail(struct sr_dev_driver *driver)
 		if (num_elements) {
 			printf("Driver functions:\n");
 			for (i = 0; i < num_elements; i++) {
-				if (!(srci = sr_config_info_get(opts[i] & SR_CONF_MASK)))
+				if (!(srci = sr_key_info_get(SR_KEY_CONFIG, opts[i] & SR_CONF_MASK)))
 					continue;
 				printf("    %s\n", srci->name);
 			}
@@ -250,7 +250,7 @@ void show_drv_detail(struct sr_dev_driver *driver)
 		if (num_elements) {
 			printf("Scan options:\n");
 			for (i = 0; i < num_elements; i++) {
-				if (!(srci = sr_config_info_get(opts[i] & SR_CONF_MASK)))
+				if (!(srci = sr_key_info_get(SR_KEY_CONFIG, opts[i] & SR_CONF_MASK)))
 					continue;
 				printf("    %s\n", srci->id);
 			}
@@ -345,7 +345,7 @@ void show_dev_detail(void)
 	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
 	for (o = 0; o < num_opts; o++) {
 		key = opts[o] & SR_CONF_MASK;
-		if (!(srci = sr_config_info_get(key)))
+		if (!(srci = sr_key_info_get(SR_KEY_CONFIG, key)))
 			continue;
 
 		if (key == SR_CONF_TRIGGER_MATCH) {
