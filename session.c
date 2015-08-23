@@ -358,7 +358,7 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	double tmp_double, dlow, dhigh;
 	uint64_t tmp_u64, p, q, low, high, mqflags;
 	uint32_t mq;
-	GVariant *rational[2], *range[2], *gvar, *gtup[2];
+	GVariant *rational[2], *range[2], *gtup[2];
 	GVariantBuilder *vbl;
 	gboolean tmp_bool;
 	gchar **keyval;
@@ -453,7 +453,7 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 			g_strfreev(keyval);
 		}
 		break;
-	case SR_T_MQLIST:
+	case SR_T_MQ:
 		/*
 		  Argument is MQ id e.g. ("voltage") optionally followed by one
 		  or more /<mqflag> e.g. "/ac".
@@ -475,12 +475,9 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 		}
 		g_strfreev(keyval);
 		if (ret != -1) {
-			vbl = g_variant_builder_new(G_VARIANT_TYPE_ARRAY);
 			gtup[0] = g_variant_new_uint32(mq);
 			gtup[1] = g_variant_new_uint64(mqflags);
-			gvar = g_variant_new_tuple(gtup, 2);
-			g_variant_builder_add_value(vbl, gvar);
-			src->data = g_variant_builder_end(vbl);
+			src->data = g_variant_new_tuple(gtup, 2);
 		}
 		break;
 	default:

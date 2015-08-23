@@ -267,7 +267,7 @@ void show_dev_detail(void)
 	struct sr_channel *ch;
 	struct sr_channel_group *channel_group, *cg;
 	GSList *devices, *cgl, *chl, *channel_groups;
-	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar, *element;
+	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
 	gsize num_opts, num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
 	const uint64_t *uint64, p, q, low, high;
@@ -626,15 +626,13 @@ void show_dev_detail(void)
 			}
 			g_variant_unref(gvar_list);
 
-		} else if (srci->datatype == SR_T_MQLIST) {
+		} else if (srci->datatype == SR_T_MQ) {
 			printf("    %s: ", srci->id);
 			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK
-					&& g_variant_is_of_type(gvar, G_VARIANT_TYPE_ARRAY)
-					&& g_variant_n_children(gvar) == 1) {
-				element = g_variant_get_child_value(gvar, 0);
-				g_variant_get(element, "(ut)", &cur_mq, &cur_mqflags);
-				g_variant_unref(element);
+					&& g_variant_is_of_type(gvar, G_VARIANT_TYPE_TUPLE)
+					&& g_variant_n_children(gvar) == 2) {
+				g_variant_get(gvar, "(ut)", &cur_mq, &cur_mqflags);
 				g_variant_unref(gvar);
 			} else
 				cur_mq = cur_mqflags = 0;
