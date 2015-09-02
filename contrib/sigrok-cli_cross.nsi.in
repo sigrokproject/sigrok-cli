@@ -54,7 +54,7 @@ RequestExecutionLevel admin
 # --- MUI interface configuration ---------------------------------------------
 
 # Use the following icon for the installer EXE file.
-!define MUI_ICON "sigrok-logo-notext.ico"
+!define MUI_ICON "@top_srcdir@/contrib/sigrok-logo-notext.ico"
 
 # Show a nice image at the top of each installer page.
 !define MUI_HEADERIMAGE
@@ -72,11 +72,7 @@ RequestExecutionLevel admin
 
 # Path where the cross-compiled sigrok tools and libraries are located.
 # Change this to where-ever you installed libsigrok.a and so on.
-!define CROSS "$%HOME%/sr_mingw"
-
-# Path where the cross-compiled MXE tools and libraries are located.
-# Change this to where-ever you installed MXE (and the files it built).
-!define MXE "$%HOME%/mxe-git/usr/i686-pc-mingw32"
+!define CROSS "@prefix@"
 
 
 # --- MUI pages ---------------------------------------------------------------
@@ -85,7 +81,7 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_WELCOME
 
 # Show the license of the project.
-!insertmacro MUI_PAGE_LICENSE "../COPYING"
+!insertmacro MUI_PAGE_LICENSE "@top_srcdir@/COPYING"
 
 # Show a screen which allows the user to select which components to install.
 !insertmacro MUI_PAGE_COMPONENTS
@@ -123,7 +119,7 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	SetOutPath "$INSTDIR"
 
 	# License file.
-	File "../COPYING"
+	File "@top_srcdir@/COPYING"
 
 	# sigrok-cli.exe.
 	File "${CROSS}/bin/@PACKAGE_NAME@.exe"
