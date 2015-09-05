@@ -1,41 +1,30 @@
 # autotools cruft
-aclocal.m4
-autom4te.cache/
-compile
-config.guess
-config.h
-config.h.in
-config.log
-config.status
-config.sub
-configure
-depcomp
-libtool
-ltmain.sh
-install-sh
-map
-missing
-stamp-h1
-autostuff/
-ChangeLog
-INSTALL
+/INSTALL
+/Makefile.in
+/aclocal.m4
+/autom4te.cache/
+/autostuff/
+/configure
+/configure.lineno
 
-# recursive autoconf leftovers
-.deps
-Makefile
-Makefile.in
-
-# build leftovers
+# Editor/IDE cruft
+*.kate-swp
 *~
-*.o
-*.a
-*.lo
-*.la
-.libs/
-*.pc
+/*.kdev4
+/Makefile.am.user
 
-sigrok-cli
-sigrok-cli.exe
-contrib/sigrok-cli.nsi
-contrib/sigrok-cli_cross.nsi
-contrib/sigrok-cli-installer*.exe
+# Configure/build cruft
+*.[ao]
+*.l[ao]
+.deps/
+.dirstamp
+.libs/
+/ChangeLog
+/Makefile
+/config.*
+/contrib/sigrok-cli-*-installer.exe
+/contrib/sigrok-cli_cross.nsi
+/sigrok-cli
+/sigrok-cli-*.tar.*
+/sigrok-cli.exe
+/stamp-h?
