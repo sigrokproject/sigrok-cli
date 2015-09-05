@@ -76,7 +76,7 @@ struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 
 	for (l = channel_groups; l; l = l->next) {
 		cg = l->data;
-		if (!strcasecmp(opt_channel_group, cg->name)) {
+		if (!g_ascii_strcasecmp(opt_channel_group, cg->name)) {
 			return cg;
 		}
 	}
