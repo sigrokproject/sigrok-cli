@@ -20,97 +20,101 @@
 # We require at least autoconf 2.63 (AC_INIT format changed there).
 AC_PREREQ([2.63])
 
-AC_INIT([sigrok-cli], [0.6.0-git], [sigrok-devel@lists.sourceforge.net],
+AC_INIT([sigrok-cli], [0.6.0], [sigrok-devel@lists.sourceforge.net],
 	[sigrok-cli], [http://www.sigrok.org])
-
 AC_CONFIG_SRCDIR([sigrok-cli.h])
-
-AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_MACRO_DIR([autostuff])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([autostuff])
+AC_CONFIG_HEADERS([config.h])
 
 # We require at least automake 1.11 (needed for 'silent rules').
-AM_INIT_AUTOMAKE([1.11 -Wall -Werror std-options check-news])
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+AM_INIT_AUTOMAKE([1.11 -Wall -Werror no-define std-options check-news])
+AM_SILENT_RULES([yes])
 
 AH_TOP([#ifndef SIGROK_CLI_CONFIG_H
 #define SIGROK_CLI_CONFIG_H    /* To stop multiple inclusions. */])
 AH_BOTTOM([#endif /* SIGROK_CLI_CONFIG_H */])
 
-# Enable more compiler warnings via -Wall and -Wextra.
-CFLAGS="$CFLAGS -Wall -Wextra"
+AC_CANONICAL_HOST
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_CPP
 AC_PROG_INSTALL
-AC_PROG_LN_S
 
-# Initialize libtool.
-LT_INIT
+# Get compiler versions.
+SR_PROG_VERSION([$CC], [sc_cc_version])
+
+# Set up the sigrok-cli version defines.
+SR_PKG_VERSION_SET([SC_PACKAGE_VERSION], [AC_PACKAGE_VERSION])
+
+#############################
+##  Optional dependencies  ##
+#############################
 
 # Initialize pkg-config.
 # We require at least 0.22, as "Requires.private" behaviour changed there.
 PKG_PROG_PKG_CONFIG([0.22])
 
-# Checks for libraries.
-AC_ARG_WITH([libsigrokdecode],
-	AS_HELP_STRING([--with-libsigrokdecode],
-			[compile with libsigrokdecode support]),
-	[WITH_SRD=$withval],[WITH_SRD=yes])
-AM_CONDITIONAL(WITH_SRD, test x$WITH_SRD = xyes)
+# Keep track of all checked modules so we can list them at the end.
+SR_PKG_CHECK_SUMMARY([sc_pkglibs_summary])
 
-AM_PATH_GLIB_2_0([2.28.0],
-	[CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
+# Collect the pkg-config module names of all dependencies.
+SR_VAR_OPT_PKG([SC_PKGLIBS])
 
-PKG_CHECK_MODULES([libsigrok], [libsigrok >= 0.4.0],
-	[CFLAGS="$CFLAGS $libsigrok_CFLAGS";
-	LIBS="$LIBS $libsigrok_LIBS"])
+SR_ARG_OPT_PKG([libsigrokdecode], [SRD],,
+	[libsigrokdecode >= 0.4.0])
 
-if test "x$WITH_SRD" = "xyes"; then
-	PKG_CHECK_MODULES([libsigrokdecode], [libsigrokdecode >= 0.4.0],
-		[CFLAGS="$CFLAGS $libsigrokdecode_CFLAGS";
-			LIBS="$LIBS $libsigrokdecode_LIBS";
-			AC_DEFINE(HAVE_SRD, [1], [libsigrokdecode is available.])]
-	)
-fi
+######################
+##  Feature checks  ##
+######################
 
-# Checks for header files.
-# These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
+AC_LANG([C])
 
-AC_SUBST(MAKEFLAGS, '--no-print-directory')
-AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
+# Enable the C99 standard if possible.
+SC_EXTRA_CFLAGS=
+SR_CHECK_COMPILE_FLAGS([SC_EXTRA_CFLAGS], [C99],
+	[-std=c99 -c99 -AC99 -qlanglvl=extc99])
+
+SR_ARG_ENABLE_WARNINGS([SC_WFLAGS], [-Wall], [-Wall -Wextra])
+
+# Check host characteristics.
+AC_SYS_LARGEFILE
+
+##############################
+##  Finalize configuration  ##
+##############################
+
+# Retrieve the compile and link flags for all modules combined.
+# Also, bail out at this point if any module dependency is not met.
+PKG_CHECK_MODULES([SIGROK_CLI],
+	[glib-2.0 >= 2.28.0 libsigrok >= 0.4.0 $SC_PKGLIBS])
+
+sc_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
+sc_libsigrok_version=`$PKG_CONFIG --modversion libsigrok 2>&AS_MESSAGE_LOG_FD`
 
 AC_CONFIG_FILES([Makefile contrib/sigrok-cli_cross.nsi])
 
 AC_OUTPUT
 
-echo
-echo "sigrok-cli configuration summary:"
-echo
-echo "  - Package version: $VERSION"
-echo "  - Prefix: $prefix"
-echo "  - Building on: $build"
-echo "  - Building for: $host"
-echo
-echo "Detected libraries:"
-echo
+cat >&AS_MESSAGE_FD <<_EOF
 
-# Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.28.0" "libsigrok >= 0.4.0" "libsigrokdecode >= 0.4.0"; do
-	if test "$lib" = "libsigrokdecode" -a "$WITH_SRD" != "yes" ; then
-		answer="no"
-	else
-		if `$PKG_CONFIG --exists $lib`; then
-			ver=`$PKG_CONFIG --modversion $lib`
-			answer="yes ($ver)"
-		else
-			answer="no"
-		fi
-	fi
-	echo "  - (REQUIRED) $lib: $answer"
-done
+sigrok-cli configuration summary:
+ - Package version................. $SC_PACKAGE_VERSION
+ - Prefix.......................... $prefix
+ - Building on..................... $build
+ - Building for.................... $host
 
-echo
+Compile configuration:
+ - C compiler...................... $CC
+ - C compiler version.............. $sc_cc_version
+ - C compiler flags................ $CFLAGS
+ - Additional C compiler flags..... $SC_EXTRA_CFLAGS
+ - C compiler warnings............. $SC_WFLAGS
 
+Detected libraries (required):
+ - glib-2.0 >= 2.28.0.............. $sc_glib_version
+ - libsigrok >= 0.4.0.............. $sc_libsigrok_version
+
+Detected libraries (optional):
+$sc_pkglibs_summary
+_EOF

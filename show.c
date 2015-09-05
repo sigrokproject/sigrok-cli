@@ -68,7 +68,7 @@ void show_version(void)
 	struct srd_decoder *dec;
 #endif
 
-	printf("sigrok-cli %s\n\n", VERSION);
+	printf("sigrok-cli %s\n\n", SC_PACKAGE_VERSION_STRING);
 
 	printf("Using libsigrok %s (lib version %s).\n",
 	       sr_package_version_string_get(), sr_lib_version_string_get());

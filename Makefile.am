@@ -17,7 +17,11 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-ACLOCAL_AMFLAGS = -I autostuff
+ACLOCAL_AMFLAGS = -I m4
+GNUMAKEFLAGS = --no-print-directory
+
+AM_CPPFLAGS = -D_POSIX_C_SOURCE=200112L
+AM_CFLAGS = $(SC_EXTRA_CFLAGS) $(SC_WFLAGS) $(SIGROK_CLI_CFLAGS)
 
 bin_PROGRAMS = sigrok-cli
 
@@ -33,9 +37,11 @@ sigrok_cli_SOURCES = \
 	anykey.c \
 	options.c
 
+sigrok_cli_LDADD = $(SIGROK_CLI_LIBS)
+
 dist_man_MANS = doc/sigrok-cli.1
 
-EXTRA_DIST = contrib/sigrok-cli_cross.nsi contrib/sigrok-logo-notext.ico
+EXTRA_DIST = contrib/sigrok-logo-notext.ico
 
 MAINTAINERCLEANFILES = ChangeLog
 

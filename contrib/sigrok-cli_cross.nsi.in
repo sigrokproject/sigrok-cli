@@ -38,7 +38,7 @@
 Name "@PACKAGE_NAME@"
 
 # Filename of the installer executable.
-OutFile "@PACKAGE_NAME@-@PACKAGE_VERSION@-installer.exe"
+OutFile "@PACKAGE_NAME@-@SC_PACKAGE_VERSION@-installer.exe"
 
 # Where to install the application.
 InstallDir "$PROGRAMFILES\sigrok\@PACKAGE_NAME@"
@@ -189,7 +189,7 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	WriteRegStr HKLM "${REGSTR}" "URLUpdateInfo" \
 		"http://sigrok.org/wiki/Downloads"
 	WriteRegStr HKLM "${REGSTR}" "URLInfoAbout" "http://sigrok.org"
-	WriteRegStr HKLM "${REGSTR}" "DisplayVersion" "@PACKAGE_VERSION@"
+	WriteRegStr HKLM "${REGSTR}" "DisplayVersion" "@SC_PACKAGE_VERSION@"
 	WriteRegStr HKLM "${REGSTR}" "Contact" \
 		"sigrok-devel@lists.sourceforge.org"
 	WriteRegStr HKLM "${REGSTR}" "Comments" \
