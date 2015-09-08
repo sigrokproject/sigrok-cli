@@ -606,6 +606,7 @@ void run_session(void)
 		return;
 	}
 
+	trigger = NULL;
 	if (opt_triggers) {
 		if (!parse_triggerstring(sdi, opt_triggers, &trigger)) {
 			sr_session_destroy(session);
@@ -693,6 +694,9 @@ void run_session(void)
 
 	if (opt_continuous)
 		clear_anykey();
+
+	if (trigger)
+		sr_trigger_free(trigger);
 
 	sr_session_datafeed_callback_remove_all(session);
 	sr_session_destroy(session);
