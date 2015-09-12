@@ -658,7 +658,7 @@ void show_dev_detail(void)
 					if ((srmqfi = sr_key_info_get(SR_KEY_MQFLAGS, mqflags & mask)))
 						printf("/%s", srmqfi->id);
 					else
-						printf("/%ld", mqflags & mask);
+						printf("/%" PRIu64, mqflags & mask);
 				}
 				if (mq == cur_mq && mqflags == cur_mqflags)
 					printf(" (current)");
