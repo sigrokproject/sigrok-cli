@@ -31,15 +31,17 @@ AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror no-define std-options check-news])
 AM_SILENT_RULES([yes])
 
-AH_TOP([#ifndef SIGROK_CLI_CONFIG_H
-#define SIGROK_CLI_CONFIG_H    /* To stop multiple inclusions. */])
-AH_BOTTOM([#endif /* SIGROK_CLI_CONFIG_H */])
-
 AC_CANONICAL_HOST
 
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
+
+# Set the standard the C library headers should conform to.
+AH_VERBATIM([_POSIX_C_SOURCE], [/* The targeted POSIX standard. */
+#ifndef _POSIX_C_SOURCE
+# define _POSIX_C_SOURCE 200112L
+#endif])
 
 # Get compiler versions.
 SR_PROG_VERSION([$CC], [sc_cc_version])
