@@ -74,7 +74,7 @@ static void load_input_file_module(void)
 			g_hash_table_destroy(mod_args);
 		if ((fd = open(opt_input_file, O_RDONLY)) == -1)
 			g_critical("Failed to load %s: %s.", opt_input_file,
-					strerror(errno));
+					g_strerror(errno));
 	} else {
 		if (strcmp(opt_input_file, "-")) {
 			/*
@@ -96,11 +96,11 @@ static void load_input_file_module(void)
 			} else {
 				if ((fd = open(opt_input_file, O_RDONLY)) == -1)
 					g_critical("Failed to load %s: %s.", opt_input_file,
-							strerror(errno));
+							g_strerror(errno));
 			}
 			if ((len = read(fd, buf->str, BUFSIZE)) < 1)
 				g_critical("Failed to read %s: %s.", opt_input_file,
-						strerror(errno));
+						g_strerror(errno));
 			buf->len = len;
 			sr_input_scan_buffer(buf, &in);
 		}
@@ -115,7 +115,7 @@ static void load_input_file_module(void)
 		g_string_truncate(buf, 0);
 		len = read(fd, buf->str, BUFSIZE);
 		if (len < 0)
-			g_critical("Read failed: %s", strerror(errno));
+			g_critical("Read failed: %s", g_strerror(errno));
 		if (len == 0)
 			/* End of file or stream. */
 			break;
