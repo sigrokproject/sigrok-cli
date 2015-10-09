@@ -531,6 +531,7 @@ void run_session(void)
 	int is_demo_dev;
 	struct sr_dev_driver *driver;
 	const struct sr_transform *t;
+	GMainLoop *main_loop;
 
 	devices = device_scan();
 	if (!devices) {
@@ -682,8 +683,14 @@ void run_session(void)
 	if (!(t = setup_transform_module(sdi)))
 		g_critical("Failed to initialize transform module.");
 
+	main_loop = g_main_loop_new(NULL, FALSE);
+
+	sr_session_stopped_callback_set(session,
+		(sr_session_stopped_callback)g_main_loop_quit, main_loop);
+
 	if (sr_session_start(session) != SR_OK) {
 		g_critical("Failed to start session.");
+		g_main_loop_unref(main_loop);
 		sr_session_destroy(session);
 		return;
 	}
@@ -691,7 +698,7 @@ void run_session(void)
 	if (opt_continuous)
 		add_anykey(session);
 
-	sr_session_run(session);
+	g_main_loop_run(main_loop);
 
 	if (opt_continuous)
 		clear_anykey();
@@ -700,6 +707,6 @@ void run_session(void)
 		sr_trigger_free(trigger);
 
 	sr_session_datafeed_callback_remove_all(session);
+	g_main_loop_unref(main_loop);
 	sr_session_destroy(session);
-
 }
