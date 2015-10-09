@@ -120,13 +120,13 @@ extern gchar *opt_pd_binary;
 extern gchar *opt_input_format;
 extern gchar *opt_output_format;
 extern gchar *opt_transform_module;
-extern gchar *opt_show;
+extern gboolean opt_show;
 extern gchar *opt_time;
 extern gchar *opt_samples;
 extern gchar *opt_frames;
-extern gchar *opt_continuous;
+extern gboolean opt_continuous;
 extern gchar *opt_get;
-extern gchar *opt_set;
+extern gboolean opt_set;
 int parse_options(int argc, char **argv);
 void show_help(void);
 

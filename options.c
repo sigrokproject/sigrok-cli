@@ -42,13 +42,13 @@ gchar *opt_pd_binary = NULL;
 gchar *opt_input_format = NULL;
 gchar *opt_output_format = NULL;
 gchar *opt_transform_module = NULL;
-gchar *opt_show = NULL;
+gboolean opt_show = FALSE;
 gchar *opt_time = NULL;
 gchar *opt_samples = NULL;
 gchar *opt_frames = NULL;
-gchar *opt_continuous = NULL;
+gboolean opt_continuous = FALSE;
 gchar *opt_get = NULL;
-gchar *opt_set = NULL;
+gboolean opt_set = FALSE;
 
 /*
  * Defines a callback function that generates an error if an
