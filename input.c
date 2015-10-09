@@ -149,6 +149,7 @@ void load_input_file(void)
 	struct sr_session *session;
 	struct sr_dev_inst *sdi;
 	GSList *devices;
+	GMainLoop *main_loop;
 	int ret;
 
 	if (!strcmp(opt_input_file, "-")) {
@@ -161,18 +162,27 @@ void load_input_file(void)
 			ret = sr_session_dev_list(session, &devices);
 			if (ret != SR_OK || !devices || !devices->data) {
 				g_critical("Failed to access session device.");
+				g_slist_free(devices);
 				sr_session_destroy(session);
 				return;
 			}
 			sdi = devices->data;
+			g_slist_free(devices);
 			if (select_channels(sdi) != SR_OK) {
 				sr_session_destroy(session);
 				return;
 			}
+			main_loop = g_main_loop_new(NULL, FALSE);
+
 			sr_session_datafeed_callback_add(session, datafeed_in, NULL);
-			sr_session_start(session);
-			sr_session_run(session);
-			sr_session_stop(session);
+			sr_session_stopped_callback_set(session,
+				(sr_session_stopped_callback)g_main_loop_quit,
+				main_loop);
+			if (sr_session_start(session) == SR_OK)
+				g_main_loop_run(main_loop);
+
+			g_main_loop_unref(main_loop);
+			sr_session_destroy(session);
 		} else if (ret != SR_ERR) {
 			/* It's a session file, but it didn't work out somehow. */
 			g_critical("Failed to load session file.");
