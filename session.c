@@ -45,14 +45,15 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (config_key_has_cap(driver, sdi, NULL, SR_CONF_LIMIT_MSEC, SR_CONF_SET)) {
+	if (sr_dev_config_capabilities(sdi, NULL, SR_CONF_LIMIT_MSEC)
+			& SR_CONF_SET) {
 		gvar = g_variant_new_uint64(time_msec);
 		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_MSEC, gvar) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			return SR_ERR;
 		}
-	} else if (config_key_has_cap(driver, sdi, NULL, SR_CONF_SAMPLERATE,
-			SR_CONF_GET | SR_CONF_SET)) {
+	} else if (sr_dev_config_capabilities(sdi, NULL, SR_CONF_SAMPLERATE)
+			& (SR_CONF_GET | SR_CONF_SET)) {
 		/* Convert to samples based on the samplerate. */
 		sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE, &gvar);
 		samplerate = g_variant_get_uint64(gvar);
@@ -526,8 +527,8 @@ void run_session(void)
 	struct sr_trigger *trigger;
 	struct sr_dev_inst *sdi;
 	uint64_t min_samples, max_samples;
-	gsize n_elements, i;
-	const uint32_t *dev_opts;
+	GArray *dev_opts;
+	guint i;
 	int is_demo_dev;
 	struct sr_dev_driver *driver;
 	const struct sr_transform *t;
@@ -545,20 +546,18 @@ void run_session(void)
 
 		driver = sr_dev_inst_driver_get(sdi);
 
-		if (sr_config_list(driver, sdi, NULL, SR_CONF_DEVICE_OPTIONS, &gvar) != SR_OK) {
+		if (!(dev_opts = sr_dev_options(driver, sdi, NULL))) {
 			g_critical("Failed to query list device options.");
 			return;
 		}
 
-		dev_opts = g_variant_get_fixed_array(gvar, &n_elements, sizeof(uint32_t));
-
 		is_demo_dev = 0;
-		for (i = 0; i < n_elements; i++) {
-			if (dev_opts[i] == SR_CONF_DEMO_DEV)
+		for (i = 0; i < dev_opts->len; i++) {
+			if (g_array_index(dev_opts, uint32_t, i) == SR_CONF_DEMO_DEV)
 				is_demo_dev = 1;
 		}
 
-		g_variant_unref(gvar);
+		g_array_free(dev_opts, TRUE);
 
 		if (!is_demo_dev)
 			real_devices = g_slist_append(real_devices, sdi);

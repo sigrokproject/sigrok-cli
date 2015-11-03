@@ -225,38 +225,33 @@ void show_dev_list(void)
 void show_drv_detail(struct sr_dev_driver *driver)
 {
 	const struct sr_key_info *srci;
-	GVariant *gvar_opts;
-	const uint32_t *opts;
-	gsize num_elements, i;
+	GArray *opts;
+	guint i;
 
-	if (sr_config_list(driver, NULL, NULL, SR_CONF_DEVICE_OPTIONS,
-			&gvar_opts) == SR_OK) {
-		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
-				sizeof(uint32_t));
-		if (num_elements) {
+	if ((opts = sr_dev_options(driver, NULL, NULL))) {
+		if (opts->len > 0) {
 			printf("Driver functions:\n");
-			for (i = 0; i < num_elements; i++) {
-				if (!(srci = sr_key_info_get(SR_KEY_CONFIG, opts[i] & SR_CONF_MASK)))
+			for (i = 0; i < opts->len; i++) {
+				if (!(srci = sr_key_info_get(SR_KEY_CONFIG,
+						g_array_index(opts, uint32_t, i))))
 					continue;
 				printf("    %s\n", srci->name);
 			}
 		}
-		g_variant_unref(gvar_opts);
+		g_array_free(opts, TRUE);
 	}
 
-	if (sr_config_list(driver, NULL, NULL, SR_CONF_SCAN_OPTIONS,
-			&gvar_opts) == SR_OK) {
-		opts = g_variant_get_fixed_array(gvar_opts, &num_elements,
-				sizeof(uint32_t));
-		if (num_elements) {
+	if ((opts = sr_driver_scan_options(driver))) {
+		if (opts->len > 0) {
 			printf("Scan options:\n");
-			for (i = 0; i < num_elements; i++) {
-				if (!(srci = sr_key_info_get(SR_KEY_CONFIG, opts[i] & SR_CONF_MASK)))
+			for (i = 0; i < opts->len; i++) {
+				if (!(srci = sr_key_info_get(SR_KEY_CONFIG,
+						g_array_index(opts, uint32_t, i))))
 					continue;
 				printf("    %s\n", srci->id);
 			}
 		}
-		g_variant_unref(gvar_opts);
+		g_array_free(opts, TRUE);
 	}
 }
 
@@ -268,12 +263,12 @@ void show_dev_detail(void)
 	struct sr_channel *ch;
 	struct sr_channel_group *channel_group, *cg;
 	GSList *devices, *cgl, *chl, *channel_groups;
-	GVariant *gvar_opts, *gvar_dict, *gvar_list, *gvar;
-	gsize num_opts, num_elements;
+	GVariant *gvar_dict, *gvar_list, *gvar;
+	gsize num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
 	const uint64_t *uint64, p, q, low, high;
 	uint64_t tmp_uint64, mask, cur_low, cur_high, cur_p, cur_q;
-	const uint32_t *opts;
+	GArray *opts;
 	const int32_t *int32;
 	uint32_t key, o, cur_mq, mq;
 	uint64_t cur_mqflags, mqflags;
@@ -317,8 +312,7 @@ void show_dev_detail(void)
 	select_channels(sdi);
 	channel_group = select_channel_group(sdi);
 
-	if (sr_config_list(driver, sdi, channel_group, SR_CONF_DEVICE_OPTIONS,
-			&gvar_opts) != SR_OK)
+	if (!(opts = sr_dev_options(driver, sdi, channel_group)))
 		/* Driver supports no device instance options. */
 		return;
 
@@ -344,9 +338,8 @@ void show_dev_detail(void)
 			printf(" on channel group %s", channel_group->name);
 	}
 	printf(":\n");
-	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
-	for (o = 0; o < num_opts; o++) {
-		key = opts[o] & SR_CONF_MASK;
+	for (o = 0; o < opts->len; o++) {
+		key = g_array_index(opts, uint32_t, o);
 		if (!(srci = sr_key_info_get(SR_KEY_CONFIG, key)))
 			continue;
 
@@ -393,7 +386,8 @@ void show_dev_detail(void)
 			g_variant_unref(gvar_list);
 
 		} else if (key == SR_CONF_LIMIT_SAMPLES
-				&& config_key_has_cap(driver, sdi, NULL, key, SR_CONF_LIST)) {
+				&& (sr_dev_config_capabilities(sdi, NULL, key)
+					& SR_CONF_LIST)) {
 			/*
 			 * If implemented in config_list(), this denotes the
 			 * maximum number of samples a device can send. This
@@ -673,7 +667,7 @@ void show_dev_detail(void)
 			printf("    %s\n", srci->id);
 		}
 	}
-	g_variant_unref(gvar_opts);
+	g_array_free(opts, TRUE);
 
 	sr_dev_close(sdi);
 
