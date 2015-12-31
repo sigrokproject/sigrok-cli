@@ -241,7 +241,7 @@ void show_drv_detail(struct sr_dev_driver *driver)
 		g_array_free(opts, TRUE);
 	}
 
-	if ((opts = sr_driver_scan_options(driver))) {
+	if ((opts = sr_driver_scan_options_list(driver))) {
 		if (opts->len > 0) {
 			printf("Scan options:\n");
 			for (i = 0; i < opts->len; i++) {
@@ -386,7 +386,7 @@ void show_dev_detail(void)
 			g_variant_unref(gvar_list);
 
 		} else if (key == SR_CONF_LIMIT_SAMPLES
-				&& (sr_dev_config_capabilities(sdi, NULL, key)
+				&& (sr_dev_config_capabilities_list(sdi, NULL, key)
 					& SR_CONF_LIST)) {
 			/*
 			 * If implemented in config_list(), this denotes the

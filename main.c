@@ -78,7 +78,7 @@ int maybe_config_get(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant **gvar)
 {
-	if (sr_dev_config_capabilities(sdi, cg, key) & SR_CONF_GET)
+	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_GET)
 		return sr_config_get(driver, sdi, cg, key, gvar);
 
 	return SR_ERR_NA;
@@ -90,7 +90,7 @@ int maybe_config_set(struct sr_dev_driver *driver,
 {
 	(void)driver;
 
-	if (sr_dev_config_capabilities(sdi, cg, key) & SR_CONF_SET)
+	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_SET)
 		return sr_config_set(sdi, cg, key, gvar);
 
 	return SR_ERR_NA;
@@ -100,7 +100,7 @@ int maybe_config_list(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant **gvar)
 {
-	if (sr_dev_config_capabilities(sdi, cg, key) & SR_CONF_LIST)
+	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_LIST)
 		return sr_config_list(driver, sdi, cg, key, gvar);
 
 	return SR_ERR_NA;

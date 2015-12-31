@@ -45,14 +45,14 @@ static int set_limit_time(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (sr_dev_config_capabilities(sdi, NULL, SR_CONF_LIMIT_MSEC)
+	if (sr_dev_config_capabilities_list(sdi, NULL, SR_CONF_LIMIT_MSEC)
 			& SR_CONF_SET) {
 		gvar = g_variant_new_uint64(time_msec);
 		if (sr_config_set(sdi, NULL, SR_CONF_LIMIT_MSEC, gvar) != SR_OK) {
 			g_critical("Failed to configure time limit.");
 			return SR_ERR;
 		}
-	} else if (sr_dev_config_capabilities(sdi, NULL, SR_CONF_SAMPLERATE)
+	} else if (sr_dev_config_capabilities_list(sdi, NULL, SR_CONF_SAMPLERATE)
 			& (SR_CONF_GET | SR_CONF_SET)) {
 		/* Convert to samples based on the samplerate. */
 		sr_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE, &gvar);
