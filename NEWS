@@ -1,3 +1,42 @@
+0.6.0 (2016-01-29)
+------------------
+
+ * Update sigrok-cli to the new APIs from both libsigrok 0.4.0 and also
+   libsigrokdecode 0.4.0.
+ * Updated build requirements:
+   - libglib >= 2.32.0
+   - libsigrok >= 0.4.0
+   - libsigrokdecode >= 0.4.0
+ * Fix various compiler errors/warnings.
+ * Check srd_decoder_get_by_id() output to prevent a segfault (bug #370).
+ * manpage: Document the -M and -B options.
+ * Improve option parsing code and make it more robust.
+ * Drop references to obsolete sigrok-commits mailing list.
+ * Properly handle saving logic data packets of any size.
+ * Add 'analog' output module to default output.
+ * Fix various memory leaks.
+ * Show PD annotation row members by name, not number (bug #388).
+ * Handle floating point options for output modules.
+ * If only one non-demo device is present, select it.
+ * Allow input from stdin by specifying "-i -".
+ * Support uint64 input/output module options.
+ * Command line option changes:
+   - Add the --get option.
+   - Add the -T|--transform-module option.
+ * Always save all channels to a session file (bug #410).
+ * Support boolean command line options (bug #450).
+ * NSIS:
+   - Drop libusb0.dll, we always use libusb-1.0 now.
+   - Add start menu entries for Zadig (bug #543).
+   - Install data files into a 'share' subdirectory.
+   - Various additional NSIS file improvements.
+ * Fix a runtime warning with --show (bug #520).
+ * Add "-git-<hash>" suffix to development version numbers.
+ * Fix a libzip-related issue resulting in errors writing .sr files (bug #570).
+ * Fix a unitsize related issue (bug #352).
+ * Add support for SR_T_MQLIST and SR_T_MQ.
+ * Modernize the whole autotools setup.
+
 0.5.0 (2014-05-06)
 ------------------
 
