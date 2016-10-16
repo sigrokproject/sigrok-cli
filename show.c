@@ -682,7 +682,7 @@ void show_pd_detail(void)
 	struct srd_decoder_annotation_row *r;
 	GSList *l, *ll, *ol;
 	int idx;
-	char **pdtokens, **pdtok, *optsep, **ann, *val, *doc;
+	char **pdtokens, **pdtok, *optsep, **ann, **bin, *val, *doc;
 
 	pdtokens = g_strsplit(opt_pds, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
@@ -718,6 +718,15 @@ void show_pd_detail(void)
 						printf(", ");
 				}
 				printf("\n");
+			}
+		} else {
+			printf("None.\n");
+		}
+		printf("Binary classes:\n");
+		if (dec->binary) {
+			for (l = dec->binary; l; l = l->next) {
+				bin = l->data;
+				printf("- %s: %s\n", bin[0], bin[1]);
 			}
 		} else {
 			printf("None.\n");
