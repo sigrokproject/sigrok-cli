@@ -140,7 +140,7 @@ static const GOptionEntry optargs[] = {
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},
 	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
-			"Show device detail", NULL},
+			"Show device/format/decoder details", NULL},
 	{"time", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_time,
 			"How long to sample (ms)", NULL},
 	{"samples", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_samples,
