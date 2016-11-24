@@ -238,48 +238,6 @@ protocol decoder. Additionally, the user tells sigrok to decode the SPI
 protocol using channel 1 as MISO signal for SPI, channel 5 as MOSI, channel 3
 as CLK, and channel 0 as CS# signal.
 .TP
-.BR "\-S, \-\-protocol\-decoder\-stack " <stack>
-This option allows the user to specify a protocol decoder stack, i.e.
-the way in which one protocol decoder's output gets piped into another
-protocol decoder. If not specified, the stack will be set up in the same
-order in which the protocol decoders were given with the
-.B \-\-protocol-decoders
-option.
-.sp
-The decoders are specified by their ID, as shown in the
-.B \-\-version
-output. In addition to the
-.B \-S
-option, all protocol decoders that are used in a stack, must also be specified
-(together with their options, if any) using the
-.B \-P
-parameter.
-.sp
-Example:
-.sp
- $
-.B "sigrok\-cli \-i <file.sr> \-P i2c:sda=4:scl=7,rtc8564"
-.br
-.B "              \-S i2c,rtc8564"
-.sp
-In this example, the
-.B \-S
-option specifies that the output of the
-.BR i2c " decoder"
-is piped into the
-.BR rtc8564 " decoder,"
-i.e., the
-.BR rtc8564 " decoder"
-is stacked on top of the
-.BR i2c " decoder."
-.sp
-The respective protocol decoder options and channel name/number assignments
-must be given using the
-.B \-P
-option (you cannot specify them in the
-.B \-S
-option).
-.TP
 .BR "\-A, \-\-protocol\-decoder\-annotations " <annotations>
 By default, only the stack's topmost protocol decoder's annotation output is
 shown. With this option another decoder's annotation can be selected for

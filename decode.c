@@ -261,7 +261,7 @@ void map_pd_channels(struct sr_dev_inst *sdi)
 	}
 }
 
-int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations)
+int setup_pd_stack(char *opt_pds, char *opt_pd_annotations)
 {
 	struct srd_decoder_inst *di_from, *di_to;
 	int ret, i;
@@ -270,17 +270,6 @@ int setup_pd_stack(char *opt_pds, char *opt_pd_stack, char *opt_pd_annotations)
 	/* Set up the protocol decoder stack. */
 	pds = g_strsplit(opt_pds, ",", 0);
 	if (g_strv_length(pds) > 1) {
-		if (opt_pd_stack) {
-			/* A stack setup was specified, use that. */
-			g_strfreev(pds);
-			pds = g_strsplit(opt_pd_stack, ",", 0);
-			if (g_strv_length(pds) < 2) {
-				g_strfreev(pds);
-				g_critical("Specify at least two protocol decoders to stack.");
-				return 1;
-			}
-		}
-
 		/* First PD goes at the bottom of the stack. */
 		ids = g_strsplit(pds[0], ":", 0);
 		if (!(di_from = srd_inst_find_by_id(srd_sess, ids[0]))) {

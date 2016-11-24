@@ -34,7 +34,6 @@ gchar *opt_channel_group = NULL;
 gchar *opt_triggers = NULL;
 gchar *opt_pds = NULL;
 #ifdef HAVE_SRD
-gchar *opt_pd_stack = NULL;
 gchar *opt_pd_annotations = NULL;
 gchar *opt_pd_meta = NULL;
 gchar *opt_pd_binary = NULL;
@@ -83,7 +82,6 @@ CHECK_ONCE(opt_channel_group)
 CHECK_ONCE(opt_triggers)
 #ifdef HAVE_SRD
 CHECK_ONCE(opt_pds)
-CHECK_ONCE(opt_pd_stack)
 CHECK_ONCE(opt_pd_annotations)
 CHECK_ONCE(opt_pd_meta)
 CHECK_ONCE(opt_pd_binary)
@@ -128,8 +126,6 @@ static const GOptionEntry optargs[] = {
 #ifdef HAVE_SRD
 	{"protocol-decoders", 'P', 0, G_OPTION_ARG_CALLBACK, &check_opt_pds,
 			"Protocol decoders to run", NULL},
-	{"protocol-decoder-stack", 'S', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_stack,
-			"Protocol decoder stack", NULL},
 	{"protocol-decoder-annotations", 'A', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_annotations,
 			"Protocol decoder annotation(s) to show", NULL},
 	{"protocol-decoder-meta", 'M', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_meta,
