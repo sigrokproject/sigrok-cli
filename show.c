@@ -674,7 +674,7 @@ void show_dev_detail(void)
 }
 
 #ifdef HAVE_SRD
-void show_pd_detail(void)
+static void show_pd_detail_single(const char *pd)
 {
 	struct srd_decoder *dec;
 	struct srd_decoder_option *o;
@@ -684,7 +684,7 @@ void show_pd_detail(void)
 	int idx;
 	char **pdtokens, **pdtok, *optsep, **ann, **bin, *val, *doc;
 
-	pdtokens = g_strsplit(opt_pds, ",", -1);
+	pdtokens = g_strsplit(pd, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		/* Strip options. */
 		if ((optsep = strchr(*pdtok, ':')))
@@ -776,6 +776,12 @@ void show_pd_detail(void)
 	}
 
 	g_strfreev(pdtokens);
+}
+
+void show_pd_detail(void)
+{
+	for (int i = 0; opt_pds[i]; i++)
+		show_pd_detail_single(opt_pds[i]);
 }
 #endif
 

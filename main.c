@@ -214,8 +214,6 @@ int main(int argc, char **argv)
 		}
 		if (register_pds(opt_pds, opt_pd_annotations) != 0)
 			goto done;
-		if (setup_pd_stack(opt_pds, opt_pd_annotations) != 0)
-			goto done;
 
 		/* Only one output type is ever shown. */
 		if (opt_pd_binary) {

@@ -109,26 +109,20 @@ static GHashTable *extract_channel_map(struct srd_decoder *dec, GHashTable *hash
 	return channel_map;
 }
 
-/*
- * Register the given PDs for this session.
- * Accepts a string of the form: "spi:sck=3:sdata=4,spi:sck=3:sdata=5"
- * That will instantiate two SPI decoders on the clock but different data
- * lines.
- */
-int register_pds(const char *opt_pds, char *opt_pd_annotations)
+static int register_pd(char *opt_pds, char *opt_pd_annotations)
 {
+	int ret;
 	struct srd_decoder *dec;
+	struct srd_decoder_inst *di, *di_prior;
+	char **pdtokens, **pdtok, *pd_name;
 	GHashTable *pd_opthash, *options, *channels;
 	GList *leftover, *l;
-	struct srd_decoder_inst *di;
-	int ret;
-	char **pdtokens, **pdtok, *pd_name;
 
-	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_str_equal,
-					       g_free, NULL);
 	ret = 0;
 	pd_name = NULL;
-	pd_opthash = options = channels = pd_channel_maps = NULL;
+	di_prior = NULL;
+	pd_opthash = options = channels = NULL;
+
 	pdtokens = g_strsplit(opt_pds, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
 		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
@@ -175,8 +169,6 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 			 * Save the channel setup for later, but only on the
 			 * first decoder (stacked decoders don't get channels).
 			 */
-			pd_channel_maps = g_hash_table_new_full(g_str_hash,
-					g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
 			g_hash_table_insert(pd_channel_maps, g_strdup(di->inst_id), channels);
 			channels = NULL;
 		}
@@ -186,19 +178,54 @@ int register_pds(const char *opt_pds, char *opt_pd_annotations)
 		 * This will be pared down later to leave only the last PD
 		 * in the stack.
 		 */
-		if (!opt_pd_annotations)
+		if (!opt_pd_annotations) {
 			g_hash_table_insert(pd_ann_visible, g_strdup(di->inst_id),
 					g_slist_append(NULL, GINT_TO_POINTER(-1)));
+		}
+		if (di_prior) {
+			if (srd_inst_stack(srd_sess, di_prior, di) != SRD_OK) {
+				g_critical("Failed to stack %s -> %s.",
+					di_prior->inst_id, di->inst_id);
+				ret = 1;
+				break;
+			}
+			/* Remove annotations from prior levels. */
+			if (!opt_pd_annotations)
+				g_hash_table_remove(pd_ann_visible, di_prior->inst_id);
+		}
+		di_prior = di;
 	}
 
-	g_strfreev(pdtokens);
 	if (pd_opthash)
 		g_hash_table_destroy(pd_opthash);
 	if (options)
 		g_hash_table_destroy(options);
 	if (channels)
 		g_hash_table_destroy(channels);
+
+	g_strfreev(pdtokens);
 	g_free(pd_name);
+
+	return ret;
+}
+
+/*
+ * Register all the PDs from all stacks.
+ *
+ * Each PD string is a single stack such as "uart:baudrate=19200,modbus".
+ */
+int register_pds(gchar **all_pds, char *opt_pd_annotations)
+{
+	int ret;
+
+	ret = 0;
+	pd_ann_visible = g_hash_table_new_full(g_str_hash, g_str_equal,
+					       g_free, NULL);
+	pd_channel_maps = g_hash_table_new_full(g_str_hash,
+		g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
+
+	for (int i = 0; all_pds[i]; i++)
+		ret += register_pd(all_pds[i], opt_pd_annotations);
 
 	return ret;
 }
@@ -259,54 +286,6 @@ void map_pd_channels(struct sr_dev_inst *sdi)
 		g_hash_table_destroy(pd_channel_maps);
 		pd_channel_maps = NULL;
 	}
-}
-
-int setup_pd_stack(char *opt_pds, char *opt_pd_annotations)
-{
-	struct srd_decoder_inst *di_from, *di_to;
-	int ret, i;
-	char **pds, **ids;
-
-	/* Set up the protocol decoder stack. */
-	pds = g_strsplit(opt_pds, ",", 0);
-	if (g_strv_length(pds) > 1) {
-		/* First PD goes at the bottom of the stack. */
-		ids = g_strsplit(pds[0], ":", 0);
-		if (!(di_from = srd_inst_find_by_id(srd_sess, ids[0]))) {
-			g_strfreev(ids);
-			g_critical("Cannot stack protocol decoder '%s': "
-					"instance not found.", pds[0]);
-			return 1;
-		}
-		g_strfreev(ids);
-
-		/* Every subsequent PD goes on top. */
-		for (i = 1; pds[i]; i++) {
-			ids = g_strsplit(pds[i], ":", 0);
-			if (!(di_to = srd_inst_find_by_id(srd_sess, ids[0]))) {
-				g_strfreev(ids);
-				g_critical("Cannot stack protocol decoder '%s': "
-						"instance not found.", pds[i]);
-				return 1;
-			}
-			g_strfreev(ids);
-			if ((ret = srd_inst_stack(srd_sess, di_from, di_to)) != SRD_OK)
-				return 1;
-
-			/*
-			 * Don't show annotation from this PD. Only the last PD in
-			 * the stack will be left on the annotation list (unless
-			 * the annotation list was specifically provided).
-			 */
-			if (!opt_pd_annotations)
-				g_hash_table_remove(pd_ann_visible, di_from->inst_id);
-
-			di_from = di_to;
-		}
-	}
-	g_strfreev(pds);
-
-	return 0;
 }
 
 int setup_pd_annotations(char *opt_pd_annotations)

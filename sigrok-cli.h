@@ -73,8 +73,7 @@ void load_input_file(void);
 
 /* decode.c */
 #ifdef HAVE_SRD
-int register_pds(const char *opt_pds, char *opt_pd_annotations);
-int setup_pd_stack(char *opt_pds, char *opt_pd_annotations);
+int register_pds(gchar **all_pds, char *opt_pd_annotations);
 int setup_pd_annotations(char *opt_pd_annotations);
 int setup_pd_meta(char *opt_pd_meta);
 int setup_pd_binary(char *opt_pd_binary);
@@ -110,7 +109,7 @@ extern gchar *opt_config;
 extern gchar *opt_channels;
 extern gchar *opt_channel_group;
 extern gchar *opt_triggers;
-extern gchar *opt_pds;
+extern gchar **opt_pds;
 #ifdef HAVE_SRD
 extern gchar *opt_pd_annotations;
 extern gchar *opt_pd_meta;
