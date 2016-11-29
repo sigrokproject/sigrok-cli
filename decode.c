@@ -194,6 +194,10 @@ static int register_pd(char *opt_pds, char *opt_pd_annotations)
 				g_hash_table_remove(pd_ann_visible, di_prior->inst_id);
 		}
 		di_prior = di;
+		g_free(pd_name);
+		g_hash_table_destroy(pd_opthash);
+		g_hash_table_destroy(options);
+		pd_opthash = options = NULL;
 	}
 
 	if (pd_opthash)
@@ -204,7 +208,6 @@ static int register_pd(char *opt_pds, char *opt_pd_annotations)
 		g_hash_table_destroy(channels);
 
 	g_strfreev(pdtokens);
-	g_free(pd_name);
 
 	return ret;
 }
@@ -272,6 +275,7 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 	}
 
 	srd_inst_channel_set_all(di, channel_indices);
+	g_hash_table_destroy(channel_indices);
 }
 
 void map_pd_channels(struct sr_dev_inst *sdi)
