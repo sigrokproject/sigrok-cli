@@ -179,7 +179,7 @@ static int register_pd(char *opt_pds, char *opt_pd_annotations)
 		 * in the stack.
 		 */
 		if (!opt_pd_annotations) {
-			g_hash_table_insert(pd_ann_visible, g_strdup(di->inst_id),
+			g_hash_table_insert(pd_ann_visible, g_strdup(di->decoder->id),
 					g_slist_append(NULL, GINT_TO_POINTER(-1)));
 		}
 		if (di_prior) {
@@ -430,10 +430,11 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	if (!pd_ann_visible)
 		return;
 
-	if (!g_hash_table_lookup_extended(pd_ann_visible, pdata->pdo->di->inst_id,
-			NULL, (void **)&ann_list))
+	if (!g_hash_table_lookup_extended(pd_ann_visible, pdata->pdo->di->decoder->id,
+			NULL, (void **)&ann_list)) {
 		/* Not in the list of PDs whose annotations we're showing. */
 		return;
+	}
 
 	dec = pdata->pdo->di->decoder;
 	pda = pdata->data;
