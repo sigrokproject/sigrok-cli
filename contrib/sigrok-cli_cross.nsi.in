@@ -128,8 +128,8 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	File "${CROSS}/zadig_xp.exe"
 
 	# Python
-	File "${CROSS}/python36.dll"
-	File "${CROSS}/python36.zip"
+	File "${CROSS}/python34.dll"
+	File "${CROSS}/python34.zip"
 
 	SetOutPath "$INSTDIR\share"
 
@@ -215,8 +215,8 @@ Section "Uninstall"
 	Delete "$INSTDIR\@PACKAGE_NAME@.exe"
 	Delete "$INSTDIR\zadig.exe"
 	Delete "$INSTDIR\zadig_xp.exe"
-	Delete "$INSTDIR\python36.dll"
-	Delete "$INSTDIR\python36.zip"
+	Delete "$INSTDIR\python34.dll"
+	Delete "$INSTDIR\python34.zip"
 
 	# Delete all decoders and everything else in libsigrokdecode/.
 	# There could be *.pyc files or __pycache__ subdirs and so on.
