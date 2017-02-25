@@ -610,7 +610,7 @@ void show_dev_detail(void)
 				gvar = g_variant_get_child_value(gvar_list, i);
 				g_variant_get(gvar, "(tt)", &p, &q);
 				if (srci->datatype == SR_T_RATIONAL_PERIOD)
-					s = sr_period_string(p * q);
+					s = sr_period_string(p, q);
 				else
 					s = sr_voltage_string(p, q);
 				printf("      %s", s);
