@@ -112,6 +112,7 @@ Compile configuration:
  - C compiler flags................ $CFLAGS
  - Additional C compiler flags..... $SC_EXTRA_CFLAGS
  - C compiler warnings............. $SC_WFLAGS
+ - Linker flags.................... $LDFLAGS
 
 Detected libraries (required):
  - glib-2.0 >= 2.32.0.............. $sc_glib_version
