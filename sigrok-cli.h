@@ -52,6 +52,7 @@ void show_pd_detail(void);
 void show_input(void);
 void show_output(void);
 void show_transform(void);
+void show_serial_ports(void);
 
 /* device.c */
 GSList *device_scan(void);
@@ -139,6 +140,7 @@ extern gchar *opt_frames;
 extern gboolean opt_continuous;
 extern gchar *opt_get;
 extern gboolean opt_set;
+extern gboolean opt_list_serial;
 int parse_options(int argc, char **argv);
 void show_help(void);
 

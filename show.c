@@ -1055,3 +1055,25 @@ void show_transform(void)
 	}
 	g_strfreev(tok);
 }
+
+static void print_serial_port(gpointer data, gpointer user_data)
+{
+	struct sr_serial_port *port;
+
+	port = (void *)data;
+	(void)user_data;
+	printf("\t%s\t%s\n", port->name, port->description);
+}
+
+void show_serial_ports(void)
+{
+	GSList *serial_ports;
+
+	serial_ports = sr_serial_list(NULL);
+	if (!serial_ports)
+		return;
+
+	printf("Available serial ports:\n");
+	g_slist_foreach(serial_ports, print_serial_port, NULL);
+	g_slist_free_full(serial_ports, (GDestroyNotify)sr_serial_free);
+}

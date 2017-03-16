@@ -292,6 +292,8 @@ int main(int argc, char **argv)
 		set_options();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)
 		run_session();
+	else if (opt_list_serial)
+		show_serial_ports();
 	else
 		show_help();
 

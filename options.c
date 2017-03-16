@@ -52,6 +52,7 @@ gchar *opt_frames = NULL;
 gboolean opt_continuous = FALSE;
 gchar *opt_get = NULL;
 gboolean opt_set = FALSE;
+gboolean opt_list_serial = FALSE;
 
 /*
  * Defines a callback function that generates an error if an
@@ -158,6 +159,7 @@ static const GOptionEntry optargs[] = {
 			"Sample continuously", NULL},
 	{"get", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_get, "Get device options only", NULL},
 	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
+	{"list-serial", 0, 0, G_OPTION_ARG_NONE, &opt_list_serial, "List available serial ports", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
 
