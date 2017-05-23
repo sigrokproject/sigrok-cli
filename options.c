@@ -215,4 +215,16 @@ void show_help(void)
 	g_free(help);
 
 	g_option_context_free(context);
+
+#ifdef HAVE_SRD
+#define SHOW_DECODER_TEXT "| -P <decoder> "
+#else
+#define SHOW_DECODER_TEXT ""
+#endif
+	printf("Example use, typical options:\n");
+	printf("  -d <driver> --scan\n");
+	printf("  -d <driver> { --samples N | --frames N | --time T | --continuous }\n");
+	printf("  { -d <driver> | -I <format> | -O <format> %s} --show\n", SHOW_DECODER_TEXT);
+	printf("  See the manpage or the wiki for more details.\n");
+	printf("  Note: --samples/--frames/--time/--continuous is required for acquisition.\n");
 }
