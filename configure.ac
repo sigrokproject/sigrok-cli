@@ -64,7 +64,7 @@ SR_PKG_CHECK_SUMMARY([sc_pkglibs_summary])
 SR_VAR_OPT_PKG([SC_PKGLIBS])
 
 SR_ARG_OPT_PKG([libsigrokdecode], [SRD],,
-	[libsigrokdecode >= 0.4.0])
+	[libsigrokdecode >= 0.5.0])
 
 ######################
 ##  Feature checks  ##
@@ -89,7 +89,7 @@ AC_SYS_LARGEFILE
 # Retrieve the compile and link flags for all modules combined.
 # Also, bail out at this point if any module dependency is not met.
 PKG_CHECK_MODULES([SIGROK_CLI],
-	[glib-2.0 >= 2.32.0 libsigrok >= 0.4.0 $SC_PKGLIBS])
+	[glib-2.0 >= 2.32.0 libsigrok >= 0.5.0 $SC_PKGLIBS])
 
 sc_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sc_libsigrok_version=`$PKG_CONFIG --modversion libsigrok 2>&AS_MESSAGE_LOG_FD`
@@ -116,7 +116,7 @@ Compile configuration:
 
 Detected libraries (required):
  - glib-2.0 >= 2.32.0.............. $sc_glib_version
- - libsigrok >= 0.4.0.............. $sc_libsigrok_version
+ - libsigrok >= 0.5.0.............. $sc_libsigrok_version
 
 Detected libraries (optional):
 $sc_pkglibs_summary
