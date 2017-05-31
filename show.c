@@ -682,7 +682,7 @@ static void show_pd_detail_single(const char *pd)
 	struct srd_decoder_annotation_row *r;
 	GSList *l, *ll, *ol;
 	int idx;
-	char **pdtokens, **pdtok, *optsep, **ann, **bin, *val, *doc;
+	char **pdtokens, **pdtok, *optsep, **ann, **bin, *val, *doc, *str;
 
 	pdtokens = g_strsplit(pd, ",", -1);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
@@ -696,6 +696,24 @@ static void show_pd_detail_single(const char *pd)
 		printf("ID: %s\nName: %s\nLong name: %s\nDescription: %s\n",
 				dec->id, dec->name, dec->longname, dec->desc);
 		printf("License: %s\n", dec->license);
+		printf("Possible decoder input IDs:\n");
+		if (dec->inputs) {
+			for (l = dec->inputs; l; l = l->next) {
+				str = l->data;
+				printf("- %s\n", str);
+			}
+		} else {
+			printf("None.\n");
+		}
+		printf("Possible decoder output IDs:\n");
+		if (dec->outputs) {
+			for (l = dec->outputs; l; l = l->next) {
+				str = l->data;
+				printf("- %s\n", str);
+			}
+		} else {
+			printf("None.\n");
+		}
 		printf("Annotation classes:\n");
 		if (dec->annotations) {
 			for (l = dec->annotations; l; l = l->next) {
