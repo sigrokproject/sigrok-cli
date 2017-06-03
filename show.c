@@ -58,14 +58,64 @@ static gint sort_pds(gconstpointer a, gconstpointer b)
 
 void show_version(void)
 {
+	GString *s;
+	GSList *l, *l_orig, *m;
+	char *str;
+	const char *lib, *version;
+
 	printf("sigrok-cli %s\n\n", SC_PACKAGE_VERSION_STRING);
 
-	printf("Using libsigrok %s (lib version %s).\n",
-	       sr_package_version_string_get(), sr_lib_version_string_get());
-#ifdef HAVE_SRD
-	printf("Using libsigrokdecode %s (lib version %s).\n\n",
-	       srd_package_version_string_get(), srd_lib_version_string_get());
-#endif
+	printf("Libraries and features:\n");
+
+	printf("- libsigrok %s/%s (rt: %s/%s).\n",
+		SR_PACKAGE_VERSION_STRING, SR_LIB_VERSION_STRING,
+		sr_package_version_string_get(), sr_lib_version_string_get());
+
+	s = g_string_sized_new(200);
+	g_string_append(s, " - Libs:\n");
+	l_orig = sr_buildinfo_libs_get();
+	for (l = l_orig; l; l = l->next) {
+		m = l->data;
+		lib = m->data;
+		version = m->next->data;
+		g_string_append_printf(s, "  - %s %s\n", lib, version);
+		g_slist_free_full(m, g_free);
+	}
+	g_slist_free(l_orig);
+	s->str[s->len - 1] = '\0';
+	printf("%s\n", s->str);
+	g_string_free(s, TRUE);
+
+	str = sr_buildinfo_host_get();
+	printf("  - Host: %s.\n", str);
+	g_free(str);
+
+	str = sr_buildinfo_scpi_backends_get();
+	printf("  - SCPI backends: %s.\n", str);
+	g_free(str);
+
+	printf("- libsigrokdecode %s/%s (rt: %s/%s).\n",
+		SRD_PACKAGE_VERSION_STRING, SRD_LIB_VERSION_STRING,
+		srd_package_version_string_get(), srd_lib_version_string_get());
+
+	s = g_string_sized_new(200);
+	g_string_append(s, " - Libs:\n");
+	l_orig = srd_buildinfo_libs_get();
+	for (l = l_orig; l; l = l->next) {
+		m = l->data;
+		lib = m->data;
+		version = m->next->data;
+		g_string_append_printf(s, "  - %s %s\n", lib, version);
+		g_slist_free_full(m, g_free);
+	}
+	g_slist_free(l_orig);
+	s->str[s->len - 1] = '\0';
+	printf("%s\n", s->str);
+	g_string_free(s, TRUE);
+
+	str = srd_buildinfo_host_get();
+	printf("  - Host: %s.\n", str);
+	g_free(str);
 }
 
 void show_supported(void)
