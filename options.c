@@ -22,6 +22,7 @@
 #include "sigrok-cli.h"
 
 gboolean opt_version = FALSE;
+gboolean opt_list_supported = FALSE;
 gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings by default. */
 gboolean opt_scan_devs = FALSE;
 gboolean opt_wait_trigger = FALSE;
@@ -97,7 +98,9 @@ static gchar **output_file_array = NULL;
 
 static const GOptionEntry optargs[] = {
 	{"version", 'V', 0, G_OPTION_ARG_NONE, &opt_version,
-			"Show version and support list", NULL},
+			"Show version", NULL},
+	{"list-supported", 'L', 0, G_OPTION_ARG_NONE, &opt_list_supported,
+			"List supported devices/modules/decoders", NULL},
 	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
 			"Set loglevel (5 is most verbose)", NULL},
 	{"driver", 'd', 0, G_OPTION_ARG_CALLBACK, &check_opt_drv,

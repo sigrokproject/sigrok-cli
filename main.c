@@ -241,6 +241,8 @@ int main(int argc, char **argv)
 
 	if (opt_version)
 		show_version();
+	else if (opt_list_supported)
+		show_supported();
 	else if (opt_input_format && opt_show)
 		show_input();
 	else if (opt_output_format && opt_show)

@@ -58,6 +58,18 @@ static gint sort_pds(gconstpointer a, gconstpointer b)
 
 void show_version(void)
 {
+	printf("sigrok-cli %s\n\n", SC_PACKAGE_VERSION_STRING);
+
+	printf("Using libsigrok %s (lib version %s).\n",
+	       sr_package_version_string_get(), sr_lib_version_string_get());
+#ifdef HAVE_SRD
+	printf("Using libsigrokdecode %s (lib version %s).\n\n",
+	       srd_package_version_string_get(), srd_lib_version_string_get());
+#endif
+}
+
+void show_supported(void)
+{
 	struct sr_dev_driver **drivers, *driver;
 	const struct sr_input_module **inputs, *input;
 	const struct sr_output_module **outputs, *output;
@@ -67,15 +79,6 @@ void show_version(void)
 	int i;
 #ifdef HAVE_SRD
 	struct srd_decoder *dec;
-#endif
-
-	printf("sigrok-cli %s\n\n", SC_PACKAGE_VERSION_STRING);
-
-	printf("Using libsigrok %s (lib version %s).\n",
-	       sr_package_version_string_get(), sr_lib_version_string_get());
-#ifdef HAVE_SRD
-	printf("Using libsigrokdecode %s (lib version %s).\n\n",
-	       srd_package_version_string_get(), srd_lib_version_string_get());
 #endif
 
 	printf("Supported hardware drivers:\n");
