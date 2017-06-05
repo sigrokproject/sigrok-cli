@@ -157,17 +157,17 @@ Section "@PACKAGE_NAME@ (required)" Section1
 		SW_SHOWNORMAL "" "Run @PACKAGE_NAME@"
 
 	# Create a shortcut for the uninstaller.
-	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Uninstall.lnk" \
+	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Uninstall @PACKAGE_NAME@.lnk" \
 		"$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0 \
 		SW_SHOWNORMAL "" "Uninstall @PACKAGE_NAME@"
 
 	# Create a shortcut for the Zadig executable.
-	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig.lnk" \
+	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (@PACKAGE_NAME@).lnk" \
 		"$INSTDIR\zadig.exe" "" "$INSTDIR\zadig.exe" 0 \
 		SW_SHOWNORMAL "" "Zadig"
 
 	# Create a shortcut for the Zadig executable (for Win XP).
-	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (Win XP).lnk" \
+	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (@PACKAGE_NAME@, Win XP).lnk" \
 		"$INSTDIR\zadig_xp.exe" "" "$INSTDIR\zadig_xp.exe" 0 \
 		SW_SHOWNORMAL "" "Zadig (Win XP)"
 
@@ -219,7 +219,7 @@ Section /o "Example data" Section2
 	File "${CROSS}/share/sigrok-dumps/z80/kc85/kc85-20mhz.sr"
 
 	# Create a shortcut for the example data folder.
-	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Examples.lnk" \
+	CreateShortCut "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Examples (@PACKAGE_NAME@).lnk" \
 		"$INSTDIR\examples" "" "$INSTDIR\examples" 0 \
 		SW_SHOWNORMAL "" ""
 SectionEnd
@@ -257,10 +257,10 @@ Section "Uninstall"
 
 	# Delete the links from the start menu.
 	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\sigrok command-line tool.lnk"
-	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Uninstall.lnk"
-	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig.lnk"
-	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (Win XP).lnk"
-	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Examples.lnk"
+	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Uninstall @PACKAGE_NAME@.lnk"
+	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (@PACKAGE_NAME@).lnk"
+	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Zadig (@PACKAGE_NAME@, Win XP).lnk"
+	Delete "$SMPROGRAMS\sigrok\@PACKAGE_NAME@\Examples (@PACKAGE_NAME@).lnk"
 
 	# Delete the sub-directory in the start menu.
 	RMDir "$SMPROGRAMS\sigrok\@PACKAGE_NAME@"
