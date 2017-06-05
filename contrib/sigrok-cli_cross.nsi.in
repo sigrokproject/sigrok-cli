@@ -110,7 +110,6 @@ RequestExecutionLevel admin
 # --- Default section ---------------------------------------------------------
 
 Section "@PACKAGE_NAME@ (required)" Section1
-
 	# This section is gray (can't be disabled) in the component list.
 	SectionIn RO
 
@@ -195,7 +194,6 @@ Section "@PACKAGE_NAME@ (required)" Section1
 	WriteRegDWORD HKLM "${REGSTR}" "NoRepair" 1
 
 	# TODO: Add sigrok-cli directory to the PATH env. variable.
-
 SectionEnd
 
 Section /o "Example data" Section2
@@ -228,7 +226,6 @@ SectionEnd
 # --- Uninstaller section -----------------------------------------------------
 
 Section "Uninstall"
-
 	# Always delete the uninstaller first (yes, this really works).
 	Delete "$INSTDIR\Uninstall.exe"
 
@@ -268,7 +265,6 @@ Section "Uninstall"
 
 	# Delete the registry key(s).
 	DeleteRegKey HKLM "${REGSTR}"
-
 SectionEnd
 
 
