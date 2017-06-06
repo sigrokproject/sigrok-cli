@@ -94,6 +94,7 @@ void show_version(void)
 	printf("  - SCPI backends: %s.\n", str);
 	g_free(str);
 
+#ifdef HAVE_SRD
 	printf("- libsigrokdecode %s/%s (rt: %s/%s).\n",
 		SRD_PACKAGE_VERSION_STRING, SRD_LIB_VERSION_STRING,
 		srd_package_version_string_get(), srd_lib_version_string_get());
@@ -116,6 +117,7 @@ void show_version(void)
 	str = srd_buildinfo_host_get();
 	printf("  - Host: %s.\n", str);
 	g_free(str);
+#endif
 }
 
 void show_supported(void)

@@ -175,6 +175,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	uint64_t input_len;
 	struct sr_dev_driver *driver;
 
+	/* Avoid warnings when building without decoder support. */
+	(void)session;
+	(void)input_len;
+
 	driver = sr_dev_inst_driver_get(sdi);
 
 	/* If the first packet to come in isn't a header, don't even try. */
