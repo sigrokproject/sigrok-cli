@@ -20,12 +20,12 @@ sigrok-cli is in a usable state and has had official tarball releases.
 Requirements
 ------------
 
- - git (only needed when building from git) 
+ - git (only needed when building from git)
  - gcc or clang
  - make
- - autoconf >= 2.63 (only needed when building from git) 
- - automake >= 1.11 (only needed when building from git) 
- - libtool (only needed when building from git) 
+ - autoconf >= 2.63 (only needed when building from git)
+ - automake >= 1.11 (only needed when building from git)
+ - libtool (only needed when building from git)
  - pkg-config >= 0.22
  - libglib >= 2.32.0
  - libsigrok >= 0.5.0
