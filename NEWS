@@ -1,3 +1,40 @@
+0.7.0 (2017-06-12)
+------------------
+
+ * Update sigrok-cli to the new APIs from both libsigrok 0.5.0 and also
+   libsigrokdecode 0.5.0.
+ * -P <decoder> --show:
+   - List the binary output classes of the decoder.
+   - List the possible input and output IDs of the decoder.
+ * --help:
+   - Clarify that --show also lists input/output format options,
+     as well as protocol decoder options (bug #851).
+   - Show a few typical invocations of e.g. --samples/--time/--continuous.
+ * Add an -L|--list-supported option; this used to be part of -V (bug #604).
+ * Drop the superfluous -S|--protocol-decoder-stack option. Stacking can
+   be done by simply using -P and providing the decoders in the correct order.
+ * Allow multiple -P options to decode multiple stacks (bug #868).
+ * Show decoder instance IDs so the user can tell instances apart (bug #868).
+ * Show annotations based on decoder ID (not instance ID).
+   - Behaviour preserved:
+     Single PD, no -A flag => all annotations from PD
+     Single PD, -A pdid => all annotations from PD
+     Single PD, -A pdid=annX => annX from PD
+   - Behaviour now added:
+     Duplicate PDs, no -A flag => all annotations from all PDs
+     Duplicate PDs, -A pdid => all annotations from all PDs of type pdid
+     Duplicate PDs, -A pdid=annX => all annX from all PDs of type pdid
+ * Fix various memory leaks.
+ * ./configure summary: Show linker flags used.
+ * NSIS:
+   - Update to Python 3.4.x. We can't use any higher version for the time
+     being, since 3.4.x is the last version to support Windows XP.
+   - Place the example .sr files in a separate installer section.
+   - Limit example .sr files to a small set to shrink the installer size.
+   - Clarify Start menu links (e.g. "Uninstall") to avoid confusion.
+ * HACKING: Update URL to Linux kernel coding style.
+ * Fix some compiler warnings (clang).
+
 0.6.0 (2016-01-29)
 ------------------
 
