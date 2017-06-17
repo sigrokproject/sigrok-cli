@@ -531,7 +531,7 @@ void run_session(void)
 	struct sr_trigger *trigger;
 	struct sr_dev_inst *sdi;
 	uint64_t min_samples, max_samples;
-	GArray *dev_opts;
+	GArray *drv_opts;
 	guint i;
 	int is_demo_dev;
 	struct sr_dev_driver *driver;
@@ -550,18 +550,18 @@ void run_session(void)
 
 		driver = sr_dev_inst_driver_get(sdi);
 
-		if (!(dev_opts = sr_dev_options(driver, sdi, NULL))) {
-			g_critical("Failed to query list device options.");
+		if (!(drv_opts = sr_dev_options(driver, NULL, NULL))) {
+			g_critical("Failed to query list of driver options.");
 			return;
 		}
 
 		is_demo_dev = 0;
-		for (i = 0; i < dev_opts->len; i++) {
-			if (g_array_index(dev_opts, uint32_t, i) == SR_CONF_DEMO_DEV)
+		for (i = 0; i < drv_opts->len; i++) {
+			if (g_array_index(drv_opts, uint32_t, i) == SR_CONF_DEMO_DEV)
 				is_demo_dev = 1;
 		}
 
-		g_array_free(dev_opts, TRUE);
+		g_array_free(drv_opts, TRUE);
 
 		if (!is_demo_dev)
 			real_devices = g_slist_append(real_devices, sdi);
