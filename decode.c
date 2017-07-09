@@ -452,8 +452,8 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		return;
 
 	/*
-	 * Determine the annotation's layout from the verbosity of the
-	 * log level:
+	 * Determine which fields of the annotation to display. Inspect
+	 * user specified options as well as the verbosity of the log level:
 	 * - Optionally show the sample numbers for the annotation's span.
 	 * - Always show the protocol decoder ID.
 	 * - Optionally show the annotation's class description.
@@ -464,7 +464,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	 *   recipients might have to deal with a set of text variants.
 	 */
 	show_snum = show_class = show_quotes = show_abbrev = FALSE;
-	if (opt_loglevel > SR_LOG_WARN) {
+	if (opt_pd_samplenum || opt_loglevel > SR_LOG_WARN) {
 		show_snum = TRUE;
 	}
 	if (opt_loglevel > SR_LOG_WARN) {
@@ -509,7 +509,7 @@ void show_pd_meta(struct srd_proto_data *pdata, void *cb_data)
 		/* Not in the list of PDs whose meta output we're showing. */
 		return;
 
-	if (opt_loglevel > SR_LOG_WARN)
+	if (opt_pd_samplenum || opt_loglevel > SR_LOG_WARN)
 		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
 	printf("%s: ", pdata->pdo->proto_id);
 	printf("%s: %s", pdata->pdo->meta_name, g_variant_print(pdata->data, FALSE));
