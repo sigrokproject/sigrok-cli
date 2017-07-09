@@ -491,7 +491,7 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_proto_data_binary *pdb;
 	gpointer classp;
-	int class;
+	int classi;
 
 	(void)cb_data;
 
@@ -500,9 +500,9 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 		/* Not in the list of PDs whose meta output we're showing. */
 		return;
 
-	class = GPOINTER_TO_INT(classp);
+	classi = GPOINTER_TO_INT(classp);
 	pdb = pdata->data;
-	if (class != -1 && class != pdb->bin_class)
+	if (classi != -1 && classi != pdb->bin_class)
 		/* Not showing this binary class. */
 		return;
 
