@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
-#include <assert.h>
 #include "sigrok-cli.h"
 
 #ifdef HAVE_SRD
@@ -417,12 +416,6 @@ int setup_pd_binary(char *opt_pd_binary)
 	return 0;
 }
 
-static inline void pd_ann_check(gboolean chk)
-{
-
-	assert(chk);
-}
-
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_decoder *dec;
@@ -432,6 +425,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	char **ann_descr;
 	gboolean show_ann, show_snum, show_class, show_quotes, show_abbrev;
 	gboolean show_id_colon;
+	const char *quote;
 
 	(void)cb_data;
 
@@ -487,37 +481,20 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	 * Display the annotation's fields after the layout was
 	 * determined above.
 	 */
-	pd_ann_check(show_ann);
-	if (opt_loglevel <= SR_LOG_WARN) {
-		pd_ann_check(!show_snum);
-		pd_ann_check(show_id_colon);
-		pd_ann_check(!show_class);
-		pd_ann_check(!show_quotes);
-		pd_ann_check(!show_abbrev);
-		/* Show only the longest annotation. */
-		printf("%s: %s", pdata->pdo->proto_id, pda->ann_text[0]);
-	} else if (opt_loglevel >= SR_LOG_INFO) {
-		/* Sample numbers and quotes around the longest annotation. */
-		pd_ann_check(show_snum);
-		printf("%"PRIu64"-%"PRIu64"", pdata->start_sample, pdata->end_sample);
-		if (opt_loglevel == SR_LOG_INFO) {
-			pd_ann_check(!show_id_colon);
-			pd_ann_check(!show_class);
-			pd_ann_check(show_quotes);
-			pd_ann_check(!show_abbrev);
-			printf(" %s \"%s\"", pdata->pdo->proto_id, pda->ann_text[0]);
-		} else {
-			pd_ann_check(show_id_colon);
-			pd_ann_check(show_class);
-			pd_ann_check(show_quotes);
-			pd_ann_check(show_abbrev);
-			/* Protocol decoder id, annotation class,
-			 * all annotation strings. */
-			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
-			printf(" %s: %s:", pdata->pdo->proto_id, ann_descr[0]);
-			for (i = 0; pda->ann_text[i]; i++)
-				printf(" \"%s\"", pda->ann_text[i]);
-		}
+	if (show_snum) {
+		printf("%" PRIu64 "-%" PRIu64 " ",
+			pdata->start_sample, pdata->end_sample);
+	}
+	printf("%s%s ", pdata->pdo->proto_id, show_id_colon ? ":" : "");
+	if (show_class) {
+		ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
+		printf("%s: ", ann_descr[0]);
+	}
+	quote = show_quotes ? "\"" : "";
+	printf("%s%s%s", quote, pda->ann_text[0], quote);
+	if (show_abbrev) {
+		for (i = 1; pda->ann_text[i]; i++)
+			printf(" %s%s%s", quote, pda->ann_text[i], quote);
 	}
 	printf("\n");
 	fflush(stdout);
