@@ -424,7 +424,6 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	int i;
 	char **ann_descr;
 	gboolean show_ann, show_snum, show_class, show_quotes, show_abbrev;
-	gboolean show_id_colon;
 	const char *quote;
 
 	(void)cb_data;
@@ -474,8 +473,6 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		show_class = TRUE;
 		show_abbrev = TRUE;
 	}
-	/* Backwards (bug?) compatibility. */
-	show_id_colon = show_abbrev || !show_quotes;
 
 	/*
 	 * Display the annotation's fields after the layout was
@@ -485,7 +482,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 		printf("%" PRIu64 "-%" PRIu64 " ",
 			pdata->start_sample, pdata->end_sample);
 	}
-	printf("%s%s ", pdata->pdo->proto_id, show_id_colon ? ":" : "");
+	printf("%s: ", pdata->pdo->proto_id);
 	if (show_class) {
 		ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
 		printf("%s: ", ann_descr[0]);
