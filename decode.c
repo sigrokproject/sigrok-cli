@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include <assert.h>
 #include "sigrok-cli.h"
 
 #ifdef HAVE_SRD
@@ -416,6 +417,12 @@ int setup_pd_binary(char *opt_pd_binary)
 	return 0;
 }
 
+static inline void pd_ann_check(gboolean chk)
+{
+
+	assert(chk);
+}
+
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_decoder *dec;
@@ -423,7 +430,8 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	GSList *ann_list, *l;
 	int i;
 	char **ann_descr;
-	gboolean show;
+	gboolean show_ann, show_snum, show_class, show_quotes, show_abbrev;
+	gboolean show_id_colon;
 
 	(void)cb_data;
 
@@ -438,26 +446,71 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 
 	dec = pdata->pdo->di->decoder;
 	pda = pdata->data;
-	show = FALSE;
+	show_ann = FALSE;
 	for (l = ann_list; l; l = l->next) {
 		if (GPOINTER_TO_INT(l->data) == -1
 				|| GPOINTER_TO_INT(l->data) == pda->ann_class) {
-			show = TRUE;
+			show_ann = TRUE;
 			break;
 		}
 	}
-	if (!show)
+	if (!show_ann)
 		return;
 
+	/*
+	 * Determine the annotation's layout from the verbosity of the
+	 * log level:
+	 * - Optionally show the sample numbers for the annotation's span.
+	 * - Always show the protocol decoder ID.
+	 * - Optionally show the annotation's class description.
+	 * - Always show the longest annotation text.
+	 * - Optionally show alternative annotation text (abbreviations
+	 *   for different zoom levels).
+	 * - Optionally put quote marks around annotation text, when
+	 *   recipients might have to deal with a set of text variants.
+	 */
+	show_snum = show_class = show_quotes = show_abbrev = FALSE;
+	if (opt_loglevel > SR_LOG_WARN) {
+		show_snum = TRUE;
+	}
+	if (opt_loglevel > SR_LOG_WARN) {
+		show_quotes = TRUE;
+	}
+	if (opt_loglevel > SR_LOG_INFO) {
+		show_class = TRUE;
+		show_abbrev = TRUE;
+	}
+	/* Backwards (bug?) compatibility. */
+	show_id_colon = show_abbrev || !show_quotes;
+
+	/*
+	 * Display the annotation's fields after the layout was
+	 * determined above.
+	 */
+	pd_ann_check(show_ann);
 	if (opt_loglevel <= SR_LOG_WARN) {
+		pd_ann_check(!show_snum);
+		pd_ann_check(show_id_colon);
+		pd_ann_check(!show_class);
+		pd_ann_check(!show_quotes);
+		pd_ann_check(!show_abbrev);
 		/* Show only the longest annotation. */
 		printf("%s: %s", pdata->pdo->proto_id, pda->ann_text[0]);
 	} else if (opt_loglevel >= SR_LOG_INFO) {
 		/* Sample numbers and quotes around the longest annotation. */
+		pd_ann_check(show_snum);
 		printf("%"PRIu64"-%"PRIu64"", pdata->start_sample, pdata->end_sample);
 		if (opt_loglevel == SR_LOG_INFO) {
+			pd_ann_check(!show_id_colon);
+			pd_ann_check(!show_class);
+			pd_ann_check(show_quotes);
+			pd_ann_check(!show_abbrev);
 			printf(" %s \"%s\"", pdata->pdo->proto_id, pda->ann_text[0]);
 		} else {
+			pd_ann_check(show_id_colon);
+			pd_ann_check(show_class);
+			pd_ann_check(show_quotes);
+			pd_ann_check(show_abbrev);
 			/* Protocol decoder id, annotation class,
 			 * all annotation strings. */
 			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
