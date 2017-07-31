@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "May 04, 2014"
+.TH SIGROK\-CLI 1 "August 01, 2017"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -308,6 +308,10 @@ are written to stdout:
 binary class you're interested in)
 .sp
 Not every decoder generates binary output.
+.TP
+.BR "\-\-protocol\-decoder\-samplenum
+When given, decoder annotations will include sample numbers, too.
+This allows consumers to receive machine readable timing information.
 .TP
 .BR "\-l, \-\-loglevel " <level>
 Set the libsigrok and libsigrokdecode loglevel. At the moment \fBsigrok-cli\fP
