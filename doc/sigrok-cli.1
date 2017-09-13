@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "August 01, 2017"
+.TH SIGROK\-CLI 1 "September 13, 2017"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -30,7 +30,7 @@ formats, output file formats, and protocol decoders.
 .TP
 \fB\-d, \-\-driver\fP <drivername>
 A driver must always be selected (unless doing a global scan). Use the
-\fB-V\fP option to get a list of available drivers.
+\fB-L\fP option to get a list of available drivers.
 .sp
 Drivers can take options, in the form \fBkey=value\fP
 separated by colons.
@@ -76,7 +76,7 @@ When loading an input file, assume it's in the specified format. If this
 option is not supplied (in addition to
 .BR \-\-input\-file ),
 sigrok-cli attempts to autodetect the file format of the input file. Use the
-.B \-V
+.B \-L
 option to see a list of available input formats.
 .sp
 The format name may optionally be followed by a colon-separated list of
@@ -92,7 +92,7 @@ option.
 .TP
 .BR "\-O, \-\-output\-format " <formatname>
 Set the output format to use. Use the
-.B \-V
+.B \-L
 option to see a list of available output formats.
 .sp
 The format name may optionally be followed by a colon-separated list of
@@ -201,7 +201,7 @@ nonetheless).
 This option allows the user to specify a comma-separated list of protocol
 decoders to be used in this session. The decoders are specified by their
 ID, as shown in the
-.B \-\-version
+.B \-L
 output.
 .sp
 Example:
