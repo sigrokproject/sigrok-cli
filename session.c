@@ -193,7 +193,9 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			g_critical("Failed to initialize output module.");
 
 		/* Set up backup analog output module. */
-		oa = sr_output_new(sr_output_find("analog"), NULL, sdi, NULL);
+		if (outfile)
+			oa = sr_output_new(sr_output_find("analog"), NULL,
+					sdi, NULL);
 
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
@@ -311,9 +313,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	if (o && !opt_pds) {
 		if (sr_output_send(o, packet, &out) == SR_OK) {
-			if (!out || (out->len == 0
-					&& !opt_output_format
-					&& packet->type == SR_DF_ANALOG)) {
+			if (oa && !out) {
 				/*
 				 * The user didn't specify an output module,
 				 * but needs to see this analog data.
@@ -340,7 +340,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			sr_output_free(o);
 		o = NULL;
 
-		sr_output_free(oa);
+		if (oa)
+			sr_output_free(oa);
 		oa = NULL;
 
 		if (outfile && outfile != stdout)
