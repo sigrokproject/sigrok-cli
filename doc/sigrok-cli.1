@@ -30,7 +30,8 @@ formats, output file formats, and protocol decoders.
 .TP
 \fB\-d, \-\-driver\fP <drivername>
 A driver must always be selected (unless doing a global scan). Use the
-\fB-L\fP option to get a list of available drivers.
+.BR "\-L " ( "\-\-list-supported" ")"
+option to get a list of available drivers.
 .sp
 Drivers can take options, in the form \fBkey=value\fP
 separated by colons.
@@ -76,7 +77,7 @@ When loading an input file, assume it's in the specified format. If this
 option is not supplied (in addition to
 .BR \-\-input\-file ),
 sigrok-cli attempts to autodetect the file format of the input file. Use the
-.B \-L
+.BR "\-L " ( "\-\-list-supported" ")"
 option to see a list of available input formats.
 .sp
 The format name may optionally be followed by a colon-separated list of
@@ -92,26 +93,14 @@ option.
 .TP
 .BR "\-O, \-\-output\-format " <formatname>
 Set the output format to use. Use the
-.B \-L
+.BR "\-L " ( "\-\-list-supported" ")"
 option to see a list of available output formats.
 .sp
 The format name may optionally be followed by a colon-separated list of
 options, where each option takes the form
 .BR "key=value" .
 .sp
-Supported formats currently include
-.BR bits ,
-.BR hex ,
-.BR ascii ,
-.BR binary ,
-.BR vcd ,
-.BR ols ,
-.BR gnuplot ,
-.BR chronovu-la8 ,
-.BR csv ", and"
-.BR analog .
-.sp
-The
+For example, the
 .B bits
 or
 .B hex
@@ -201,7 +190,7 @@ nonetheless).
 This option allows the user to specify a comma-separated list of protocol
 decoders to be used in this session. The decoders are specified by their
 ID, as shown in the
-.B \-L
+.BR "\-L " ( "\-\-list-supported" ")"
 output.
 .sp
 Example:
