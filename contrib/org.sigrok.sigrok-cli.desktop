@@ -1,0 +1,12 @@
+[Desktop Entry]
+# Creative Commons CC0 1.0 Universal (CC0-1.0, Public Domain Dedication).
+Name=sigrok-cli
+GenericName=Logic analyzer, oscilloscope and MSO command-line tool
+Categories=Development;Electronics;
+Comment=Control your logic analyzer, oscilloscope, or MSO
+Exec=sigrok-cli
+Icon=sigrok-cli
+Terminal=true
+NoDisplay=true
+Type=Application
+MimeType=application/vnd.sigrok.session;
