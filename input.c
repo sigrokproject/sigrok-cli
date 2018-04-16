@@ -28,7 +28,7 @@
 #include <glib.h>
 #include "sigrok-cli.h"
 
-#define BUFSIZE (16 * 1024)
+#define BUFSIZE (4 * 1024 * 1024)
 
 static void load_input_file_module(void)
 {
