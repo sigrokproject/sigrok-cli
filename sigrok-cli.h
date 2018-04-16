@@ -28,14 +28,10 @@
 
 #define DEFAULT_OUTPUT_FORMAT_FILE "srzip"
 #define DEFAULT_OUTPUT_FORMAT_NOFILE "bits:width=64"
-#define SAVE_CHUNK_SIZE (512 * 1024)
 
 /* main.c */
 extern struct sr_context *sr_ctx;
 int select_channels(struct sr_dev_inst *sdi);
-gboolean config_key_has_cap(struct sr_dev_driver *driver,
-		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
-		uint32_t key, uint32_t capability);
 int maybe_config_get(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant **gvar);
@@ -66,8 +62,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 int opt_to_gvar(char *key, char *value, struct sr_config *src);
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args);
 void run_session(void);
-void save_chunk_logic(struct sr_session *session, uint8_t *data,
-		uint64_t data_len, int unitsize);
 
 /* input.c */
 void load_input_file(void);
