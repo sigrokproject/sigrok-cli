@@ -28,7 +28,7 @@
 #include <glib.h>
 #include "sigrok-cli.h"
 
-#define BUFSIZE (4 * 1024 * 1024)
+#define CHUNK_SIZE (4 * 1024 * 1024)
 
 static void load_input_file_module(void)
 {
@@ -55,7 +55,7 @@ static void load_input_file_module(void)
 	}
 
 	fd = 0;
-	buf = g_string_sized_new(BUFSIZE);
+	buf = g_string_sized_new(CHUNK_SIZE);
 	if (mod_id) {
 		/* User specified an input module to use. */
 		if (!(imod = sr_input_find(mod_id)))
@@ -98,7 +98,7 @@ static void load_input_file_module(void)
 					g_critical("Failed to load %s: %s.", opt_input_file,
 							g_strerror(errno));
 			}
-			if ((len = read(fd, buf->str, BUFSIZE)) < 1)
+			if ((len = read(fd, buf->str, CHUNK_SIZE)) < 1)
 				g_critical("Failed to read %s: %s.", opt_input_file,
 						g_strerror(errno));
 			buf->len = len;
@@ -113,7 +113,7 @@ static void load_input_file_module(void)
 	got_sdi = FALSE;
 	while (TRUE) {
 		g_string_truncate(buf, 0);
-		len = read(fd, buf->str, BUFSIZE);
+		len = read(fd, buf->str, CHUNK_SIZE);
 		if (len < 0)
 			g_critical("Read failed: %s", g_strerror(errno));
 		if (len == 0)
