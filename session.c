@@ -130,9 +130,6 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	GHashTable *fmtargs, *fmtopts;
 	char *fmtspec;
 
-	if (!opt_transform_module)
-		opt_transform_module = "nop";
-
 	fmtargs = parse_generic_arg(opt_transform_module, TRUE);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
@@ -684,8 +681,10 @@ void run_session(void)
 		}
 	}
 
-	if (!(t = setup_transform_module(sdi)))
-		g_critical("Failed to initialize transform module.");
+	if (opt_transform_module) {
+		if (!(t = setup_transform_module(sdi)))
+			g_critical("Failed to initialize transform module.");
+	}
 
 	main_loop = g_main_loop_new(NULL, FALSE);
 
