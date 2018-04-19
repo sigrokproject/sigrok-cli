@@ -136,7 +136,7 @@ static const GOptionEntry optargs[] = {
 	{"protocol-decoder-binary", 'B', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_binary,
 			"Protocol decoder binary output to show", NULL},
 	{"protocol-decoder-samplenum", 0, 0, G_OPTION_ARG_NONE, &opt_pd_samplenum,
-			"Show sample numbers in protocol decoder output", NULL},
+			"Show sample numbers in decoder output", NULL},
 #endif
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},
@@ -150,7 +150,7 @@ static const GOptionEntry optargs[] = {
 			"Number of frames to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
 			"Sample continuously", NULL},
-	{"get", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_get, "Get device option only", NULL},
+	{"get", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_get, "Get device options only", NULL},
 	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
