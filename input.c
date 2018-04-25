@@ -108,7 +108,7 @@ static void load_input_file_module(void)
 			g_critical("Error: no input module found for this file.");
 	}
 	sr_session_new(sr_ctx, &session);
-	sr_session_datafeed_callback_add(session, &datafeed_in, NULL);
+	sr_session_datafeed_callback_add(session, &datafeed_in, session);
 
 	got_sdi = FALSE;
 	while (TRUE) {
@@ -174,7 +174,7 @@ void load_input_file(void)
 			}
 			main_loop = g_main_loop_new(NULL, FALSE);
 
-			sr_session_datafeed_callback_add(session, datafeed_in, NULL);
+			sr_session_datafeed_callback_add(session, datafeed_in, session);
 			sr_session_stopped_callback_set(session,
 				(sr_session_stopped_callback)g_main_loop_quit,
 				main_loop);
