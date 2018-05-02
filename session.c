@@ -577,6 +577,12 @@ void run_session(void)
 		}
 	}
 
+	/* This is unlikely to happen but it makes static analyzers stop complaining. */
+	if (!devices) {
+		g_critical("No real devices found.");
+		return;
+	}
+
 	sdi = devices->data;
 	g_slist_free(devices);
 	g_slist_free(real_devices);
