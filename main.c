@@ -224,6 +224,11 @@ int main(int argc, char **argv)
 		goto done;
 
 #ifdef HAVE_SRD
+	if (opt_pd_binary && !opt_pds) {
+		g_critical("Option -B will not take effect in the absence of -P.");
+		goto done;
+	}
+
 	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
 	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK)
 		goto done;
