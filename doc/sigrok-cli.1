@@ -229,6 +229,30 @@ is an option supported by the
 protocol decoder. Additionally, the user tells sigrok to decode the SPI
 protocol using channel 1 as MISO signal for SPI, channel 5 as MOSI, channel 3
 as CLK, and channel 0 as CS# signal.
+.br
+.sp
+When multiple decoders are specified in the same
+.BR -P
+option, they will be stacked on top of each other in the specified order.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-P i2c,eeprom24xx"
+.br
+ $
+.B "sigrok\-cli \-i <file.sr> \-P uart:baudrate=31250,midi"
+.sp
+When multiple
+.BR -P
+options are specified, each of them creates one decoder stack, which
+executes in parallel to other decoder stacks.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-P uart:tx=D0:rx=D1 \-P timing:data=D2"
+.sp
 .TP
 .BR "\-A, \-\-protocol\-decoder\-annotations " <annotations>
 By default, only the stack's topmost protocol decoder's annotation output is
