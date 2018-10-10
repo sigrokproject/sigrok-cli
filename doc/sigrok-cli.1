@@ -229,6 +229,12 @@ is an option supported by the
 protocol decoder. Additionally, the user tells sigrok to decode the SPI
 protocol using channel 1 as MISO signal for SPI, channel 5 as MOSI, channel 3
 as CLK, and channel 0 as CS# signal.
+.sp
+Notice that the
+.B sigrok\-cli
+application does not support "name matching". Instead it's assumed that the
+traces in the input stream match the order of the decoder's input signals,
+or that users explicitly specify the input channel to decoder signal mapping.
 .br
 .sp
 When multiple decoders are specified in the same
