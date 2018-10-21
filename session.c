@@ -675,7 +675,7 @@ void run_session(void)
 
 	if (opt_frames) {
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)) {
-			g_critical("Invalid sample limit '%s'.", opt_samples);
+			g_critical("Invalid frame limit '%s'.", opt_frames);
 			sr_session_destroy(session);
 			return;
 		}
