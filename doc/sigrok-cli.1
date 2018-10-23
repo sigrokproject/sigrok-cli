@@ -147,9 +147,11 @@ like this:
  0:11111111 11111111 11111111 11111111 [...]
  1:11111111 00000000 11111111 00000000 [...]
 .sp
-Example for saving data in the VCD format with options:
+Example for saving data in the CSV format with options:
 .sp
-.RB "  $ " "sigrok\-cli " "[...] " "\-o example.vcd \-O vcd:downsample=4"
+.RB "  $ " "sigrok\-cli " "[...] " "\-o example.csv \-O csv:dedup:header=false"
+.sp
+Notice that boolean options are \fBtrue\fP when no value gets specified.
 .TP
 .BR "\-C, \-\-channels " <channellist>
 A comma-separated list of channels to be used in the session.
@@ -189,9 +191,11 @@ Specify the channel group to operate on. Some devices organize channels into
 groups, the settings of which can only be changed as a group. The list of
 channel groups, if any, is displayed with the \fB\-\-show\fP command.
 .sp
-Example:
+Examples:
 .sp
 .RB "  $ " "sigrok\-cli \-g CH1" " [...]"
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-g Logic \-c pattern=graycode" " [...]"
 .TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form
