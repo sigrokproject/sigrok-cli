@@ -40,7 +40,16 @@ sigrok_cli_LDADD = $(SIGROK_CLI_LIBS)
 
 dist_man_MANS = doc/sigrok-cli.1
 
-EXTRA_DIST = contrib/sigrok-logo-notext.ico
+desktopdir = @datadir@/applications
+desktop_DATA = contrib/org.sigrok.sigrok-cli.desktop
+
+hicolor_icondir = @datadir@/icons/hicolor/scalable/apps
+hicolor_icon_DATA = contrib/sigrok-cli.svg
+
+EXTRA_DIST = \
+	contrib/sigrok-logo-notext.ico \
+	contrib/org.sigrok.sigrok-cli.desktop \
+	contrib/sigrok-cli.svg
 
 MAINTAINERCLEANFILES = ChangeLog
 

@@ -28,7 +28,7 @@
 #include <glib.h>
 #include "sigrok-cli.h"
 
-#define BUFSIZE (16 * 1024)
+#define CHUNK_SIZE (4 * 1024 * 1024)
 
 static void load_input_file_module(void)
 {
@@ -43,6 +43,7 @@ static void load_input_file_module(void)
 	int fd;
 	ssize_t len;
 	char *mod_id;
+	gboolean is_stdin;
 
 	if (!sr_input_list())
 		g_critical("No supported input formats available.");
@@ -54,8 +55,9 @@ static void load_input_file_module(void)
 		mod_id = g_hash_table_lookup(mod_args, "sigrok_key");
 	}
 
+	is_stdin = strcmp(opt_input_file, "-") == 0;
 	fd = 0;
-	buf = g_string_sized_new(BUFSIZE);
+	buf = g_string_sized_new(CHUNK_SIZE);
 	if (mod_id) {
 		/* User specified an input module to use. */
 		if (!(imod = sr_input_find(mod_id)))
@@ -72,11 +74,11 @@ static void load_input_file_module(void)
 			g_hash_table_destroy(mod_opts);
 		if (mod_args)
 			g_hash_table_destroy(mod_args);
-		if ((fd = open(opt_input_file, O_RDONLY)) == -1)
+		if (!is_stdin && (fd = open(opt_input_file, O_RDONLY)) < 0)
 			g_critical("Failed to load %s: %s.", opt_input_file,
 					g_strerror(errno));
 	} else {
-		if (strcmp(opt_input_file, "-")) {
+		if (!is_stdin) {
 			/*
 			 * An actual filename: let the input modules try to
 			 * identify the file.
@@ -90,15 +92,16 @@ static void load_input_file_module(void)
 			 * Taking input from a pipe: let the input modules try
 			 * to identify the stream content.
 			 */
-			if (!strcmp(opt_input_file, "-")) {
+			if (is_stdin) {
 				/* stdin */
 				fd = 0;
 			} else {
-				if ((fd = open(opt_input_file, O_RDONLY)) == -1)
+				fd = open(opt_input_file, O_RDONLY);
+				if (fd == -1)
 					g_critical("Failed to load %s: %s.", opt_input_file,
 							g_strerror(errno));
 			}
-			if ((len = read(fd, buf->str, BUFSIZE)) < 1)
+			if ((len = read(fd, buf->str, CHUNK_SIZE)) < 1)
 				g_critical("Failed to read %s: %s.", opt_input_file,
 						g_strerror(errno));
 			buf->len = len;
@@ -108,12 +111,12 @@ static void load_input_file_module(void)
 			g_critical("Error: no input module found for this file.");
 	}
 	sr_session_new(sr_ctx, &session);
-	sr_session_datafeed_callback_add(session, &datafeed_in, NULL);
+	sr_session_datafeed_callback_add(session, &datafeed_in, session);
 
 	got_sdi = FALSE;
 	while (TRUE) {
 		g_string_truncate(buf, 0);
-		len = read(fd, buf->str, BUFSIZE);
+		len = read(fd, buf->str, CHUNK_SIZE);
 		if (len < 0)
 			g_critical("Read failed: %s", g_strerror(errno));
 		if (len == 0)
@@ -174,7 +177,7 @@ void load_input_file(void)
 			}
 			main_loop = g_main_loop_new(NULL, FALSE);
 
-			sr_session_datafeed_callback_add(session, datafeed_in, NULL);
+			sr_session_datafeed_callback_add(session, datafeed_in, session);
 			sr_session_stopped_callback_set(session,
 				(sr_session_stopped_callback)g_main_loop_quit,
 				main_loop);

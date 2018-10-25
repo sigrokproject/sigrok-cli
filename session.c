@@ -130,9 +130,6 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	GHashTable *fmtargs, *fmtopts;
 	char *fmtspec;
 
-	if (!opt_transform_module)
-		opt_transform_module = "nop";
-
 	fmtargs = parse_generic_arg(opt_transform_module, TRUE);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
@@ -193,7 +190,9 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			g_critical("Failed to initialize output module.");
 
 		/* Set up backup analog output module. */
-		oa = sr_output_new(sr_output_find("analog"), NULL, sdi, NULL);
+		if (outfile)
+			oa = sr_output_new(sr_output_find("analog"), NULL,
+					sdi, NULL);
 
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
@@ -311,9 +310,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	if (o && !opt_pds) {
 		if (sr_output_send(o, packet, &out) == SR_OK) {
-			if (!out || (out->len == 0
-					&& !opt_output_format
-					&& packet->type == SR_DF_ANALOG)) {
+			if (oa && !out) {
 				/*
 				 * The user didn't specify an output module,
 				 * but needs to see this analog data.
@@ -340,7 +337,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			sr_output_free(o);
 		o = NULL;
 
-		sr_output_free(oa);
+		if (oa)
+			sr_output_free(oa);
 		oa = NULL;
 
 		if (outfile && outfile != stdout)
@@ -531,7 +529,7 @@ void run_session(void)
 	struct sr_trigger *trigger;
 	struct sr_dev_inst *sdi;
 	uint64_t min_samples, max_samples;
-	GArray *dev_opts;
+	GArray *drv_opts;
 	guint i;
 	int is_demo_dev;
 	struct sr_dev_driver *driver;
@@ -550,18 +548,18 @@ void run_session(void)
 
 		driver = sr_dev_inst_driver_get(sdi);
 
-		if (!(dev_opts = sr_dev_options(driver, sdi, NULL))) {
-			g_critical("Failed to query list device options.");
+		if (!(drv_opts = sr_dev_options(driver, NULL, NULL))) {
+			g_critical("Failed to query list of driver options.");
 			return;
 		}
 
 		is_demo_dev = 0;
-		for (i = 0; i < dev_opts->len; i++) {
-			if (g_array_index(dev_opts, uint32_t, i) == SR_CONF_DEMO_DEV)
+		for (i = 0; i < drv_opts->len; i++) {
+			if (g_array_index(drv_opts, uint32_t, i) == SR_CONF_DEMO_DEV)
 				is_demo_dev = 1;
 		}
 
-		g_array_free(dev_opts, TRUE);
+		g_array_free(drv_opts, TRUE);
 
 		if (!is_demo_dev)
 			real_devices = g_slist_append(real_devices, sdi);
@@ -579,12 +577,18 @@ void run_session(void)
 		}
 	}
 
+	/* This is unlikely to happen but it makes static analyzers stop complaining. */
+	if (!devices) {
+		g_critical("No real devices found.");
+		return;
+	}
+
 	sdi = devices->data;
 	g_slist_free(devices);
 	g_slist_free(real_devices);
 
 	sr_session_new(sr_ctx, &session);
-	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
+	sr_session_datafeed_callback_add(session, datafeed_in, session);
 
 	if (sr_dev_open(sdi) != SR_OK) {
 		g_critical("Failed to open device.");
@@ -671,7 +675,7 @@ void run_session(void)
 
 	if (opt_frames) {
 		if ((sr_parse_sizestring(opt_frames, &limit_frames) != SR_OK)) {
-			g_critical("Invalid sample limit '%s'.", opt_samples);
+			g_critical("Invalid frame limit '%s'.", opt_frames);
 			sr_session_destroy(session);
 			return;
 		}
@@ -683,8 +687,10 @@ void run_session(void)
 		}
 	}
 
-	if (!(t = setup_transform_module(sdi)))
-		g_critical("Failed to initialize transform module.");
+	if (opt_transform_module) {
+		if (!(t = setup_transform_module(sdi)))
+			g_critical("Failed to initialize transform module.");
+	}
 
 	main_loop = g_main_loop_new(NULL, FALSE);
 

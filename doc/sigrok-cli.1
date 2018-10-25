@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "May 04, 2014"
+.TH SIGROK\-CLI 1 "October 22, 2018"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -21,16 +21,17 @@ Show a help text and exit.
 .TP
 .B "\-V, \-\-version"
 Show
-.B sigrok-cli
+.B sigrok\-cli
 version and the versions of libraries used.
 .TP
-.B "\-L, \-\-list-supported"
+.B "\-L, \-\-list\-supported"
 Show information about supported hardware drivers, input file
 formats, output file formats, and protocol decoders.
 .TP
 \fB\-d, \-\-driver\fP <drivername>
 A driver must always be selected (unless doing a global scan). Use the
-\fB-V\fP option to get a list of available drivers.
+.BR "\-L " ( "\-\-list-supported" ")"
+option to get a list of available drivers.
 .sp
 Drivers can take options, in the form \fBkey=value\fP
 separated by colons.
@@ -39,49 +40,74 @@ Drivers communicating with hardware via a serial port always need the port
 specified as the \fBconn\fP option. For example, to use the
 Openbench Logic Sniffer:
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver=ols:conn=/dev/ttyACM0"
+.RB "  $ " "sigrok\-cli \-\-driver=ols:conn=/dev/ttyACM0" " [...]"
 .sp
 Some USB devices don't use a unique VendorID/ProductID combination, and thus
 need that specified as well. This also uses the \fBconn\fP option, using
 either \fBVendorID.ProductID\fP or \fBbus.address\fP:
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver=uni-t-ut61e:conn=1a86.e008"
+USB \fBVendorID.ProductID\fP example:
+.sp
+.RB "  $ " "sigrok\-cli \-\-driver=uni\-t\-ut61e:conn=1a86.e008" " [...]"
+.sp
+USB \fBbus.address\fP example:
+.sp
+.RB "  $ " "sigrok\-cli \-\-driver=uni\-t\-ut61e:conn=4.6" " [...]"
 .TP
-.BR "\-c, \-\-config " <device>
+.BR "\-c, \-\-config " <deviceoption>
 A colon-separated list of device options, where each option takes the form
 .BR key=value .
 For example, to set the samplerate to 1MHz on a device supported by the
 fx2lafw driver, you might specify
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver=fx2lafw \-\-config samplerate=1m"
+.RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config samplerate=1m" " [...]"
 .sp
 Samplerate is an option common to most logic analyzers. The argument specifies
 the samplerate in Hz. You can also specify the samplerate in kHz, MHz or GHz.
 The following are all equivalent:
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-config samplerate=1000000"
+.RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config samplerate=1000000" " [...]"
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-config samplerate=1m"
+.RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config samplerate=1m" " [...]"
 .sp
-.RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-config \(dqsamplerate=1 MHz\(dq"
+.RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config \(dqsamplerate=1 MHz\(dq" " [...]"
 .TP
 .BR "\-i, \-\-input\-file " <filename>
-Load input from a file instead of a hardware device. If the
+Load input from a file instead of a hardware device. You can specify
+"-" to use stdin as input. If the
 .B \-\-input\-format
-option is not supplied, sigrok-cli attempts to autodetect the file format of
+option is not supplied, sigrok\-cli attempts to autodetect the file format of
 the input file.
+.sp
+Example for loading a sigrok session file:
+.sp
+.RB "  $ " "sigrok\-cli \-i example.sr" " [...]"
+.sp
+Example for loading a WAV file (autodetection of input format):
+.sp
+.RB "  $ " "sigrok\-cli \-i example.wav" " [...]
+.sp
+Example for loading a VCD file from stdin (autodetection of input format):
+.sp
+.RB "  $ " "cat example.vcd | sigrok\-cli \-i \-" " [...]
 .TP
 .BR "\-I, \-\-input\-format " <format>
 When loading an input file, assume it's in the specified format. If this
 option is not supplied (in addition to
 .BR \-\-input\-file ),
 sigrok-cli attempts to autodetect the file format of the input file. Use the
-.B \-V
+.BR "\-L " ( "\-\-list\-supported" ")"
 option to see a list of available input formats.
 .sp
 The format name may optionally be followed by a colon-separated list of
 options, where each option takes the form
 .BR "key=value" .
+.sp
+Example for loading a binary file with options:
+.sp
+.RB "  $ " "sigrok\-cli \-i example.bin"
+.br
+.BR "               \-I binary:numchannels=4:samplerate=1mhz" " [...]"
 .TP
 .BR "\-o, \-\-output\-file " <filename>
 Save output to a file instead of writing it to stdout. The default format
@@ -89,34 +115,26 @@ used when saving is the sigrok session file format. This can be changed with
 the
 .B \-\-output\-format
 option.
+.sp
+Example for saving data in the sigrok session format:
+.sp
+.RB "  $ " "sigrok\-cli " "[...] " "\-o example.sr"
 .TP
-.BR "\-O, \-\-output\-format " <formatname>
+.BR "\-O, \-\-output\-format " <format>
 Set the output format to use. Use the
-.B \-V
+.BR "\-L " ( "\-\-list\-supported" ")"
 option to see a list of available output formats.
 .sp
 The format name may optionally be followed by a colon-separated list of
 options, where each option takes the form
 .BR "key=value" .
 .sp
-Supported formats currently include
-.BR bits ,
-.BR hex ,
-.BR ascii ,
-.BR binary ,
-.BR vcd ,
-.BR ols ,
-.BR gnuplot ,
-.BR chronovu-la8 ,
-.BR csv ", and"
-.BR analog .
-.sp
-The
+For example, the
 .B bits
 or
 .B hex
 formats, for an ASCII bit or ASCII hexadecimal display, can take a "width" option, specifying the number of samples (in bits) to display per line. Thus
-.B hex:width=128
+.B "\-O hex:width=128"
 will display 128 bits per line, in hexadecimal:
 .sp
  0:ffff ffff ffff ffff ffff ffff ffff ffff
@@ -128,12 +146,18 @@ like this:
 .sp
  0:11111111 11111111 11111111 11111111 [...]
  1:11111111 00000000 11111111 00000000 [...]
+.sp
+Example for saving data in the CSV format with options:
+.sp
+.RB "  $ " "sigrok\-cli " "[...] " "\-o example.csv \-O csv:dedup:header=false"
+.sp
+Notice that boolean options are \fBtrue\fP when no value gets specified.
 .TP
 .BR "\-C, \-\-channels " <channellist>
 A comma-separated list of channels to be used in the session.
 .sp
 Note that sigrok always names the channels according to how they're shown on
-the enclosure of the hardware. If your logic analyzer numbers the channels 0-15,
+the enclosure of the hardware. If your logic analyzer numbers the channels 0\-15,
 that's how you must specify them with this option. An oscilloscope's channels
 would generally be referred to as "CH1", "CH2", and so on.
 Use the \fB\-\-show\fP option to see a list of channel names for your device.
@@ -163,11 +187,15 @@ will set the name of channel 1 to
 .BR "MISO" .
 .TP
 .BR "\-g, \-\-channel\-group "<channel\ group>
-Specify the channel group to operate on.
-
-Some devices organize channels into groups, the settings of which can
-only be changed as a group. The list of channel groups, if any, is displayed
-with the \fB\-\-show\fP command.
+Specify the channel group to operate on. Some devices organize channels into
+groups, the settings of which can only be changed as a group. The list of
+channel groups, if any, is displayed with the \fB\-\-show\fP command.
+.sp
+Examples:
+.sp
+.RB "  $ " "sigrok\-cli \-g CH1" " [...]"
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-g Logic \-c pattern=graycode" " [...]"
 .TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form
@@ -190,7 +218,7 @@ Any kind of change on a pin (either a rising or a falling edge).
 Not every device supports all of these trigger types. Use the \fB\-\-show\fP
 command to see which triggers your device supports.
 .TP
-.BR "\-w, \-\-wait-trigger"
+.BR "\-w, \-\-wait\-trigger"
 Don't output any sample data (even if it's actually received from the
 hardware) before the trigger condition is met. In other words, do not output
 any pre-trigger data. This option is useful if you don't care about the data
@@ -201,7 +229,7 @@ nonetheless).
 This option allows the user to specify a comma-separated list of protocol
 decoders to be used in this session. The decoders are specified by their
 ID, as shown in the
-.B \-\-version
+.BR "\-L " ( "\-\-list\-supported" ")"
 output.
 .sp
 Example:
@@ -240,6 +268,36 @@ is an option supported by the
 protocol decoder. Additionally, the user tells sigrok to decode the SPI
 protocol using channel 1 as MISO signal for SPI, channel 5 as MOSI, channel 3
 as CLK, and channel 0 as CS# signal.
+.sp
+Notice that the
+.B sigrok\-cli
+application does not support "name matching". Instead it's assumed that the
+traces in the input stream match the order of the decoder's input signals,
+or that users explicitly specify the input channel to decoder signal mapping.
+.br
+.sp
+When multiple decoders are specified in the same
+.BR -P
+option, they will be stacked on top of each other in the specified order.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-P i2c,eeprom24xx"
+.br
+ $
+.B "sigrok\-cli \-i <file.sr> \-P uart:baudrate=31250,midi"
+.sp
+When multiple
+.BR -P
+options are specified, each of them creates one decoder stack, which
+executes in parallel to other decoder stacks.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-P uart:tx=D0:rx=D1 \-P timing:data=D2"
+.sp
 .TP
 .BR "\-A, \-\-protocol\-decoder\-annotations " <annotations>
 By default, only the stack's topmost protocol decoder's annotation output is
@@ -247,7 +305,7 @@ shown. With this option another decoder's annotation can be selected for
 display, by specifying its ID:
 .sp
  $
-.B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid -A i2c"
+.B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid \-A i2c"
 .sp
 If a protocol decoder has multiple annotations, you can also specify
 which one of them to show by specifying its short description like this:
@@ -255,14 +313,14 @@ which one of them to show by specifying its short description like this:
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
-.B "              \-A i2c=data-read"
+.B "              \-A i2c=data\-read"
 .sp
 Select multiple annotations by separating them with a colon:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
-.B "              \-A i2c=data-read:data-write"
+.B "              \-A i2c=data\-read:data\-write"
 .sp
 You can also select multiple protocol decoders, with an optional selected
 annotation each, by separating them with commas:
@@ -270,7 +328,7 @@ annotation each, by separating them with commas:
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
-.B "              \-A i2c=data-read:data-write,edid"
+.B "              \-A i2c=data\-read:data\-write,edid"
 .TP
 .BR "\-M, \-\-protocol\-decoder\-meta " <pdname>
 When given, show protocol decoder meta output instead of annotations.
@@ -309,8 +367,12 @@ binary class you're interested in)
 .sp
 Not every decoder generates binary output.
 .TP
+.BR "\-\-protocol\-decoder\-samplenum
+When given, decoder annotations will include sample numbers, too.
+This allows consumers to receive machine readable timing information.
+.TP
 .BR "\-l, \-\-loglevel " <level>
-Set the libsigrok and libsigrokdecode loglevel. At the moment \fBsigrok-cli\fP
+Set the libsigrok and libsigrokdecode loglevel. At the moment \fBsigrok\-cli\fP
 doesn't support setting the two loglevels independently. The higher the
 number, the more debug output will be printed. Valid loglevels are:
 .sp
@@ -359,15 +421,15 @@ Example:
 .br
  The following devices were found:
 .br
- demo - Demo device with 12 channels: D0 D1 D2 D3 D4 D5 D6 D7 A0 A1 A2 A3
+ demo \- Demo device with 12 channels: D0 D1 D2 D3 D4 D5 D6 D7 A0 A1 A2 A3
 .br
- fx2lafw:conn=3.26 - CWAV USBee SX with 8 channels: 0 1 2 3 4 5 6 7
+ fx2lafw:conn=3.26 \- CWAV USBee SX with 8 channels: 0 1 2 3 4 5 6 7
 .sp
 However, not all devices are auto-detectable (e.g. serial port based ones).
 For those you'll have to provide a \fBconn\fP option, see above.
 .sp
  $
-.B "sigrok\-cli \-\-driver digitek-dt4000zc:conn=/dev/ttyUSB0 \-\-scan
+.B "sigrok\-cli \-\-driver digitek\-dt4000zc:conn=/dev/ttyUSB0 \-\-scan
 .br
  The following devices were found:
 .br

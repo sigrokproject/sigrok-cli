@@ -423,7 +423,8 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	GSList *ann_list, *l;
 	int i;
 	char **ann_descr;
-	gboolean show;
+	gboolean show_ann, show_snum, show_class, show_quotes, show_abbrev;
+	const char *quote;
 
 	(void)cb_data;
 
@@ -438,33 +439,59 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 
 	dec = pdata->pdo->di->decoder;
 	pda = pdata->data;
-	show = FALSE;
+	show_ann = FALSE;
 	for (l = ann_list; l; l = l->next) {
 		if (GPOINTER_TO_INT(l->data) == -1
 				|| GPOINTER_TO_INT(l->data) == pda->ann_class) {
-			show = TRUE;
+			show_ann = TRUE;
 			break;
 		}
 	}
-	if (!show)
+	if (!show_ann)
 		return;
 
-	if (opt_loglevel <= SR_LOG_WARN) {
-		/* Show only the longest annotation. */
-		printf("%s: %s", pdata->pdo->proto_id, pda->ann_text[0]);
-	} else if (opt_loglevel >= SR_LOG_INFO) {
-		/* Sample numbers and quotes around the longest annotation. */
-		printf("%"PRIu64"-%"PRIu64"", pdata->start_sample, pdata->end_sample);
-		if (opt_loglevel == SR_LOG_INFO) {
-			printf(" %s \"%s\"", pdata->pdo->proto_id, pda->ann_text[0]);
-		} else {
-			/* Protocol decoder id, annotation class,
-			 * all annotation strings. */
-			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
-			printf(" %s: %s:", pdata->pdo->proto_id, ann_descr[0]);
-			for (i = 0; pda->ann_text[i]; i++)
-				printf(" \"%s\"", pda->ann_text[i]);
-		}
+	/*
+	 * Determine which fields of the annotation to display. Inspect
+	 * user specified options as well as the verbosity of the log level:
+	 * - Optionally show the sample numbers for the annotation's span.
+	 * - Always show the protocol decoder ID.
+	 * - Optionally show the annotation's class description.
+	 * - Always show the longest annotation text.
+	 * - Optionally show alternative annotation text (abbreviations
+	 *   for different zoom levels).
+	 * - Optionally put quote marks around annotation text, when
+	 *   recipients might have to deal with a set of text variants.
+	 */
+	show_snum = show_class = show_quotes = show_abbrev = FALSE;
+	if (opt_pd_samplenum || opt_loglevel > SR_LOG_WARN) {
+		show_snum = TRUE;
+	}
+	if (opt_loglevel > SR_LOG_WARN) {
+		show_quotes = TRUE;
+	}
+	if (opt_loglevel > SR_LOG_INFO) {
+		show_class = TRUE;
+		show_abbrev = TRUE;
+	}
+
+	/*
+	 * Display the annotation's fields after the layout was
+	 * determined above.
+	 */
+	if (show_snum) {
+		printf("%" PRIu64 "-%" PRIu64 " ",
+			pdata->start_sample, pdata->end_sample);
+	}
+	printf("%s: ", pdata->pdo->proto_id);
+	if (show_class) {
+		ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
+		printf("%s: ", ann_descr[0]);
+	}
+	quote = show_quotes ? "\"" : "";
+	printf("%s%s%s", quote, pda->ann_text[0], quote);
+	if (show_abbrev) {
+		for (i = 1; pda->ann_text[i]; i++)
+			printf(" %s%s%s", quote, pda->ann_text[i], quote);
 	}
 	printf("\n");
 	fflush(stdout);
@@ -479,7 +506,7 @@ void show_pd_meta(struct srd_proto_data *pdata, void *cb_data)
 		/* Not in the list of PDs whose meta output we're showing. */
 		return;
 
-	if (opt_loglevel > SR_LOG_WARN)
+	if (opt_pd_samplenum || opt_loglevel > SR_LOG_WARN)
 		printf("%"PRIu64"-%"PRIu64" ", pdata->start_sample, pdata->end_sample);
 	printf("%s: ", pdata->pdo->proto_id);
 	printf("%s: %s", pdata->pdo->meta_name, g_variant_print(pdata->data, FALSE));
@@ -491,7 +518,7 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_proto_data_binary *pdb;
 	gpointer classp;
-	int class;
+	int classi;
 
 	(void)cb_data;
 
@@ -500,9 +527,9 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 		/* Not in the list of PDs whose meta output we're showing. */
 		return;
 
-	class = GPOINTER_TO_INT(classp);
+	classi = GPOINTER_TO_INT(classp);
 	pdb = pdata->data;
-	if (class != -1 && class != pdb->bin_class)
+	if (classi != -1 && classi != pdb->bin_class)
 		/* Not showing this binary class. */
 		return;
 

@@ -138,7 +138,8 @@ static void get_option(void)
 
 	if ((devargs = parse_generic_arg(opt_config, FALSE)))
 		set_dev_options(sdi, devargs);
-	else devargs = NULL;
+	else
+		devargs = NULL;
 
 	if ((ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
 		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
