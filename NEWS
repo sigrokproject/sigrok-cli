@@ -1,3 +1,26 @@
+0.7.1 (2018-10-26)
+------------------
+
+ * Command line option changes:
+   - Add the --protocol-decoder-samplenum option.
+ * Scan: Fix auto-select of non-demo device, if there's only one (bug #848).
+ * Protocol decoding: Always print colon after protocol decoder ID.
+ * input:
+   - Increase chunk size to 4MB (large performance improvements).
+   - Make read from stdin work with the presence of -I specs.
+ * Manpage:
+   - Fix outdated references to -V (it's -L now).
+   - Don't list specific output formats, only mention -L.
+   - Improve decoder stacking documentation.
+   - Mention currently unsupported channel name auto-matching.
+   - Various example invocation improvements (bug #1181).
+ * Fix invalid frame limit error reporting.
+ * Bugfix in order to make sr_session_stop() actually work.
+ * Add a .desktop file and an icon.
+ * Don't unnecessarily run the 'analog' output module on data sources
+   which don't have analog channels, thus improving performance.
+ * HACKING: Prefer git pull requests over mailing list patches.
+
 0.7.0 (2017-06-12)
 ------------------
 
