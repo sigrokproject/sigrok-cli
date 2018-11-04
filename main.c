@@ -117,6 +117,10 @@ static void get_option(void)
 	int ret;
 	char *s;
 	struct sr_dev_driver *driver;
+	const struct sr_key_info *srci, *srmqi, *srmqfi;
+	uint32_t mq;
+	uint64_t mask, mqflags;
+	unsigned int j;
 
 	if (!(devices = device_scan())) {
 		g_critical("No devices found.");
@@ -143,9 +147,27 @@ static void get_option(void)
 
 	if ((ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
 		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
-	s = g_variant_print(gvar, FALSE);
-	printf("%s\n", s);
-	g_free(s);
+	srci = sr_key_info_get(SR_KEY_CONFIG, ci->key);
+	if (srci && srci->datatype == SR_T_MQ) {
+		g_variant_get(gvar, "(ut)", &mq, &mqflags);
+		if ((srmqi = sr_key_info_get(SR_KEY_MQ, mq)))
+			printf("%s", srmqi->id);
+		else
+			printf("%d", mq);
+		for (j = 0, mask = 1; j < 32; j++, mask <<= 1) {
+			if (!(mqflags & mask))
+				continue;
+			if ((srmqfi = sr_key_info_get(SR_KEY_MQFLAGS, mqflags & mask)))
+				printf("/%s", srmqfi->id);
+			else
+				printf("/%" PRIu64, mqflags & mask);
+		}
+		printf("\n");
+	} else {
+		s = g_variant_print(gvar, FALSE);
+		printf("%s\n", s);
+		g_free(s);
+	}
 
 	g_variant_unref(gvar);
 	sr_dev_close(sdi);
