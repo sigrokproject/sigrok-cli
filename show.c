@@ -665,6 +665,7 @@ void show_dev_detail(void)
 			for (i = 0; i < num_elements; i++) {
 				gvar = g_variant_get_child_value(gvar_list, i);
 				g_variant_get(gvar, "(tt)", &p, &q);
+				g_variant_unref(gvar);
 				if (srci->datatype == SR_T_RATIONAL_PERIOD)
 					s = sr_period_string(p, q);
 				else
@@ -699,6 +700,7 @@ void show_dev_detail(void)
 				printf("      ");
 				gvar = g_variant_get_child_value(gvar_list, i);
 				g_variant_get(gvar, "(ut)", &mq, &mqflags);
+				g_variant_unref(gvar);
 				if ((srmqi = sr_key_info_get(SR_KEY_MQ, mq)))
 					printf("%s", srmqi->id);
 				else
