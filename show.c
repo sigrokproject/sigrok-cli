@@ -321,7 +321,8 @@ void show_dev_detail(void)
 	GVariant *gvar_dict, *gvar_list, *gvar;
 	gsize num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
-	const uint64_t *uint64, p = 0, q = 0, low = 0, high = 0;
+	const uint64_t *uint64;
+	uint64_t p = 0, q = 0, low = 0, high = 0;
 	uint64_t tmp_uint64, mask, cur_low, cur_high, cur_p, cur_q;
 	GArray *opts;
 	const int32_t *int32;
