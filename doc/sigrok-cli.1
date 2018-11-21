@@ -307,7 +307,7 @@ display, by specifying the decoder ID:
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid \-A i2c"
 .sp
-If a protocol decoder has multiple annotations, you can also specify
+If a protocol decoder has multiple annotation classes, you can also specify
 which one of them to show by specifying its short description like this:
 .sp
  $
@@ -315,7 +315,7 @@ which one of them to show by specifying its short description like this:
 .br
 .B "              \-A i2c=data\-read"
 .sp
-Select multiple annotations by separating them with a colon:
+Select multiple annotation classes by separating them with a colon:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
@@ -323,7 +323,7 @@ Select multiple annotations by separating them with a colon:
 .B "              \-A i2c=data\-read:data\-write"
 .sp
 You can also select multiple protocol decoders, with an optional selected
-annotation each, by separating them with commas:
+annotation class each, by separating them with commas:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
