@@ -300,9 +300,9 @@ Example:
 .sp
 .TP
 .BR "\-A, \-\-protocol\-decoder\-annotations " <annotations>
-By default, only the stack's topmost protocol decoder's annotation output is
-shown. With this option another decoder's annotation can be selected for
-display, by specifying its ID:
+By default, all annotation output of all protocol decoders is
+shown. With this option a specific decoder's annotations can be selected for
+display, by specifying the decoder ID:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid \-A i2c"
