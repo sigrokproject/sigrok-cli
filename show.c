@@ -646,7 +646,8 @@ void show_dev_detail(void)
 				printf("\n");
 
 		} else if (srci->datatype == SR_T_RATIONAL_PERIOD
-				|| srci->datatype == SR_T_RATIONAL_VOLT) {
+				|| srci->datatype == SR_T_RATIONAL_VOLT
+				|| srci->datatype == SR_T_RATIONAL_VOLT_PER_DIV) {
 			printf("    %s", srci->id);
 			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
@@ -668,8 +669,12 @@ void show_dev_detail(void)
 				g_variant_unref(gvar);
 				if (srci->datatype == SR_T_RATIONAL_PERIOD)
 					s = sr_period_string(p, q);
-				else
+				else if (srci->datatype == SR_T_RATIONAL_VOLT)
 					s = sr_voltage_string(p, q);
+				else if (srci->datatype == SR_T_RATIONAL_VOLT_PER_DIV)
+					s = sr_voltage_per_div_string(p, q);
+				else
+					s = g_strdup("Invalid datatype");
 				printf("      %s", s);
 				g_free(s);
 				if (p == cur_p && q == cur_q)
