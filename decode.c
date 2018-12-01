@@ -38,6 +38,7 @@ static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 	GSList *optl;
 	GVariant *gvar;
 	gint64 val_int;
+	double val_dbl;
 	int ret;
 	char *val_str, *conv;
 
@@ -61,6 +62,16 @@ static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 				break;
 			}
 			gvar = g_variant_new_int64(val_int);
+		} else if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_DOUBLE)) {
+			conv = NULL;
+			val_dbl = strtod(val_str, &conv);
+			if (!conv || conv == val_str || *conv) {
+				g_critical("Protocol decoder '%s' option '%s' requires a float number.",
+					dec->name, o->id);
+				ret = FALSE;
+				break;
+			}
+			gvar = g_variant_new_double(val_dbl);
 		} else {
 			g_critical("Unsupported type for option '%s' (%s)",
 					o->id, g_variant_get_type_string(o->def));
