@@ -208,7 +208,26 @@ static gint sort_channels(gconstpointer a, gconstpointer b)
 {
 	const struct sr_channel *pa = a, *pb = b;
 
-	return pa->index - pb->index;
+	if (pa->type == pb->type)
+		return pa->index - pb->index;
+
+	/*
+	 * Sort analog channels before digital channels and
+	 * digital channels before special FFT channels.
+	 */
+	if (pa->type == SR_CHANNEL_ANALOG)
+		return -1;
+
+	if (pb->type == SR_CHANNEL_ANALOG)
+		return 1;
+
+	if (pa->type == SR_CHANNEL_LOGIC)
+		return -1;
+
+	if (pb->type == SR_CHANNEL_LOGIC)
+		return 1;
+
+	return 0;
 }
 
 static void print_dev_line(const struct sr_dev_inst *sdi)
