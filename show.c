@@ -247,7 +247,7 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 
 	s = g_string_sized_new(128);
 	g_string_assign(s, driver->name);
-	if (maybe_config_get(driver, sdi, NULL, SR_CONF_CONN, &gvar) == SR_OK) {
+	if (maybe_config_get_and_show(driver, sdi, NULL, SR_CONF_CONN, &gvar) == SR_OK) {
 		g_string_append(s, ":conn=");
 		g_string_append(s, g_variant_get_string(gvar, NULL));
 		g_variant_unref(gvar);
@@ -524,7 +524,7 @@ void show_dev_detail(void)
 		} else if (srci->datatype == SR_T_UINT64) {
 			printf("    %s: ", srci->id);
 			gvar = NULL;
-			if (maybe_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				tmp_uint64 = g_variant_get_uint64(gvar);
 				g_variant_unref(gvar);
@@ -552,7 +552,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_STRING) {
 			printf("    %s: ", srci->id);
-			if (maybe_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				tmp_str = g_strdup(g_variant_get_string(gvar, NULL));
 				g_variant_unref(gvar);
@@ -591,7 +591,7 @@ void show_dev_detail(void)
 				continue;
 			}
 
-			if (maybe_config_get(driver, sdi, channel_group, key, &gvar) == SR_OK) {
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(tt)", &cur_low, &cur_high);
 				g_variant_unref(gvar);
 			} else {
@@ -615,7 +615,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_BOOL) {
 			printf("    %s: ", srci->id);
-			if (maybe_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				if (g_variant_get_boolean(gvar))
 					printf("on (current), off\n");
@@ -633,7 +633,7 @@ void show_dev_detail(void)
 				continue;
 			}
 
-			if (maybe_config_get(driver, sdi, channel_group, key, &gvar) == SR_OK) {
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(dd)", &dcur_low, &dcur_high);
 				g_variant_unref(gvar);
 			} else {
@@ -657,7 +657,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_FLOAT) {
 			printf("    %s: ", srci->id);
-			if (maybe_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				printf("%f\n", g_variant_get_double(gvar));
 				g_variant_unref(gvar);
@@ -668,7 +668,7 @@ void show_dev_detail(void)
 				|| srci->datatype == SR_T_RATIONAL_VOLT
 				|| srci->datatype == SR_T_RATIONAL_VOLT_PER_DIV) {
 			printf("    %s", srci->id);
-			if (maybe_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				g_variant_get(gvar, "(tt)", &cur_p, &cur_q);
 				g_variant_unref(gvar);
@@ -704,7 +704,7 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_MQ) {
 			printf("    %s: ", srci->id);
-			if (maybe_config_get(driver, sdi, channel_group, key,
+			if (maybe_config_get_and_show(driver, sdi, channel_group, key,
 					&gvar) == SR_OK
 					&& g_variant_is_of_type(gvar, G_VARIANT_TYPE_TUPLE)
 					&& g_variant_n_children(gvar) == 2) {

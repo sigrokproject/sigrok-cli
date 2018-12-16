@@ -78,6 +78,21 @@ int maybe_config_get(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant **gvar)
 {
+	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_GET_MASK)
+		return sr_config_get(driver, sdi, cg, key, gvar);
+
+	return SR_ERR_NA;
+}
+
+/*
+ * Same as maybe_config_get(), but strictly for capabilities that can
+ * be only read. Automatic Measurements for example, should not be
+ * normally listed, so they are skipped by this function.
+ */
+int maybe_config_get_and_show(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant **gvar)
+{
 	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_GET)
 		return sr_config_get(driver, sdi, cg, key, gvar);
 
