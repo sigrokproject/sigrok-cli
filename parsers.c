@@ -272,6 +272,7 @@ GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 	GHashTable *hash;
 	int i;
 	char **elements, *e;
+	const struct sr_key_info *info;
 
 	if (!arg || !arg[0])
 		return NULL;
@@ -279,7 +280,14 @@ GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 	i = 0;
 	hash = g_hash_table_new_full(g_str_hash, g_str_equal,
 			g_free, g_free);
-	elements = g_strsplit(arg, ":", 0);
+
+	/* In the SCPI command syntax the ":" character is reserved. */
+	info = sr_key_info_get(SR_KEY_CONFIG, SR_CONF_CUSTOM_CMD);
+	if (info && !strncmp(info->id, arg, strlen(info->id))) {
+		elements = g_strsplit(arg, "\n", 1);
+	} else {
+		elements = g_strsplit(arg, ":", 0);
+	}
 	if (sep_first)
 		g_hash_table_insert(hash, g_strdup("sigrok_key"),
 				g_strdup(elements[i++]));
