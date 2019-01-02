@@ -490,22 +490,68 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	 * Display the annotation's fields after the layout was
 	 * determined above.
 	 */
-	if (show_snum) {
-		printf("%" PRIu64 "-%" PRIu64 " ",
-			pdata->start_sample, pdata->end_sample);
+	if(opt_pd_jsontrace)
+	{
+		char * row_text = 0;
+		static gboolean first_line = TRUE;
+
+		// TODO: Get this from the configured samplerate.
+		uint64_t samplerate = 1000000;
+
+		if(!first_line)
+			printf(",\n");
+
+		if (dec->annotation_rows) {
+			// Search for an annotation row for this index
+			for (l = dec->annotation_rows; l && !row_text; l = l->next) {
+				struct srd_decoder_annotation_row *r;
+				GSList *ll;
+
+				r = l->data;
+				for (ll = r->ann_classes; ll; ll = ll->next) {
+					if(GPOINTER_TO_INT(ll->data) == pda->ann_class)
+					{
+						row_text = r->desc;
+						break;
+					}
+				}
+			}
+		}
+
+		if(!row_text)
+		{
+			// Use the annotation descriptor
+			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
+			row_text = ann_descr[0];
+		}
+
+		// The name is set to contain the text of the annotation
+		// The pid (process id) takes the decoder name, this ensures that the annotations for each decoder are grouped together
+		// The tid (thread id) takes the annotation row descriptor
+		// The ts (timestamp) is in microseconds.
+		printf("{\"name\": \"%s\", \"ph\": \"B\", \"pid\": \"%s\", \"tid\": \"%s\", \"ts\": %f},\n", pda->ann_text[0], pdata->pdo->proto_id, row_text, (pdata->start_sample * 1000000.0) / samplerate);
+		printf("{\"name\": \"%s\", \"ph\": \"E\", \"pid\": \"%s\", \"tid\": \"%s\", \"ts\": %f}", pda->ann_text[0], pdata->pdo->proto_id, row_text, (pdata->end_sample * 1000000.0) / samplerate);
+		first_line = FALSE;
 	}
-	printf("%s: ", pdata->pdo->proto_id);
-	if (show_class) {
-		ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
-		printf("%s: ", ann_descr[0]);
+	else
+	{
+		if (show_snum) {
+			printf("%" PRIu64 "-%" PRIu64 " ",
+				pdata->start_sample, pdata->end_sample);
+		}
+		printf("%s: ", pdata->pdo->proto_id);
+		if (show_class) {
+			ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
+			printf("%s: ", ann_descr[0]);
+		}
+		quote = show_quotes ? "\"" : "";
+		printf("%s%s%s", quote, pda->ann_text[0], quote);
+		if (show_abbrev) {
+			for (i = 1; pda->ann_text[i]; i++)
+				printf(" %s%s%s", quote, pda->ann_text[i], quote);
+		}
+		printf("\n");
 	}
-	quote = show_quotes ? "\"" : "";
-	printf("%s%s%s", quote, pda->ann_text[0], quote);
-	if (show_abbrev) {
-		for (i = 1; pda->ann_text[i]; i++)
-			printf(" %s%s%s", quote, pda->ann_text[i], quote);
-	}
-	printf("\n");
 	fflush(stdout);
 }
 

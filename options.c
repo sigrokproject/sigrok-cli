@@ -39,6 +39,7 @@ gchar *opt_pd_annotations = NULL;
 gchar *opt_pd_meta = NULL;
 gchar *opt_pd_binary = NULL;
 gboolean opt_pd_samplenum = FALSE;
+gboolean opt_pd_jsontrace = FALSE;
 #endif
 gchar *opt_input_format = NULL;
 gchar *opt_output_format = NULL;
@@ -137,6 +138,8 @@ static const GOptionEntry optargs[] = {
 			"Protocol decoder binary output to show", NULL},
 	{"protocol-decoder-samplenum", 0, 0, G_OPTION_ARG_NONE, &opt_pd_samplenum,
 			"Show sample numbers in decoder output", NULL},
+	{"protocol-decoder-jsontrace", 0, 0, G_OPTION_ARG_NONE, &opt_pd_jsontrace,
+			"Output in Google JSON trace format", NULL},
 #endif
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},

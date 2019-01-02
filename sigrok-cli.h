@@ -111,6 +111,7 @@ extern gchar *opt_pd_annotations;
 extern gchar *opt_pd_meta;
 extern gchar *opt_pd_binary;
 extern gboolean opt_pd_samplenum;
+extern gboolean opt_pd_jsontrace;
 #endif
 extern gchar *opt_input_format;
 extern gchar *opt_output_format;

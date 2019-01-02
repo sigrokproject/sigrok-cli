@@ -216,6 +216,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	if(opt_pd_jsontrace)
+		printf("{\"traceEvents\": [\n");
+
 	/* Set the loglevel (amount of messages to output) for libsigrok. */
 	if (sr_log_loglevel_set(opt_loglevel) != SR_OK)
 		goto done;
@@ -299,6 +302,9 @@ int main(int argc, char **argv)
 done:
 	if (sr_ctx)
 		sr_exit(sr_ctx);
+
+	if(opt_pd_jsontrace)
+		printf("\n]}\n");
 
 	return 0;
 }
