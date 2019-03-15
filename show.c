@@ -770,6 +770,15 @@ static void show_pd_detail_single(const char *pd)
 		} else {
 			printf("None.\n");
 		}
+		printf("Decoder tags:\n");
+		if (dec->tags) {
+			for (l = dec->tags; l; l = l->next) {
+				str = l->data;
+				printf("- %s\n", str);
+			}
+		} else {
+			printf("None.\n");
+		}
 		printf("Annotation classes:\n");
 		if (dec->annotations) {
 			for (l = dec->annotations; l; l = l->next) {
