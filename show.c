@@ -204,6 +204,74 @@ void show_supported(void)
 #endif
 }
 
+void show_supported_wiki(void)
+{
+#ifndef HAVE_SRD
+	printf("Error, libsigrokdecode support not compiled in.");
+#else
+	const GSList *l;
+	GSList *sl;
+	struct srd_decoder *dec;
+
+	if (srd_init(NULL) != SRD_OK)
+		return;
+
+	srd_decoder_load_all();
+	sl = g_slist_copy((GSList *)srd_decoder_list());
+	sl = g_slist_sort(sl, sort_pds);
+
+	printf("== Supported protocol decoders ==\n\n");
+
+	printf("<!-- Generated via sigrok-cli --list-supported-wiki. -->\n\n");
+
+	printf("Number of currently supported protocol decoders: "
+		"'''%d'''.\n\n", g_slist_length(sl));
+
+	printf("{| border=\"0\" style=\"font-size: smaller\" "
+		"class=\"alternategrey sortable sigroktable\"\n"
+		"|-\n!Protocol\n!Tags\n!Input IDs\n!Output IDs\n!Status\n"
+		"!Full name\n!Description\n\n");
+
+	for (l = sl; l; l = l->next) {
+		dec = l->data;
+
+		GString *tags = g_string_new(NULL);
+		for (GSList *t = dec->tags; t; t = t->next)
+			g_string_append_printf(tags, "%s, ", (char *)t->data);
+		if (tags->len != 0)
+			g_string_truncate(tags, tags->len - 2);
+
+		GString *in = g_string_new(NULL);
+		for (GSList *t = dec->inputs; t; t = t->next)
+			g_string_append_printf(in, "%s, ", (char *)t->data);
+		if (in->len == 0)
+			g_string_append_printf(in, "&mdash;");
+		else
+			g_string_truncate(in, in->len - 2);
+
+		GString *out = g_string_new(NULL);
+		for (GSList *t = dec->outputs; t; t = t->next)
+			g_string_append_printf(out, "%s, ", (char *)t->data);
+		if (out->len == 0)
+			g_string_append_printf(out, "&mdash;");
+		else
+			g_string_truncate(out, out->len - 2);
+
+		printf("{{pd|%s|%s|%s|%s|%s|%s|%s|supported}}\n",
+			dec->id, dec->name, dec->longname, dec->desc,
+			tags->str, in->str, out->str);
+
+		g_string_free(tags, TRUE);
+		g_string_free(in, TRUE);
+		g_string_free(out, TRUE);
+	}
+	g_slist_free(sl);
+	srd_exit();
+
+	printf("\n|}\n");
+#endif
+}
+
 static gint sort_channels(gconstpointer a, gconstpointer b)
 {
 	const struct sr_channel *pa = a, *pb = b;

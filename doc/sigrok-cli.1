@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "October 22, 2018"
+.TH SIGROK\-CLI 1 "March 28, 2019"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -28,9 +28,14 @@ version and the versions of libraries used.
 Show information about supported hardware drivers, input file
 formats, output file formats, and protocol decoders.
 .TP
+.B "\-\-list\-supported\-wiki"
+Show information about supported protocol decoders in MediaWiki syntax.
+This is generally only used by developers to easily update the list of
+supported protocol decoders in the sigrok wiki.
+.TP
 \fB\-d, \-\-driver\fP <drivername>
 A driver must always be selected (unless doing a global scan). Use the
-.BR "\-L " ( "\-\-list-supported" ")"
+.BR "\-L " ( "\-\-list\-supported" ")"
 option to get a list of available drivers.
 .sp
 Drivers can take options, in the form \fBkey=value\fP

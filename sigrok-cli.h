@@ -45,6 +45,7 @@ int maybe_config_list(struct sr_dev_driver *driver,
 /* show.c */
 void show_version(void);
 void show_supported(void);
+void show_supported_wiki(void);
 void show_dev_list(void);
 void show_dev_detail(void);
 void show_pd_detail(void);
@@ -95,6 +96,7 @@ void clear_anykey(void);
 /* options.c */
 extern gboolean opt_version;
 extern gboolean opt_list_supported;
+extern gboolean opt_list_supported_wiki;
 extern gint opt_loglevel;
 extern gboolean opt_scan_devs;
 extern gboolean opt_wait_trigger;

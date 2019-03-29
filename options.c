@@ -23,6 +23,7 @@
 
 gboolean opt_version = FALSE;
 gboolean opt_list_supported = FALSE;
+gboolean opt_list_supported_wiki = FALSE;
 gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings by default. */
 gboolean opt_scan_devs = FALSE;
 gboolean opt_wait_trigger = FALSE;
@@ -102,6 +103,8 @@ static const GOptionEntry optargs[] = {
 			"Show version", NULL},
 	{"list-supported", 'L', 0, G_OPTION_ARG_NONE, &opt_list_supported,
 			"List supported devices/modules/decoders", NULL},
+	{"list-supported-wiki", 0, 0, G_OPTION_ARG_NONE, &opt_list_supported_wiki,
+			"List supported decoders (MediaWiki)", NULL},
 	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
 			"Set loglevel (5 is most verbose)", NULL},
 	{"driver", 'd', 0, G_OPTION_ARG_CALLBACK, &check_opt_drv,

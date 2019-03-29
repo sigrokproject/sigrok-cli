@@ -266,6 +266,8 @@ int main(int argc, char **argv)
 		show_version();
 	else if (opt_list_supported)
 		show_supported();
+	else if (opt_list_supported_wiki)
+		show_supported_wiki();
 	else if (opt_input_format && opt_show)
 		show_input();
 	else if (opt_output_format && opt_show)
