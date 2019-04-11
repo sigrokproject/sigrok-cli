@@ -59,6 +59,11 @@ USB \fBbus.address\fP example:
 .sp
 .RB "  $ " "sigrok\-cli \-\-driver=uni\-t\-ut61e:conn=4.6" " [...]"
 .TP
+.B "\-D, \-\-dont\-scan"
+Do not automatically scan for device drivers in the absence of a
+.BR "\-d " ( "\-\-driver" )
+specification.
+.TP
 .BR "\-c, \-\-config " <deviceoption>
 A colon-separated list of device options, where each option takes the form
 .BR key=value .

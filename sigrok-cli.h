@@ -99,6 +99,7 @@ extern gboolean opt_list_supported;
 extern gboolean opt_list_supported_wiki;
 extern gint opt_loglevel;
 extern gboolean opt_scan_devs;
+extern gboolean opt_dont_scan;
 extern gboolean opt_wait_trigger;
 extern gchar *opt_input_file;
 extern gchar *opt_output_file;

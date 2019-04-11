@@ -35,12 +35,16 @@ GSList *device_scan(void)
 	int i;
 
 	if (opt_drv) {
+		/* Caller specified driver. Use it. Only this one. */
 		if (!parse_driver(opt_drv, &driver, &drvopts))
 			return NULL;
 		devices = sr_driver_scan(driver, drvopts);
 		g_slist_free_full(drvopts, (GDestroyNotify)free_drvopts);
+	} else if (opt_dont_scan) {
+		/* No -d choice, and -D "don't scan" requested. Do nothing. */
+		devices = NULL;
 	} else {
-		/* No driver specified, let them all scan on their own. */
+		/* No driver specified. Scan all available drivers. */
 		devices = NULL;
 		drivers = sr_driver_list(sr_ctx);
 		for (i = 0; drivers[i]; i++) {

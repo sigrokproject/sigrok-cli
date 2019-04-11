@@ -26,6 +26,7 @@ gboolean opt_list_supported = FALSE;
 gboolean opt_list_supported_wiki = FALSE;
 gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings by default. */
 gboolean opt_scan_devs = FALSE;
+gboolean opt_dont_scan = FALSE;
 gboolean opt_wait_trigger = FALSE;
 gchar *opt_input_file = NULL;
 gchar *opt_output_file = NULL;
@@ -143,6 +144,8 @@ static const GOptionEntry optargs[] = {
 #endif
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},
+	{"dont-scan", 'D', 0, G_OPTION_ARG_NONE, &opt_dont_scan,
+			"Don't auto-scan (use -d spec only)", NULL},
 	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
 			"Show device/format/decoder details", NULL},
 	{"time", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_time,
