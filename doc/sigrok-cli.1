@@ -34,7 +34,10 @@ This is generally only used by developers to easily update the list of
 supported protocol decoders in the sigrok wiki.
 .TP
 \fB\-d, \-\-driver\fP <drivername>
-A driver must always be selected (unless doing a global scan). Use the
+Unless doing a global scan, users typically select one of the available
+drivers. This can speedup program start, and can avoid false matches for
+ambiguous configurations. Selecting a driver also allows to pass more
+driver specific options. Use the
 .BR "\-L " ( "\-\-list\-supported" ")"
 option to get a list of available drivers.
 .sp
