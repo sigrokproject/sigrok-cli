@@ -58,6 +58,20 @@ GSList *device_scan(void);
 struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi);
 
 /* session.c */
+struct df_arg_desc {
+	struct sr_session *session;
+	int do_props;
+	struct input_stream_props {
+		uint64_t samplerate;
+		GSList *channels;
+		const struct sr_channel *first_analog_channel;
+		size_t unitsize;
+		uint64_t sample_count_logic;
+		uint64_t sample_count_analog;
+		uint64_t frame_count;
+		uint64_t triggered;
+	} props;
+};
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
 int opt_to_gvar(char *key, char *value, struct sr_config *src);
@@ -65,7 +79,7 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args);
 void run_session(void);
 
 /* input.c */
-void load_input_file(void);
+void load_input_file(gboolean do_props);
 
 /* decode.c */
 #ifdef HAVE_SRD

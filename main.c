@@ -268,6 +268,8 @@ int main(int argc, char **argv)
 		show_supported();
 	else if (opt_list_supported_wiki)
 		show_supported_wiki();
+	else if (opt_input_file && opt_show)
+		load_input_file(TRUE);
 	else if (opt_input_format && opt_show)
 		show_input();
 	else if (opt_output_format && opt_show)
@@ -283,7 +285,7 @@ int main(int argc, char **argv)
 	else if (opt_show)
 		show_dev_detail();
 	else if (opt_input_file)
-		load_input_file();
+		load_input_file(FALSE);
 	else if (opt_get)
 		get_option();
 	else if (opt_set)
