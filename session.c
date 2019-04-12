@@ -153,11 +153,6 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data)
 {
-	const struct sr_datafeed_meta *meta;
-	const struct sr_datafeed_logic *logic;
-	const struct sr_datafeed_analog *analog;
-	struct sr_session *session;
-	struct sr_config *src;
 	static const struct sr_output *o = NULL;
 	static const struct sr_output *oa = NULL;
 	static uint64_t rcvd_samples_logic = 0;
@@ -165,6 +160,12 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	static uint64_t samplerate = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
+
+	const struct sr_datafeed_meta *meta;
+	const struct sr_datafeed_logic *logic;
+	const struct sr_datafeed_analog *analog;
+	struct sr_session *session;
+	struct sr_config *src;
 	GSList *l;
 	GString *out;
 	GVariant *gvar;
@@ -178,7 +179,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	driver = sr_dev_inst_driver_get(sdi);
 
-	/* If the first packet to come in isn't a header, don't even try. */
+	/* Skip all packets before the first header. */
 	if (packet->type != SR_DF_HEADER && !o)
 		return;
 
