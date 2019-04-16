@@ -107,10 +107,15 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi, FILE 
 	o = sr_output_new(omod, fmtopts, sdi, opt_output_file);
 
 	if (opt_output_file) {
-		if (!sr_output_test_flag(omod, SR_OUTPUT_INTERNAL_IO_HANDLING))
+		if (!sr_output_test_flag(omod, SR_OUTPUT_INTERNAL_IO_HANDLING)) {
 			*outfile = g_fopen(opt_output_file, "wb");
-		else
+			if (!*outfile) {
+				g_critical("Cannot write to output file '%s'.",
+					opt_output_file);
+			}
+		} else {
 			*outfile = NULL;
+		}
 	} else {
 		*outfile = stdout;
 	}
