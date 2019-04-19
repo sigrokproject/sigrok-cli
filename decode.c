@@ -310,52 +310,58 @@ int setup_pd_annotations(char *opt_pd_annotations)
 	struct srd_decoder *dec;
 	int ann_class;
 	char **pds, **pdtok, **keyval, **annlist, **ann, **ann_descr;
+	const char *dec_id;
+	const char *ann_txt;
+	const char *ann_id;
 
 	/* Set up custom list of PDs and annotations to show. */
 	pds = g_strsplit(opt_pd_annotations, ",", 0);
 	for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
 		keyval = g_strsplit(*pdtok, "=", 0);
-		if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
-			g_critical("Protocol decoder '%s' not found.", keyval[0]);
+		dec_id = keyval[0];
+		if (!(dec = srd_decoder_get_by_id(dec_id))) {
+			g_critical("Protocol decoder '%s' not found.", dec_id);
 			g_strfreev(keyval);
 			g_strfreev(pds);
 			return 1;
 		}
 		if (!dec->annotations) {
-			g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
+			g_critical("Protocol decoder '%s' has no annotations.", dec_id);
 			g_strfreev(keyval);
 			g_strfreev(pds);
 			return 1;
 		}
-		if (g_strv_length(keyval) == 2 && keyval[1][0] != '\0') {
-			annlist = g_strsplit(keyval[1], ":", 0);
+		ann_txt = (g_strv_length(keyval) == 2) ? keyval[1] : NULL;
+		if (ann_txt && *ann_txt) {
+			annlist = g_strsplit(ann_txt, ":", 0);
 			for (ann = annlist; *ann && **ann; ann++) {
+				ann_id = *ann;
 				ann_class = 0;
 				for (l = dec->annotations; l; l = l->next, ann_class++) {
 					ann_descr = l->data;
-					if (!canon_cmp(ann_descr[0], *ann))
+					if (!canon_cmp(ann_descr[0], ann_id))
 						/* Found it. */
 						break;
 				}
 				if (!l) {
 					g_critical("Annotation '%s' not found "
-							"for protocol decoder '%s'.", *ann, keyval[0]);
+							"for protocol decoder '%s'.", ann_id, dec_id);
 					g_strfreev(keyval);
 					g_strfreev(pds);
 					return 1;
 				}
-				l_ann = g_hash_table_lookup(pd_ann_visible, keyval[0]);
+				l_ann = g_hash_table_lookup(pd_ann_visible, dec_id);
 				l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
-				g_hash_table_replace(pd_ann_visible, g_strdup(keyval[0]), l_ann);
+				g_hash_table_replace(pd_ann_visible, g_strdup(dec_id), l_ann);
 				g_debug("cli: Showing protocol decoder %s annotation "
-						"class %d (%s).", keyval[0], ann_class, ann_descr[0]);
+						"class %d (%s).", dec_id, ann_class, ann_descr[0]);
 			}
 		} else {
 			/* No class specified: show all of them. */
-				g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]),
+				g_hash_table_insert(pd_ann_visible, g_strdup(dec_id),
 						g_slist_append(NULL, GINT_TO_POINTER(-1)));
 			g_debug("cli: Showing all annotation classes for protocol "
-					"decoder %s.", keyval[0]);
+					"decoder %s.", dec_id);
 		}
 		g_strfreev(keyval);
 	}
