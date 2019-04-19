@@ -313,6 +313,8 @@ int setup_pd_annotations(char *opt_pd_annotations)
 	const char *dec_id;
 	const char *ann_txt;
 	const char *ann_id;
+	const struct srd_decoder_annotation_row *row_desc;
+	char **ann_diag;
 
 	/* Set up custom list of PDs and annotations to show. */
 	pds = g_strsplit(opt_pd_annotations, ",", 0);
@@ -336,6 +338,7 @@ int setup_pd_annotations(char *opt_pd_annotations)
 			annlist = g_strsplit(ann_txt, ":", 0);
 			for (ann = annlist; *ann && **ann; ann++) {
 				ann_id = *ann;
+				g_debug("cli: Lookup decoder %s annotation %s.", dec_id, ann_id);
 				/* Lookup annotation class. */
 				ann_class = 0;
 				for (l = dec->annotations; l; l = l->next, ann_class++) {
@@ -350,6 +353,32 @@ int setup_pd_annotations(char *opt_pd_annotations)
 					g_hash_table_replace(pd_ann_visible, g_strdup(dec_id), l_ann);
 					g_debug("cli: Showing protocol decoder %s annotation "
 							"class %d (%s).", dec_id, ann_class, ann_descr[0]);
+					continue;
+				}
+				/* Lookup annotation row. */
+				for (l = dec->annotation_rows; l; l = l->next) {
+					row_desc = l->data;
+					if (!canon_cmp(row_desc->id, ann_id))
+						break;
+				}
+				if (l) {
+					g_debug("cli: Showing decoder %s annotation row %s (%s).",
+						dec_id, row_desc->id, row_desc->desc);
+					l_ann = g_hash_table_lookup(pd_ann_visible, dec_id);
+					for (l = row_desc->ann_classes; l; l = l->next) {
+						/*
+						 * This could just be:
+						 *   l_ann = g_slist_append(l_ann, l->data);
+						 * But we are explicit for readability
+						 * and to access details for diagnostics.
+						 */
+						ann_class = GPOINTER_TO_INT(l->data);
+						l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
+						ann_diag = g_slist_nth_data(dec->annotations, ann_class);
+						g_debug("cli: Adding class %d/%s from row %s.",
+							ann_class, ann_diag[0], row_desc->id);
+					}
+					g_hash_table_replace(pd_ann_visible, g_strdup(dec_id), l_ann);
 					continue;
 				}
 				/* No match found. */
