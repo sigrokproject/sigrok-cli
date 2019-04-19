@@ -327,8 +327,17 @@ Select multiple annotation classes by separating them with a colon:
 .br
 .B "              \-A i2c=data\-read:data\-write"
 .sp
-You can also select multiple protocol decoders, with an optional selected
-annotation class each, by separating them with commas:
+Annotation row names will resolve to their respective list of classes.
+Row and class names can be used in combination. When names are ambiguous
+then class names take precedence.
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-P i2c"
+.br
+.B "              \-A i2c=addr\-data:warnings"
+.sp
+You can also select multiple protocol decoders, with optionally selected
+annotation classes each, by separating them with commas:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
