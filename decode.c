@@ -317,10 +317,14 @@ int setup_pd_annotations(char *opt_pd_annotations)
 		keyval = g_strsplit(*pdtok, "=", 0);
 		if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
 			g_critical("Protocol decoder '%s' not found.", keyval[0]);
+			g_strfreev(keyval);
+			g_strfreev(pds);
 			return 1;
 		}
 		if (!dec->annotations) {
 			g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
+			g_strfreev(keyval);
+			g_strfreev(pds);
 			return 1;
 		}
 		if (g_strv_length(keyval) == 2 && keyval[1][0] != '\0') {
@@ -336,6 +340,8 @@ int setup_pd_annotations(char *opt_pd_annotations)
 				if (!l) {
 					g_critical("Annotation '%s' not found "
 							"for protocol decoder '%s'.", *ann, keyval[0]);
+					g_strfreev(keyval);
+					g_strfreev(pds);
 					return 1;
 				}
 				l_ann = g_hash_table_lookup(pd_ann_visible, keyval[0]);
