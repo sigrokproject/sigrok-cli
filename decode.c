@@ -336,6 +336,7 @@ int setup_pd_annotations(char *opt_pd_annotations)
 			annlist = g_strsplit(ann_txt, ":", 0);
 			for (ann = annlist; *ann && **ann; ann++) {
 				ann_id = *ann;
+				/* Lookup annotation class. */
 				ann_class = 0;
 				for (l = dec->annotations; l; l = l->next, ann_class++) {
 					ann_descr = l->data;
@@ -343,18 +344,20 @@ int setup_pd_annotations(char *opt_pd_annotations)
 						/* Found it. */
 						break;
 				}
-				if (!l) {
-					g_critical("Annotation '%s' not found "
-							"for protocol decoder '%s'.", ann_id, dec_id);
-					g_strfreev(keyval);
-					g_strfreev(pds);
-					return 1;
+				if (l) {
+					l_ann = g_hash_table_lookup(pd_ann_visible, dec_id);
+					l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
+					g_hash_table_replace(pd_ann_visible, g_strdup(dec_id), l_ann);
+					g_debug("cli: Showing protocol decoder %s annotation "
+							"class %d (%s).", dec_id, ann_class, ann_descr[0]);
+					continue;
 				}
-				l_ann = g_hash_table_lookup(pd_ann_visible, dec_id);
-				l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
-				g_hash_table_replace(pd_ann_visible, g_strdup(dec_id), l_ann);
-				g_debug("cli: Showing protocol decoder %s annotation "
-						"class %d (%s).", dec_id, ann_class, ann_descr[0]);
+				/* No match found. */
+				g_critical("Annotation '%s' not found "
+						"for protocol decoder '%s'.", ann_id, dec_id);
+				g_strfreev(keyval);
+				g_strfreev(pds);
+				return 1;
 			}
 		} else {
 			/* No class specified: show all of them. */
