@@ -358,8 +358,9 @@ int setup_pd_annotations(char *opt_pd_annotations)
 			}
 		} else {
 			/* No class specified: show all of them. */
-				g_hash_table_insert(pd_ann_visible, g_strdup(dec_id),
-						g_slist_append(NULL, GINT_TO_POINTER(-1)));
+			ann_class = -1;
+			l_ann = g_slist_append(NULL, GINT_TO_POINTER(ann_class));
+			g_hash_table_insert(pd_ann_visible, g_strdup(dec_id), l_ann);
 			g_debug("cli: Showing all annotation classes for protocol "
 					"decoder %s.", dec_id);
 		}
