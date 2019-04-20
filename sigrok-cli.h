@@ -35,6 +35,9 @@ int select_channels(struct sr_dev_inst *sdi);
 int maybe_config_get(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant **gvar);
+int maybe_config_get_and_show(struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
+		uint32_t key, GVariant **gvar);
 int maybe_config_set(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant *gvar);
