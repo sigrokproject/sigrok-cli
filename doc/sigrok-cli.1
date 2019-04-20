@@ -432,6 +432,13 @@ This also works for protocol decoders, input modules and output modules:
 .B "sigrok\-cli \-\-input\-format csv \-\-show
  $
 .B "sigrok\-cli \-\-output\-format bits \-\-show
+.sp
+This also works for input files, including optional input format specifications:
+.sp
+ $
+.B "sigrok\-cli \-\-input\-file <file.sr> \-\-show
+ $
+.B "sigrok\-cli \-\-input\-file <file.vcd> \-\-input\-format vcd \-\-show
 .TP
 .B "\-\-scan"
 Scan for devices that can be detected automatically.
