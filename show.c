@@ -399,6 +399,8 @@ void show_dev_detail(void)
 	unsigned int num_devices, i, j;
 	char *tmp_str, *s, c;
 	const char **stropts;
+	double tmp_flt;
+	const double *fltopts;
 
 	if (parse_driver(opt_drv, &driver_from_opt, NULL)) {
 		/* A driver was specified, report driver-wide options now. */
@@ -706,12 +708,32 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_FLOAT) {
 			printf("    %s: ", srci->id);
+			tmp_flt = 0.0;
 			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
-				printf("%f\n", g_variant_get_double(gvar));
+				tmp_flt = g_variant_get_double(gvar);
 				g_variant_unref(gvar);
-			} else
+			}
+			if (maybe_config_list(driver, sdi, channel_group, key,
+					&gvar) != SR_OK) {
+				if (tmp_flt) {
+					/* Can't list, but got a value to show. */
+					printf("%f (current)", tmp_flt);
+				}
 				printf("\n");
+				continue;
+			}
+			fltopts = g_variant_get_fixed_array(gvar,
+				&num_elements, sizeof(tmp_flt));
+			for (i = 0; i < num_elements; i++) {
+				if (i)
+					printf(", ");
+				printf("%f", fltopts[i]);
+				if (tmp_flt && fltopts[i] == tmp_flt)
+					printf(" (current)");
+			}
+			printf("\n");
+			g_variant_unref(gvar);
 
 		} else if (srci->datatype == SR_T_RATIONAL_PERIOD
 				|| srci->datatype == SR_T_RATIONAL_VOLT) {
