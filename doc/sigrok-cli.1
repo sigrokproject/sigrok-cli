@@ -51,8 +51,10 @@ Openbench Logic Sniffer:
 .RB "  $ " "sigrok\-cli \-\-driver=ols:conn=/dev/ttyACM0" " [...]"
 .sp
 Some USB devices don't use a unique VendorID/ProductID combination, and thus
-need that specified as well. This also uses the \fBconn\fP option, using
-either \fBVendorID.ProductID\fP or \fBbus.address\fP:
+need that specified as well. Notice that colons are used to separate the
+driver name from the \fBconn\fP option, thus colons cannot be used within the
+\fBconn\fP option's argument. To select a specific USB device, use either
+\fBVendorID.ProductID\fP or \fBbus.address\fP:
 .sp
 USB \fBVendorID.ProductID\fP example:
 .sp
