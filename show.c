@@ -1073,7 +1073,7 @@ void show_serial_ports(void)
 	if (!serial_ports)
 		return;
 
-	printf("Available serial ports:\n");
+	printf("Available serial/HID/BT/BLE ports:\n");
 	g_slist_foreach(serial_ports, print_serial_port, NULL);
 	g_slist_free_full(serial_ports, (GDestroyNotify)sr_serial_free);
 }

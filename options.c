@@ -159,7 +159,7 @@ static const GOptionEntry optargs[] = {
 			"Sample continuously", NULL},
 	{"get", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_get, "Get device options only", NULL},
 	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
-	{"list-serial", 0, 0, G_OPTION_ARG_NONE, &opt_list_serial, "List available serial ports", NULL},
+	{"list-serial", 0, 0, G_OPTION_ARG_NONE, &opt_list_serial, "List available serial/HID/BT/BLE ports", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
 
