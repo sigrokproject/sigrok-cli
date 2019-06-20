@@ -1084,7 +1084,7 @@ static void print_serial_port(gpointer data, gpointer user_data)
 
 	port = (void *)data;
 	(void)user_data;
-	printf("\t%s\t%s\n", port->name, port->description);
+	printf("  %s\t%s\n", port->name, port->description);
 }
 
 void show_serial_ports(void)
