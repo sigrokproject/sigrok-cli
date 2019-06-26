@@ -27,6 +27,7 @@
 static GHashTable *pd_ann_visible = NULL;
 static GHashTable *pd_meta_visible = NULL;
 static GHashTable *pd_binary_visible = NULL;
+static GHashTable *pd_logic_visible = NULL;
 static GHashTable *pd_channel_maps = NULL;
 
 extern struct srd_session *srd_sess;
@@ -473,6 +474,55 @@ int setup_pd_binary(char *opt_pd_binary)
 	return 0;
 }
 
+int setup_pd_logic(char *opt_pd_logic)
+{
+	GSList *l;
+	struct srd_decoder *dec;
+	int logic_class;
+	char **pds, **pdtok, **keyval, **logic_name;
+
+	pd_logic_visible = g_hash_table_new_full(g_str_hash, g_int_equal,
+			g_free, NULL);
+	pds = g_strsplit(opt_pd_logic, ",", 0);
+	for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
+		keyval = g_strsplit(*pdtok, "=", 0);
+		if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
+			g_critical("Protocol decoder '%s' not found.", keyval[0]);
+			return 1;
+		}
+		if (!dec->logic_output_channels) {
+			g_critical("Protocol decoder '%s' has no logic output channels.", keyval[0]);
+			return 1;
+		}
+		logic_class = 0;
+		if (g_strv_length(keyval) == 2) {
+			for (l = dec->logic_output_channels; l; l = l->next, logic_class++) {
+				logic_name = l->data;
+				if (!strcmp(logic_name[0], keyval[1]))
+					/* Found it. */
+					break;
+			}
+			if (!l) {
+				g_critical("logic output channel '%s' not found "
+						"for protocol decoder '%s'.", keyval[1], keyval[0]);
+				return 1;
+			}
+			g_debug("cli: Showing protocol decoder %s logic class "
+					"%d (%s).", keyval[0], logic_class, logic_name[0]);
+		} else {
+			/* No class specified: output all of them. */
+			logic_class = -1;
+			g_debug("cli: Showing all logic classes for protocol "
+					"decoder %s.", keyval[0]);
+		}
+		g_hash_table_insert(pd_logic_visible, g_strdup(keyval[0]), GINT_TO_POINTER(logic_class));
+		g_strfreev(keyval);
+	}
+	g_strfreev(pds);
+
+	return 0;
+}
+
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_decoder *dec;
@@ -592,6 +642,35 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 
 	/* Just send the binary output to stdout, no embellishments. */
 	fwrite(pdb->data, pdb->size, 1, stdout);
+	fflush(stdout);
+}
+
+void show_pd_logic(struct srd_proto_data *pdata, void *cb_data)
+{
+	struct srd_proto_data_logic *pdl;
+	gpointer classp;
+	int classi;
+	size_t i;
+	uint64_t samplenum;
+
+	(void)cb_data;
+
+	if (!g_hash_table_lookup_extended(pd_logic_visible,
+			pdata->pdo->di->decoder->id, NULL, (void **)&classp))
+		/* Not in the list of PDs whose logic output channels we're showing. */
+		return;
+
+	classi = GPOINTER_TO_INT(classp);
+	pdl = pdata->data;
+	if (classi != -1 && classi != pdl->logic_class)
+		/* Not showing this logic class. */
+		return;
+
+	samplenum = pdata->start_sample;
+
+	/* TODO */
+	for (i = 0; i < pdl->size; i++)
+		printf("#%" PRIu64 " %d!\n", samplenum++, pdl->data[i]);
 	fflush(stdout);
 }
 #endif

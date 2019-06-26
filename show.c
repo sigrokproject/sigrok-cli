@@ -826,6 +826,7 @@ static void show_pd_detail_single(const char *pd)
 	struct srd_decoder_option *o;
 	struct srd_channel *pdch;
 	struct srd_decoder_annotation_row *r;
+	struct srd_decoder_logic_output_channel *lg;
 	GSList *l, *ll, *ol;
 	int idx;
 	char **pdtokens, **pdtok, *optsep, **ann, **bin, *val, *doc, *str;
@@ -900,6 +901,15 @@ static void show_pd_detail_single(const char *pd)
 			for (l = dec->binary; l; l = l->next) {
 				bin = l->data;
 				printf("- %s: %s\n", bin[0], bin[1]);
+			}
+		} else {
+			printf("None.\n");
+		}
+		printf("Logic classes:\n");
+		if (dec->logic_output_channels) {
+			for (l = dec->logic_output_channels; l; l = l->next) {
+				lg = l->data;
+				printf("- %s (%s): (%" PRIu64 " Hz)\n", lg->id, lg->desc, lg->samplerate);
 			}
 		} else {
 			printf("None.\n");

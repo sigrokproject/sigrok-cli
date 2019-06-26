@@ -245,6 +245,12 @@ int main(int argc, char **argv)
 			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_BINARY,
 					show_pd_binary, NULL) != SRD_OK)
 				goto done;
+		} else if (opt_pd_logic) {
+			if (setup_pd_logic(opt_pd_logic) != 0)
+				goto done;
+			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_LOGIC,
+					show_pd_logic, NULL) != SRD_OK)
+				goto done;
 		} else if (opt_pd_meta) {
 			if (setup_pd_meta(opt_pd_meta) != 0)
 				goto done;

@@ -40,6 +40,7 @@ gchar **opt_pds = NULL;
 gchar *opt_pd_annotations = NULL;
 gchar *opt_pd_meta = NULL;
 gchar *opt_pd_binary = NULL;
+gchar *opt_pd_logic = NULL;
 gboolean opt_pd_samplenum = FALSE;
 #endif
 gchar *opt_input_format = NULL;
@@ -89,6 +90,7 @@ CHECK_ONCE(opt_triggers)
 CHECK_ONCE(opt_pd_annotations)
 CHECK_ONCE(opt_pd_meta)
 CHECK_ONCE(opt_pd_binary)
+CHECK_ONCE(opt_pd_logic)
 #endif
 CHECK_ONCE(opt_time)
 CHECK_ONCE(opt_samples)
@@ -140,6 +142,8 @@ static const GOptionEntry optargs[] = {
 			"Protocol decoder meta output to show", NULL},
 	{"protocol-decoder-binary", 'B', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_binary,
 			"Protocol decoder binary output to show", NULL},
+	{"protocol-decoder-logic", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_logic,
+			"Protocol decoder logic output to show", NULL},
 	{"protocol-decoder-samplenum", 0, 0, G_OPTION_ARG_NONE, &opt_pd_samplenum,
 			"Show sample numbers in decoder output", NULL},
 #endif

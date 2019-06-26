@@ -88,9 +88,11 @@ int register_pds(gchar **all_pds, char *opt_pd_annotations);
 int setup_pd_annotations(char *opt_pd_annotations);
 int setup_pd_meta(char *opt_pd_meta);
 int setup_pd_binary(char *opt_pd_binary);
+int setup_pd_logic(char *opt_pd_logic);
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_meta(struct srd_proto_data *pdata, void *cb_data);
 void show_pd_binary(struct srd_proto_data *pdata, void *cb_data);
+void show_pd_logic(struct srd_proto_data *pdata, void *cb_data);
 void map_pd_channels(struct sr_dev_inst *sdi);
 #endif
 
@@ -128,6 +130,7 @@ extern gchar **opt_pds;
 extern gchar *opt_pd_annotations;
 extern gchar *opt_pd_meta;
 extern gchar *opt_pd_binary;
+extern gchar *opt_pd_logic;
 extern gboolean opt_pd_samplenum;
 #endif
 extern gchar *opt_input_format;
