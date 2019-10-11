@@ -117,6 +117,7 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi, FILE 
 			*outfile = NULL;
 		}
 	} else {
+		setup_binary_stdout();
 		*outfile = stdout;
 	}
 

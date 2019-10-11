@@ -30,6 +30,7 @@ sigrok_cli_SOURCES = \
 	device.c \
 	session.c \
 	input.c \
+	output.c \
 	decode.c \
 	sigrok-cli.h \
 	parsers.c \

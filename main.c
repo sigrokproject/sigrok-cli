@@ -242,6 +242,8 @@ int main(int argc, char **argv)
 		if (opt_pd_binary) {
 			if (setup_pd_binary(opt_pd_binary) != 0)
 				goto done;
+			if (setup_binary_stdout() != 0)
+				goto done;
 			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_BINARY,
 					show_pd_binary, NULL) != SRD_OK)
 				goto done;
