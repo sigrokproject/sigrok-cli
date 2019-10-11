@@ -82,6 +82,9 @@ void run_session(void);
 /* input.c */
 void load_input_file(gboolean do_props);
 
+/* output.c */
+int setup_binary_stdout(void);
+
 /* decode.c */
 #ifdef HAVE_SRD
 int register_pds(gchar **all_pds, char *opt_pd_annotations);
