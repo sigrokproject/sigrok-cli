@@ -286,12 +286,13 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 	GString *s;
 	GVariant *gvar;
 	struct sr_dev_driver *driver;
-	const char *vendor, *model, *version;
+	const char *vendor, *model, *version, *sernum;
 
 	driver = sr_dev_inst_driver_get(sdi);
 	vendor = sr_dev_inst_vendor_get(sdi);
 	model = sr_dev_inst_model_get(sdi);
 	version = sr_dev_inst_version_get(sdi);
+	sernum = sr_dev_inst_sernum_get(sdi);
 	channels = sr_dev_inst_channels_get(sdi);
 
 	s = g_string_sized_new(128);
@@ -308,6 +309,8 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 		g_string_append_printf(s, "%s ", model);
 	if (version && version[0])
 		g_string_append_printf(s, "%s ", version);
+	if (sernum && sernum[0])
+		g_string_append_printf(s, "(sn: %s) ", sernum);
 	if (channels) {
 		if (g_slist_length(channels) == 1) {
 			ch = channels->data;
