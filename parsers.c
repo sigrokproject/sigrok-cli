@@ -71,14 +71,41 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 			ret = SR_ERR;
 			break;
 		}
-		if (strchr(tokens[i], '-')) {
+
+		names = g_strsplit(tokens[i], "=", 2);
+		if (!names[0] || (names[1] && names[2])) {
+			/* Need one or two arguments. */
+			g_critical("Invalid channel '%s'.", tokens[i]);
+			g_strfreev(names);
+			ret = SR_ERR;
+			break;
+		}
+
+		/* Check first if a channel with the given name already exists, as it
+		 * might contain a dash from a rename in an earlier option.
+		 */
+		ch = find_channel(channels, names[0], TRUE);
+		if (ch) {
+			if (names[1]) {
+				/* Rename channel. */
+				sr_dev_channel_name_set(ch, names[1]);
+			}
+			channellist = g_slist_append(channellist, ch);
+		} else if (strchr(names[0], '-')) {
 			/*
 			 * A range of channels in the form a-b. This will only work
 			 * if the channels are named as numbers -- so every channel
 			 * in the range must exist as a channel name string in the
 			 * device.
 			 */
-			range = g_strsplit(tokens[i], "-", 2);
+			if (names[1]) {
+				/* Channel range syntax not allowed when renaming. */
+				g_critical("Invalid rename for channel range '%s'.", names[0]);
+				ret = SR_ERR;
+				goto range_fail;
+			}
+
+			range = g_strsplit(names[0], "-", 2);
 			if (!range[0] || !range[1] || range[2]) {
 				/* Need exactly two arguments. */
 				g_critical("Invalid channel syntax '%s'.", tokens[i]);
@@ -99,7 +126,7 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 				goto range_fail;
 			}
 			if (b < 0 || b >= e) {
-				g_critical("Invalid channel range '%s'.", tokens[i]);
+				g_critical("Invalid channel range '%s'.", names[0]);
 				ret = SR_ERR;
 				goto range_fail;
 			}
@@ -123,34 +150,15 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 range_fail:
 			if (range)
 				g_strfreev(range);
-
-			if (ret != SR_OK)
-				break;
-		} else {
-			names = g_strsplit(tokens[i], "=", 2);
-			if (!names[0] || (names[1] && names[2])) {
-				/* Need one or two arguments. */
-				g_critical("Invalid channel '%s'.", tokens[i]);
-				g_strfreev(names);
-				ret = SR_ERR;
-				break;
-			}
-
-			ch = find_channel(channels, names[0], TRUE);
-			if (!ch) {
-				g_critical("unknown channel '%s'.", names[0]);
-				g_strfreev(names);
-				ret = SR_ERR;
-				break;
-			}
-			if (names[1]) {
-				/* Rename channel. */
-				sr_dev_channel_name_set(ch, names[1]);
-			}
-			channellist = g_slist_append(channellist, ch);
-
-			g_strfreev(names);
+		} else { /* Channel name not found and not a channel range. */
+			g_critical("unknown channel '%s'.", names[0]);
+			ret = SR_ERR;
 		}
+
+		g_strfreev(names);
+
+		if (ret != SR_OK)
+			break;
 	}
 
 	if (ret != SR_OK) {
