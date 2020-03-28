@@ -74,13 +74,6 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 		}
 
 		names = g_strsplit(tokens[i], "=", 2);
-		if (!names[0] || (names[1] && names[2])) {
-			/* Need one or two arguments. */
-			g_critical("Invalid channel '%s'.", tokens[i]);
-			g_strfreev(names);
-			ret = SR_ERR;
-			break;
-		}
 
 		/* Check first if a channel with the given name already exists, as it
 		 * might contain a dash from a rename in an earlier option.
@@ -107,12 +100,6 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 			}
 
 			range = g_strsplit(names[0], "-", 2);
-			if (!range[0] || !range[1] || range[2]) {
-				/* Need exactly two arguments. */
-				g_critical("Invalid channel syntax '%s'.", tokens[i]);
-				ret = SR_ERR;
-				goto range_fail;
-			}
 
 			/* Find start of numeric range (first digit) in range string. */
 			for (sptr = names[0]; *sptr != '-' && !isdigit(*sptr); sptr++);
