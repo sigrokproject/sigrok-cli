@@ -271,6 +271,11 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 
 	g_hash_table_iter_init(&iter, channel_map);
 	while (g_hash_table_iter_next(&iter, &channel_id, &channel_target)) {
+		if (!channel_target) {
+			g_printerr("cli: Channel name for \"%s\" missing.\n",
+				   (char *)channel_id);
+			continue;
+		}
 		ch = find_channel(channel_list, channel_target);
 		if (!ch) {
 			g_printerr("cli: No channel with name \"%s\" found.\n",
