@@ -393,6 +393,7 @@ void show_dev_detail(void)
 	gsize num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
 	const uint64_t *uint64;
+	uint64_t cur_rate, rate;
 	uint64_t p = 0, q = 0, low = 0, high = 0;
 	uint64_t tmp_uint64, mask, cur_low, cur_high, cur_p, cur_q;
 	GArray *opts;
@@ -535,6 +536,13 @@ void show_dev_detail(void)
 		} else if (key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
+			cur_rate = ~0ull;
+			if (maybe_config_get(driver, sdi, channel_group,
+				SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
+				if (g_variant_is_of_type(gvar, G_VARIANT_TYPE_UINT64))
+					cur_rate = g_variant_get_uint64(gvar);
+				g_variant_unref(gvar);
+			}
 			if (maybe_config_list(driver, sdi, channel_group, SR_CONF_SAMPLERATE,
 					&gvar_dict) != SR_OK) {
 				printf("\n");
@@ -546,9 +554,14 @@ void show_dev_detail(void)
 						&num_elements, sizeof(uint64_t));
 				printf(" - supported samplerates:\n");
 				for (i = 0; i < num_elements; i++) {
-					if (!(s = sr_samplerate_string(uint64[i])))
+					rate = uint64[i];
+					s = sr_samplerate_string(rate);
+					if (!s)
 						continue;
-					printf("      %s\n", s);
+					printf("      %s", s);
+					if (rate == cur_rate)
+						printf(" (current)");
+					printf("\n");
 					g_free(s);
 				}
 				g_variant_unref(gvar_list);
