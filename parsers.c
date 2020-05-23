@@ -268,6 +268,43 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 }
 
 /**
+ * Split an input text into a key and value respectively ('=' separator).
+ *
+ * @param[in] text Writeable copy of the input text, gets modified.
+ * @param[out] key Position of the keyword.
+ * @param[out] val Position of the value.
+ *
+ * TODO In theory the returned key/value locations could be const pointers.
+ * Which even would be preferrable. Unfortunately most call sites deal with
+ * glib hashes, and their insert API seriously lacks the const attribute.
+ * So we drop it here as well to avoid clutter at callers'.
+ */
+static void split_key_value(char *text, char **key, char **val)
+{
+	char *k, *v;
+	char *pos;
+
+	if (key)
+		*key = NULL;
+	if (val)
+		*val = NULL;
+	if (!text || !*text)
+		return;
+
+	k = text;
+	v = NULL;
+	pos = strchr(k, '=');
+	if (pos) {
+		*pos = '\0';
+		v = ++pos;
+	}
+	if (key)
+		*key = k;
+	if (val)
+		*val = v;
+}
+
+/**
  * Create hash table from colon separated key-value pairs input text.
  *
  * Accepts input text as it was specified by users. Splits the colon
@@ -301,49 +338,37 @@ GHashTable *parse_generic_arg(const char *arg,
 	gboolean sep_first, const char *key_first)
 {
 	GHashTable *hash;
+	char **elements;
 	int i;
-	char **elements, *e;
-	int l;
-	const char *s;
+	char *k, *v;
 
 	if (!arg || !arg[0])
 		return NULL;
+	if (key_first && !key_first[0])
+		key_first = NULL;
 
-	i = 0;
-	hash = g_hash_table_new_full(g_str_hash, g_str_equal,
-			g_free, g_free);
+	hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 	elements = g_strsplit(arg, ":", 0);
+	i = 0;
 	if (sep_first) {
-		/*
-		 * Caller requested "<id>[:<key>=<val>]*" case, Consume the
-		 * first item, before processing more key-value pairs below.
-		 */
-		g_hash_table_insert(hash, g_strdup("sigrok_key"),
-				g_strdup(elements[i++]));
-	} else if (key_first && *key_first) {
-		/*
-		 * Caller requested "[<sig>=<id>][:<key>=<val>]*" case.
-		 * Optional special handling of the first item, but only
-		 * consume this first item here when its keyword matched
-		 * the caller's specification.
-		 */
-		l = strlen(key_first);
-		s = elements[i];
-		e = strchr(s, '=');
-		if (e && e - s == l && g_str_has_prefix(s, key_first)) {
-			g_hash_table_insert(hash,
-				g_strdup("sigrok_key"), g_strdup(++e));
-			i++;
+		k = g_strdup("sigrok_key");
+		v = g_strdup(elements[i++]);
+		g_hash_table_insert(hash, k, v);
+	} else if (key_first) {
+		split_key_value(elements[i], &k, &v);
+		if (g_ascii_strcasecmp(k, key_first) == 0) {
+			k = "sigrok_key";
 		}
+		k = g_strdup(k);
+		v = g_strdup(v);
+		g_hash_table_insert(hash, k, v);
+		i++;
 	}
 	for (; elements[i]; i++) {
-		e = strchr(elements[i], '=');
-		if (!e)
-			g_hash_table_insert(hash, g_strdup(elements[i]), NULL);
-		else {
-			*e++ = '\0';
-			g_hash_table_insert(hash, g_strdup(elements[i]), g_strdup(e));
-		}
+		split_key_value(elements[i], &k, &v);
+		k = g_strdup(k);
+		v = v ? g_strdup(v) : NULL;
+		g_hash_table_insert(hash, k, v);
 	}
 	g_strfreev(elements);
 
