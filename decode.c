@@ -139,7 +139,7 @@ static int register_pd(char *opt_pds, char *opt_pd_annotations)
 
 	pdtokens = g_strsplit(opt_pds, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
-		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
+		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE, NULL))) {
 			g_critical("Invalid protocol decoder option '%s'.", *pdtok);
 			break;
 		}

@@ -267,11 +267,44 @@ int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 	return !error;
 }
 
-GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
+/**
+ * Create hash table from colon separated key-value pairs input text.
+ *
+ * Accepts input text as it was specified by users. Splits the colon
+ * separated key-value pairs and creates a hash table from these items.
+ * Optionally supports special forms which are useful for different CLI
+ * features.
+ *
+ * Typical form: <key>=<val>[:<key>=<val>]*
+ * Generic list of key-value pairs, all items being equal. Mere set.
+ *
+ * ID form: <id>[:<key>=<val>]*
+ * First item is not a key-value pair, instead it's an identifier. Used
+ * to specify a protocol decoder, or a device driver, or an input/output
+ * file format, optionally followed by more parameters' values. The ID
+ * part of the input spec is not optional.
+ *
+ * Optional ID: [<sel>=<id>][:<key>=<val>]*
+ * All items are key-value pairs. The first item _may_ be an identifier,
+ * if its key matches a caller specified key name. Otherwise the input
+ * text is the above typical form, a mere list of key-value pairs while
+ * none of them is special.
+ *
+ * @param[in] arg Input text.
+ * @param[in] sep_first Boolean, whether ID form is required.
+ * @param[in] key_first Keyword name if optional ID is applicable.
+ *
+ * @returns A hash table which contains the key/value pairs, or #NULL
+ *   when the input is invalid.
+ */
+GHashTable *parse_generic_arg(const char *arg,
+	gboolean sep_first, const char *key_first)
 {
 	GHashTable *hash;
 	int i;
 	char **elements, *e;
+	int l;
+	const char *s;
 
 	if (!arg || !arg[0])
 		return NULL;
@@ -280,9 +313,29 @@ GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 	hash = g_hash_table_new_full(g_str_hash, g_str_equal,
 			g_free, g_free);
 	elements = g_strsplit(arg, ":", 0);
-	if (sep_first)
+	if (sep_first) {
+		/*
+		 * Caller requested "<id>[:<key>=<val>]*" case, Consume the
+		 * first item, before processing more key-value pairs below.
+		 */
 		g_hash_table_insert(hash, g_strdup("sigrok_key"),
 				g_strdup(elements[i++]));
+	} else if (key_first && *key_first) {
+		/*
+		 * Caller requested "[<sig>=<id>][:<key>=<val>]*" case.
+		 * Optional special handling of the first item, but only
+		 * consume this first item here when its keyword matched
+		 * the caller's specification.
+		 */
+		l = strlen(key_first);
+		s = elements[i];
+		e = strchr(s, '=');
+		if (e && e - s == l && g_str_has_prefix(s, key_first)) {
+			g_hash_table_insert(hash,
+				g_strdup("sigrok_key"), g_strdup(++e));
+			i++;
+		}
+	}
 	for (; elements[i]; i++) {
 		e = strchr(elements[i], '=');
 		if (!e)
@@ -463,7 +516,7 @@ int parse_driver(char *arg, struct sr_dev_driver **driver, GSList **drvopts)
 	if (!arg)
 		return FALSE;
 
-	drvargs = parse_generic_arg(arg, TRUE);
+	drvargs = parse_generic_arg(arg, TRUE, NULL);
 
 	drvname = g_strdup(g_hash_table_lookup(drvargs, "sigrok_key"));
 	g_hash_table_remove(drvargs, "sigrok_key");

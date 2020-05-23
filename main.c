@@ -140,7 +140,7 @@ static void get_option(void)
 	if (!(ci = sr_key_info_name_get(SR_KEY_CONFIG, opt_get)))
 		g_critical("Unknown option '%s'", opt_get);
 
-	if ((devargs = parse_generic_arg(opt_config, FALSE)))
+	if ((devargs = parse_generic_arg(opt_config, FALSE, NULL)))
 		set_dev_options(sdi, devargs);
 	else
 		devargs = NULL;
@@ -186,7 +186,7 @@ static void set_options(void)
 		return;
 	}
 
-	if (!(devargs = parse_generic_arg(opt_config, FALSE)))
+	if (!(devargs = parse_generic_arg(opt_config, FALSE, NULL)))
 		return;
 
 	if (!(devices = device_scan())) {

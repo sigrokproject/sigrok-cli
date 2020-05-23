@@ -92,7 +92,7 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi, FILE 
 		}
 	}
 
-	fmtargs = parse_generic_arg(opt_output_format, TRUE);
+	fmtargs = parse_generic_arg(opt_output_format, TRUE, NULL);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
 		g_critical("Invalid output format.");
@@ -138,7 +138,7 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	GHashTable *fmtargs, *fmtopts;
 	char *fmtspec;
 
-	fmtargs = parse_generic_arg(opt_transform_module, TRUE);
+	fmtargs = parse_generic_arg(opt_transform_module, TRUE, NULL);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
 		g_critical("Invalid transform module.");
@@ -766,7 +766,7 @@ void run_session(void)
 	}
 
 	if (opt_config) {
-		if ((devargs = parse_generic_arg(opt_config, FALSE))) {
+		if ((devargs = parse_generic_arg(opt_config, FALSE, NULL))) {
 			if (set_dev_options(sdi, devargs) != SR_OK)
 				return;
 			g_hash_table_destroy(devargs);

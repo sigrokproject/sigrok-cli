@@ -51,7 +51,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 	mod_id = NULL;
 	mod_args = NULL;
 	if (opt_input_format) {
-		mod_args = parse_generic_arg(opt_input_format, TRUE);
+		mod_args = parse_generic_arg(opt_input_format, TRUE, NULL);
 		mod_id = g_hash_table_lookup(mod_args, "sigrok_key");
 	}
 
