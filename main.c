@@ -136,7 +136,7 @@ static void get_option(void)
 		return;
 	}
 
-	cg = select_channel_group(sdi);
+	cg = lookup_channel_group(sdi);
 	if (!(ci = sr_key_info_name_get(SR_KEY_CONFIG, opt_get)))
 		g_critical("Unknown option '%s'", opt_get);
 

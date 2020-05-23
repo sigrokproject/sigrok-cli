@@ -441,7 +441,7 @@ void show_dev_detail(void)
 	 * returned, or which values for them.
 	 */
 	select_channels(sdi);
-	channel_group = select_channel_group(sdi);
+	channel_group = lookup_channel_group(sdi);
 
 	if (!(opts = sr_dev_options(driver, sdi, channel_group)))
 		/* Driver supports no device instance options. */

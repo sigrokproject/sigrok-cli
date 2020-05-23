@@ -662,7 +662,7 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		if ((ret = opt_to_gvar(key, value, &src)) != 0)
 			return ret;
-		cg = select_channel_group(sdi);
+		cg = lookup_channel_group(sdi);
 		if ((ret = maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, cg,
 				src.key, src.data)) != SR_OK) {
 			g_critical("Failed to set device option '%s': %s.",

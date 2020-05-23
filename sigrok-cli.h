@@ -56,7 +56,7 @@ void show_serial_ports(void);
 
 /* device.c */
 GSList *device_scan(void);
-struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi);
+struct sr_channel_group *lookup_channel_group(struct sr_dev_inst *sdi);
 
 /* session.c */
 struct df_arg_desc {

@@ -63,7 +63,20 @@ GSList *device_scan(void)
 	return devices;
 }
 
-struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
+/**
+ * Lookup a channel group from its name.
+ *
+ * Uses the previously stored option value to lookup a channel group.
+ * Returns a reference to the channel group when the lookup succeeded,
+ * or #NULL after lookup failure, or #NULL for the global channel group
+ * (the device's global parameters). Emits an error message when the
+ * lookup failed while a channel group's name was specified.
+ *
+ * @param[in] sdi Device instance.
+ *
+ * @returns The channel group, or #NULL for failed lookup.
+ */
+struct sr_channel_group *lookup_channel_group(struct sr_dev_inst *sdi)
 {
 	struct sr_channel_group *cg;
 	GSList *l, *channel_groups;
@@ -72,7 +85,6 @@ struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 		return NULL;
 
 	channel_groups = sr_dev_inst_channel_groups_get(sdi);
-
 	if (!channel_groups) {
 		g_critical("This device does not have any channel groups.");
 		return NULL;
@@ -80,9 +92,9 @@ struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 
 	for (l = channel_groups; l; l = l->next) {
 		cg = l->data;
-		if (!g_ascii_strcasecmp(opt_channel_group, cg->name)) {
-			return cg;
-		}
+		if (g_ascii_strcasecmp(opt_channel_group, cg->name) != 0)
+			continue;
+		return cg;
 	}
 	g_critical("Invalid channel group '%s'", opt_channel_group);
 
