@@ -404,6 +404,7 @@ void show_dev_detail(void)
 	char *tmp_str, *s, c;
 	const char **stropts;
 	double tmp_flt;
+	gboolean have_tmp_flt;
 	const double *fltopts;
 
 	if (parse_driver(opt_drv, &driver_from_opt, NULL)) {
@@ -725,14 +726,16 @@ void show_dev_detail(void)
 		} else if (srci->datatype == SR_T_FLOAT) {
 			printf("    %s: ", srci->id);
 			tmp_flt = 0.0;
+			have_tmp_flt = FALSE;
 			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
 				tmp_flt = g_variant_get_double(gvar);
+				have_tmp_flt = TRUE;
 				g_variant_unref(gvar);
 			}
 			if (maybe_config_list(driver, sdi, channel_group, key,
 					&gvar) != SR_OK) {
-				if (tmp_flt) {
+				if (have_tmp_flt) {
 					/* Can't list, but got a value to show. */
 					printf("%f (current)", tmp_flt);
 				}
@@ -745,7 +748,7 @@ void show_dev_detail(void)
 				if (i)
 					printf(", ");
 				printf("%f", fltopts[i]);
-				if (tmp_flt && fltopts[i] == tmp_flt)
+				if (have_tmp_flt && fltopts[i] == tmp_flt)
 					printf(" (current)");
 			}
 			printf("\n");
