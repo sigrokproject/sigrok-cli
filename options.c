@@ -51,7 +51,7 @@ gchar *opt_time = NULL;
 gchar *opt_samples = NULL;
 gchar *opt_frames = NULL;
 gboolean opt_continuous = FALSE;
-gchar *opt_get = NULL;
+gchar **opt_gets = NULL;
 gboolean opt_set = FALSE;
 gboolean opt_list_serial = FALSE;
 
@@ -93,7 +93,6 @@ CHECK_ONCE(opt_pd_binary)
 CHECK_ONCE(opt_time)
 CHECK_ONCE(opt_samples)
 CHECK_ONCE(opt_frames)
-CHECK_ONCE(opt_get)
 
 #undef CHECK_STR_ONCE
 
@@ -159,7 +158,8 @@ static const GOptionEntry optargs[] = {
 			"Number of frames to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
 			"Sample continuously", NULL},
-	{"get", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_get, "Get device options only", NULL},
+	{"get", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_gets,
+			"Get device options only", NULL},
 	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
 	{"list-serial", 0, 0, G_OPTION_ARG_NONE, &opt_list_serial, "List available serial/HID/BT/BLE ports", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}

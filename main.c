@@ -106,43 +106,29 @@ int maybe_config_list(struct sr_dev_driver *driver,
 	return SR_ERR_NA;
 }
 
-static void get_option(void)
+static void get_option(struct sr_dev_inst *sdi,
+	struct sr_channel_group *cg, const char *opt)
 {
-	struct sr_dev_inst *sdi;
-	struct sr_channel_group *cg;
-	const struct sr_key_info *ci;
-	GSList *devices;
-	GVariant *gvar;
-	int ret;
-	char *s;
 	struct sr_dev_driver *driver;
+	const struct sr_key_info *ci;
+	int ret;
+	GVariant *gvar;
 	const struct sr_key_info *srci, *srmqi, *srmqfi;
 	uint32_t mq;
 	uint64_t mask, mqflags;
 	unsigned int j;
-
-	if (!(devices = device_scan())) {
-		g_critical("No devices found.");
-		return;
-	}
-	sdi = devices->data;
-	g_slist_free(devices);
+	char *s;
 
 	driver = sr_dev_inst_driver_get(sdi);
 
-	if (sr_dev_open(sdi) != SR_OK) {
-		g_critical("Failed to open device.");
-		return;
-	}
+	ci = sr_key_info_name_get(SR_KEY_CONFIG, opt);
+	if (!ci)
+		g_critical("Unknown option '%s'", opt);
 
-	cg = lookup_channel_group(sdi, NULL);
-	if (!(ci = sr_key_info_name_get(SR_KEY_CONFIG, opt_get)))
-		g_critical("Unknown option '%s'", opt_get);
+	ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar);
+	if (ret != SR_OK)
+		g_critical("Failed to get '%s': %s", opt, sr_strerror(ret));
 
-	set_dev_options_array(sdi, opt_configs);
-
-	if ((ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
-		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
 	srci = sr_key_info_get(SR_KEY_CONFIG, ci->key);
 	if (srci && srci->datatype == SR_T_MQ) {
 		g_variant_get(gvar, "(ut)", &mq, &mqflags);
@@ -166,6 +152,52 @@ static void get_option(void)
 	}
 
 	g_variant_unref(gvar);
+}
+
+static void get_options(void)
+{
+	GSList *devices;
+	struct sr_dev_inst *sdi;
+	size_t get_idx;
+	char *get_text, *cg_name;
+	GHashTable *args;
+	GHashTableIter iter;
+	gpointer key, value;
+	struct sr_channel_group *cg;
+
+	/* Lookup and open the device. */
+	devices = device_scan();
+	if (!devices) {
+		g_critical("No devices found.");
+		return;
+	}
+	sdi = devices->data;
+	g_slist_free(devices);
+
+	if (sr_dev_open(sdi) != SR_OK) {
+		g_critical("Failed to open device.");
+		return;
+	}
+
+	/* Set configuration values when -c was specified. */
+	set_dev_options_array(sdi, opt_configs);
+
+	/* Get configuration values which were specified by --get. */
+	for (get_idx = 0; (get_text = opt_gets[get_idx]); get_idx++) {
+		args = parse_generic_arg(get_text, FALSE, "channel_group");
+		if (!args)
+			continue;
+		cg_name = g_hash_table_lookup(args, "sigrok_key");
+		cg = lookup_channel_group(sdi, cg_name);
+		g_hash_table_iter_init(&iter, args);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			if (g_ascii_strcasecmp(key, "sigrok_key") == 0)
+				continue;
+			get_option(sdi, cg, key);
+		}
+	}
+
+	/* Close the device. */
 	sr_dev_close(sdi);
 }
 
@@ -282,8 +314,8 @@ int main(int argc, char **argv)
 		show_dev_detail();
 	else if (opt_input_file)
 		load_input_file(FALSE);
-	else if (opt_get)
-		get_option();
+	else if (opt_gets)
+		get_options();
 	else if (opt_set)
 		set_options();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)

@@ -151,7 +151,7 @@ extern gchar *opt_time;
 extern gchar *opt_samples;
 extern gchar *opt_frames;
 extern gboolean opt_continuous;
-extern gchar *opt_get;
+extern gchar **opt_gets;
 extern gboolean opt_set;
 extern gboolean opt_list_serial;
 int parse_options(int argc, char **argv);
