@@ -56,7 +56,8 @@ void show_serial_ports(void);
 
 /* device.c */
 GSList *device_scan(void);
-struct sr_channel_group *lookup_channel_group(struct sr_dev_inst *sdi);
+struct sr_channel_group *lookup_channel_group(struct sr_dev_inst *sdi,
+	const char *cg_name);
 
 /* session.c */
 struct df_arg_desc {
@@ -76,6 +77,7 @@ struct df_arg_desc {
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
 int opt_to_gvar(char *key, char *value, struct sr_config *src);
+int set_dev_options_array(struct sr_dev_inst *sdi, char **opts);
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args);
 void run_session(void);
 
@@ -129,7 +131,7 @@ extern gboolean opt_wait_trigger;
 extern gchar *opt_input_file;
 extern gchar *opt_output_file;
 extern gchar *opt_drv;
-extern gchar *opt_config;
+extern gchar **opt_configs;
 extern gchar *opt_channels;
 extern gchar *opt_channel_group;
 extern gchar *opt_triggers;

@@ -113,7 +113,6 @@ static void get_option(void)
 	const struct sr_key_info *ci;
 	GSList *devices;
 	GVariant *gvar;
-	GHashTable *devargs;
 	int ret;
 	char *s;
 	struct sr_dev_driver *driver;
@@ -136,14 +135,11 @@ static void get_option(void)
 		return;
 	}
 
-	cg = lookup_channel_group(sdi);
+	cg = lookup_channel_group(sdi, NULL);
 	if (!(ci = sr_key_info_name_get(SR_KEY_CONFIG, opt_get)))
 		g_critical("Unknown option '%s'", opt_get);
 
-	if ((devargs = parse_generic_arg(opt_config, FALSE, NULL)))
-		set_dev_options(sdi, devargs);
-	else
-		devargs = NULL;
+	set_dev_options_array(sdi, opt_configs);
 
 	if ((ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
 		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
@@ -171,23 +167,17 @@ static void get_option(void)
 
 	g_variant_unref(gvar);
 	sr_dev_close(sdi);
-	if (devargs)
-		g_hash_table_destroy(devargs);
 }
 
 static void set_options(void)
 {
 	struct sr_dev_inst *sdi;
 	GSList *devices;
-	GHashTable *devargs;
 
-	if (!opt_config) {
+	if (!opt_configs) {
 		g_critical("No setting specified.");
 		return;
 	}
-
-	if (!(devargs = parse_generic_arg(opt_config, FALSE, NULL)))
-		return;
 
 	if (!(devices = device_scan())) {
 		g_critical("No devices found.");
@@ -201,11 +191,9 @@ static void set_options(void)
 		return;
 	}
 
-	set_dev_options(sdi, devargs);
+	set_dev_options_array(sdi, opt_configs);
 
 	sr_dev_close(sdi);
-	g_hash_table_destroy(devargs);
-
 }
 
 int main(int argc, char **argv)

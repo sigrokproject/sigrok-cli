@@ -31,7 +31,7 @@ gboolean opt_wait_trigger = FALSE;
 gchar *opt_input_file = NULL;
 gchar *opt_output_file = NULL;
 gchar *opt_drv = NULL;
-gchar *opt_config = NULL;
+gchar **opt_configs = NULL;
 gchar *opt_channels = NULL;
 gchar *opt_channel_group = NULL;
 gchar *opt_triggers = NULL;
@@ -79,7 +79,6 @@ static gboolean check_ ## option                                          \
 }
 
 CHECK_ONCE(opt_drv)
-CHECK_ONCE(opt_config)
 CHECK_ONCE(opt_input_format)
 CHECK_ONCE(opt_output_format)
 CHECK_ONCE(opt_transform_module)
@@ -112,7 +111,7 @@ static const GOptionEntry optargs[] = {
 			"Set loglevel (5 is most verbose)", NULL},
 	{"driver", 'd', 0, G_OPTION_ARG_CALLBACK, &check_opt_drv,
 			"The driver to use", NULL},
-	{"config", 'c', 0, G_OPTION_ARG_CALLBACK, &check_opt_config,
+	{"config", 'c', 0, G_OPTION_ARG_STRING_ARRAY, &opt_configs,
 			"Specify device configuration options", NULL},
 	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME_ARRAY, &input_file_array,
 			"Load input from file", NULL},

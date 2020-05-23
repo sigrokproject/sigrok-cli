@@ -654,19 +654,51 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	return ret;
 }
 
+int set_dev_options_array(struct sr_dev_inst *sdi, char **opts)
+{
+	size_t opt_idx;
+	const char *opt_text;
+	GHashTable *args;
+	int ret;
+
+	for (opt_idx = 0; opts && opts[opt_idx]; opt_idx++) {
+		opt_text = opts[opt_idx];
+		args = parse_generic_arg(opt_text, FALSE, "channel_group");
+		if (!args)
+			continue;
+		ret = set_dev_options(sdi, args);
+		g_hash_table_destroy(args);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	return SR_OK;
+}
+
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 {
 	struct sr_config src;
+	const char *cg_name;
 	struct sr_channel_group *cg;
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
 
+	/*
+	 * Not finding the 'sigrok_key' key (optional user specified
+	 * channel group name) in the current options group's hash table
+	 * is perfectly fine. In that case the -g selection is used,
+	 * which defaults to "the device" (global parameters).
+	 */
+	cg_name = g_hash_table_lookup(args, "sigrok_key");
+	cg = lookup_channel_group(sdi, cg_name);
+
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		if (g_ascii_strcasecmp(key, "sigrok_key") == 0)
+			continue;
 		if ((ret = opt_to_gvar(key, value, &src)) != 0)
 			return ret;
-		cg = lookup_channel_group(sdi);
 		if ((ret = maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, cg,
 				src.key, src.data)) != SR_OK) {
 			g_critical("Failed to set device option '%s': %s.",
@@ -682,7 +714,6 @@ void run_session(void)
 {
 	struct df_arg_desc df_arg;
 	GSList *devices, *real_devices, *sd;
-	GHashTable *devargs;
 	GVariant *gvar;
 	struct sr_session *session;
 	struct sr_trigger *trigger;
@@ -765,12 +796,9 @@ void run_session(void)
 		return;
 	}
 
-	if (opt_config) {
-		if ((devargs = parse_generic_arg(opt_config, FALSE, NULL))) {
-			if (set_dev_options(sdi, devargs) != SR_OK)
-				return;
-			g_hash_table_destroy(devargs);
-		}
+	if (opt_configs) {
+		if (set_dev_options_array(sdi, opt_configs) != SR_OK)
+			return;
 	}
 
 	if (select_channels(sdi) != SR_OK) {
