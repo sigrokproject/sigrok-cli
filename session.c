@@ -648,10 +648,10 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	return ret;
 }
 
-int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
+int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args,
+		struct sr_channel_group *cg)
 {
 	struct sr_config src;
-	struct sr_channel_group *cg;
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
@@ -660,7 +660,6 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		if ((ret = opt_to_gvar(key, value, &src)) != 0)
 			return ret;
-		cg = select_channel_group(sdi);
 		if ((ret = maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, cg,
 				src.key, src.data)) != SR_OK) {
 			g_critical("Failed to set device option '%s': %s.",
@@ -671,6 +670,48 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 
 	return SR_OK;
 }
+
+int set_channelgroup_options(struct sr_dev_inst *sdi)
+{
+	struct sr_channel_group *cg;
+	GSList *l, *channel_groups;
+	gchar **opt_cg;
+	gchar *cg_id;
+	GHashTable *cgargs;
+	int ret;
+
+	channel_groups = sr_dev_inst_channel_groups_get(sdi);
+
+	if (!channel_groups) {
+		 g_critical("This device does not have any channel groups.");
+		 return SR_ERR;
+	}
+
+	for(opt_cg = opt_channel_groups; *opt_cg; opt_cg++) {
+		 cgargs = parse_generic_arg(*opt_cg, TRUE);
+		 cg_id = g_strdup(g_hash_table_lookup(cgargs, "sigrok_key"));
+		 g_hash_table_remove(cgargs, "sigrok_key");
+
+		 ret = SR_OK;
+		 for (l = channel_groups; l; l = l->next) {
+		 	 cg = l->data;
+		 	 if (!g_ascii_strcasecmp(cg_id, cg->name)) {
+		 	 	 ret = set_dev_options(sdi, cgargs, cg);
+		 	 	 goto channel_group_done;
+		 	 }
+		 }
+
+		 g_critical("Invalid channel group '%s'", *opt_cg);
+
+		 channel_group_done:
+		 if (ret != SR_OK) return ret;
+		 free(cg_id);
+		 g_hash_table_destroy(cgargs);
+	}
+
+	return SR_OK;
+}
+
 
 void run_session(void)
 {
@@ -759,9 +800,13 @@ void run_session(void)
 		return;
 	}
 
+	if (opt_channel_groups) {
+		set_channelgroup_options(sdi);
+	}
+
 	if (opt_config) {
 		if ((devargs = parse_generic_arg(opt_config, FALSE))) {
-			if (set_dev_options(sdi, devargs) != SR_OK)
+			if (set_dev_options(sdi, devargs, NULL) != SR_OK)
 				return;
 			g_hash_table_destroy(devargs);
 		}

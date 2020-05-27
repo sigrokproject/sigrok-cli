@@ -33,7 +33,7 @@ gchar *opt_output_file = NULL;
 gchar *opt_drv = NULL;
 gchar *opt_config = NULL;
 gchar *opt_channels = NULL;
-gchar *opt_channel_group = NULL;
+gchar **opt_channel_groups = NULL;
 gchar *opt_triggers = NULL;
 gchar **opt_pds = NULL;
 #ifdef HAVE_SRD
@@ -83,7 +83,6 @@ CHECK_ONCE(opt_input_format)
 CHECK_ONCE(opt_output_format)
 CHECK_ONCE(opt_transform_module)
 CHECK_ONCE(opt_channels)
-CHECK_ONCE(opt_channel_group)
 CHECK_ONCE(opt_triggers)
 #ifdef HAVE_SRD
 CHECK_ONCE(opt_pd_annotations)
@@ -125,7 +124,7 @@ static const GOptionEntry optargs[] = {
 			"Transform module", NULL},
 	{"channels", 'C', 0, G_OPTION_ARG_CALLBACK, &check_opt_channels,
 			"Channels to use", NULL},
-	{"channel-group", 'g', 0, G_OPTION_ARG_CALLBACK, &check_opt_channel_group,
+	{"channel-group", 'g', 0, G_OPTION_ARG_STRING_ARRAY, &opt_channel_groups,
 			"Channel groups", NULL},
 	{"triggers", 't', 0, G_OPTION_ARG_CALLBACK, &check_opt_triggers,
 			"Trigger configuration", NULL},

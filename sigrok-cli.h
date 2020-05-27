@@ -76,7 +76,8 @@ struct df_arg_desc {
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
 int opt_to_gvar(char *key, char *value, struct sr_config *src);
-int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args);
+int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args,
+		struct sr_channel_group *cg);
 void run_session(void);
 
 /* input.c */
@@ -124,7 +125,7 @@ extern gchar *opt_output_file;
 extern gchar *opt_drv;
 extern gchar *opt_config;
 extern gchar *opt_channels;
-extern gchar *opt_channel_group;
+extern gchar **opt_channel_groups;
 extern gchar *opt_triggers;
 extern gchar **opt_pds;
 #ifdef HAVE_SRD

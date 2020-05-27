@@ -67,24 +67,36 @@ struct sr_channel_group *select_channel_group(struct sr_dev_inst *sdi)
 {
 	struct sr_channel_group *cg;
 	GSList *l, *channel_groups;
+	gchar *cg_id;
+	GHashTable *cgargs;
 
-	if (!opt_channel_group)
+	if (!opt_channel_groups)
 		return NULL;
 
-	channel_groups = sr_dev_inst_channel_groups_get(sdi);
+	if (!*opt_channel_groups)
+		return NULL;
 
+	if (opt_channel_groups[1]) {
+		g_critical("Only one channel group can be selected for this action.");
+		return NULL;
+	}
+
+	channel_groups = sr_dev_inst_channel_groups_get(sdi);
 	if (!channel_groups) {
 		g_critical("This device does not have any channel groups.");
 		return NULL;
 	}
 
+	cgargs = parse_generic_arg(*opt_channel_groups, TRUE);
+	cg_id = g_hash_table_lookup(cgargs, "sigrok_key");
 	for (l = channel_groups; l; l = l->next) {
 		cg = l->data;
-		if (!g_ascii_strcasecmp(opt_channel_group, cg->name)) {
+		if (!g_ascii_strcasecmp(cg_id, cg->name)) {
 			return cg;
 		}
 	}
-	g_critical("Invalid channel group '%s'", opt_channel_group);
+	g_critical("Invalid channel group '%s'", *opt_channel_groups);
+	g_hash_table_destroy(cgargs);
 
 	return NULL;
 }
