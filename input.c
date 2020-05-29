@@ -65,9 +65,11 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 		g_hash_table_remove(mod_args, "sigrok_key");
 		if ((options = sr_input_options_get(imod))) {
 			mod_opts = generic_arg_to_opt(options, mod_args);
+			(void)warn_unknown_keys(options, mod_args, NULL);
 			sr_output_options_free(options);
-		} else
+		} else {
 			mod_opts = NULL;
+		}
 		if (!(in = sr_input_new(imod, mod_opts)))
 			g_critical("Error: failed to initialize input module.");
 		if (mod_opts)

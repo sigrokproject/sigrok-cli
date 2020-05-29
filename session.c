@@ -101,9 +101,11 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi, FILE 
 	g_hash_table_remove(fmtargs, "sigrok_key");
 	if ((options = sr_output_options_get(omod))) {
 		fmtopts = generic_arg_to_opt(options, fmtargs);
+		(void)warn_unknown_keys(options, fmtargs, NULL);
 		sr_output_options_free(options);
-	} else
+	} else {
 		fmtopts = NULL;
+	}
 	o = sr_output_new(omod, fmtopts, sdi, opt_output_file);
 
 	if (opt_output_file) {
@@ -145,9 +147,11 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	g_hash_table_remove(fmtargs, "sigrok_key");
 	if ((options = sr_transform_options_get(tmod))) {
 		fmtopts = generic_arg_to_opt(options, fmtargs);
+		(void)warn_unknown_keys(options, fmtargs, NULL);
 		sr_transform_options_free(options);
-	} else
+	} else {
 		fmtopts = NULL;
+	}
 	t = sr_transform_new(tmod, fmtopts, sdi);
 	if (fmtopts)
 		g_hash_table_destroy(fmtopts);

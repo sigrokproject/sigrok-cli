@@ -297,6 +297,57 @@ GHashTable *parse_generic_arg(const char *arg, gboolean sep_first)
 	return hash;
 }
 
+GSList *check_unknown_keys(const struct sr_option **avail, GHashTable *used)
+{
+	GSList *unknown;
+	GHashTableIter iter;
+	void *key;
+	const char *used_id;
+	size_t avail_idx;
+	const char *avail_id, *found_id;
+
+	/* Collect a list of used but not available keywords. */
+	unknown = NULL;
+	g_hash_table_iter_init(&iter, used);
+	while (g_hash_table_iter_next(&iter, &key, NULL)) {
+		used_id = key;
+		found_id = NULL;
+		for (avail_idx = 0; avail[avail_idx] && avail[avail_idx]->id; avail_idx++) {
+			avail_id = avail[avail_idx]->id;
+			if (strcmp(avail_id, used_id) == 0) {
+				found_id = avail_id;
+				break;
+			}
+		}
+		if (!found_id)
+			unknown = g_slist_append(unknown, g_strdup(used_id));
+	}
+
+	/* Return the list of unknown keywords, or NULL if empty. */
+	return unknown;
+}
+
+gboolean warn_unknown_keys(const struct sr_option **avail, GHashTable *used,
+	const char *caption)
+{
+	GSList *unknown, *l;
+	gboolean had_unknown;
+	const char *s;
+
+	if (!caption || !*caption)
+		caption = "Unknown keyword";
+
+	unknown = check_unknown_keys(avail, used);
+	had_unknown = unknown != NULL;
+	for (l = unknown; l; l = l->next) {
+		s = l->data;
+		g_warning("%s: %s.", caption, s);
+	}
+	g_slist_free_full(unknown, g_free);
+
+	return had_unknown;
+}
+
 GHashTable *generic_arg_to_opt(const struct sr_option **opts, GHashTable *genargs)
 {
 	GHashTable *hash;
