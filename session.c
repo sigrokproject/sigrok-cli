@@ -648,6 +648,8 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	return ret;
 }
 
+/* Set options: device global options if cg is NULL,
+ * channel group options if not */
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args,
 		struct sr_channel_group *cg)
 {

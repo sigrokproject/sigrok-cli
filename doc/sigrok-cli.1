@@ -201,7 +201,7 @@ to the right override previous items. For example
 will set the name of channel 1 to
 .BR "MISO" .
 .TP
-.BR "\-g, \-\-channel\-group "<channel\ group>
+.BR "\-g, \-\-channel\-group "<channel\ group>[:setting=value]
 Specify the channel group to operate on. Some devices organize channels into
 groups, the settings of which can only be changed as a group. The list of
 channel groups, if any, is displayed with the \fB\-\-show\fP command.
@@ -210,7 +210,7 @@ Examples:
 .sp
 .RB "  $ " "sigrok\-cli \-g CH1" " [...]"
 .sp
-.RB "  $ " "sigrok\-cli \-d demo \-g Logic \-c pattern=graycode" " [...]"
+.RB "  $ " "sigrok\-cli \-d demo \-g Logic:pattern=graycode" " [...]"
 .TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form

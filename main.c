@@ -78,8 +78,8 @@ int maybe_config_get(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant **gvar)
 {
-	if (sr_dev_config_capabilities_list(sdi, NULL, key) & SR_CONF_GET)
-		return sr_config_get(driver, sdi, NULL, key, gvar);
+	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_GET)
+		return sr_config_get(driver, sdi, cg, key, gvar);
 
 	return SR_ERR_NA;
 }
@@ -90,8 +90,8 @@ int maybe_config_set(struct sr_dev_driver *driver,
 {
 	(void)driver;
 
-	if (sr_dev_config_capabilities_list(sdi, NULL, key) & SR_CONF_SET)
-		return sr_config_set(sdi, NULL, key, gvar);
+	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_SET)
+		return sr_config_set(sdi, cg, key, gvar);
 
 	return SR_ERR_NA;
 }
@@ -100,8 +100,8 @@ int maybe_config_list(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 		uint32_t key, GVariant **gvar)
 {
-	if (sr_dev_config_capabilities_list(sdi, NULL, key) & SR_CONF_LIST)
-		return sr_config_list(driver, sdi, NULL, key, gvar);
+	if (sr_dev_config_capabilities_list(sdi, cg, key) & SR_CONF_LIST)
+		return sr_config_list(driver, sdi, cg, key, gvar);
 
 	return SR_ERR_NA;
 }
@@ -141,7 +141,7 @@ static void get_option(void)
 		g_critical("Unknown option '%s'", opt_get);
 
 	if ((devargs = parse_generic_arg(opt_config, FALSE)))
-		set_dev_options(sdi, devargs, cg);
+		set_dev_options(sdi, devargs, NULL);
 	else
 		devargs = NULL;
 
@@ -201,7 +201,7 @@ static void set_options(void)
 		return;
 	}
 
-	set_dev_options(sdi, devargs, select_channel_group(sdi));
+	set_dev_options(sdi, devargs, NULL);
 
 	sr_dev_close(sdi);
 	g_hash_table_destroy(devargs);
