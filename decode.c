@@ -591,38 +591,32 @@ static void jsontrace_annotation(struct srd_decoder *dec,
 	 * annotation row's description. The 'ts' (timestamp) is in
 	 * microseconds. Set 'name' to the longest annotation text.
 	 *
-	 * BEWARE of the unfortunate JSON format comma limitation. And
-	 * some of the output formatting is motivated by the desire to
-	 * further reduce text size, by eliminating some of the spaces.
+	 * BEWARE of the unfortunate JSON format limitation, which
+	 * clutters data output calls with format helper calls.
 	 * TODO Want to introduce a cJSON dependency to delegate the
 	 * construction of output text?
-	 *
-	 * This implementation is strictly compatible to the initial
-	 * implementation. Which might change in the future to increase
-	 * readability of the output to humans, by generating a layout
-	 * which is closer to other output modes.
 	 */
 	jsontrace_open_close(FALSE, TRUE, FALSE);
-	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
-	jsontrace_open_close(FALSE, FALSE, FALSE);
 	printf("\"%s\": \"%s\"", "ph", "B");
 	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->start_sample));
+	jsontrace_open_close(FALSE, FALSE, FALSE);
 	printf("\"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
 	jsontrace_open_close(FALSE, FALSE, FALSE);
 	printf("\"%s\": \"%s\"", "tid", row_text);
 	jsontrace_open_close(FALSE, FALSE, FALSE);
-	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->start_sample));
+	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
 
 	jsontrace_open_close(FALSE, TRUE, FALSE);
-	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
-	jsontrace_open_close(FALSE, FALSE, FALSE);
 	printf("\"%s\": \"%s\"", "ph", "E");
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->end_sample));
 	jsontrace_open_close(FALSE, FALSE, FALSE);
 	printf("\"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
 	jsontrace_open_close(FALSE, FALSE, FALSE);
 	printf("\"%s\": \"%s\"", "tid", row_text);
 	jsontrace_open_close(FALSE, FALSE, FALSE);
-	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->end_sample));
+	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
 
 	jsontrace_open_close(FALSE, FALSE, TRUE);
 }
