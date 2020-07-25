@@ -487,27 +487,56 @@ int setup_pd_binary(char *opt_pd_binary)
  * the output and late flush (and to keep the state strictly local to the
  * routine). Some additional complexity due to JSON's inability to handle
  * a trailing comma at the last item. Code phrased such that text literals
- * are kept in their order of appearance in the output text.
+ * are kept in their order of appearance in the output (where possible).
  */
-static void jsontrace_open_close(gboolean is_close_req)
+static void jsontrace_open_close(gboolean is_close_req,
+	gboolean open_item, gboolean close_item)
 {
-	static gboolean is_opened;
+	static gboolean is_file_open;
+	static gboolean is_item_open;
 
-	if (!is_close_req) {
-		if (!is_opened) {
+	if (is_close_req && is_item_open)
+		close_item = TRUE;
+
+	/* Automatic file header, and array item separation. */
+	if (open_item) {
+		if (!is_file_open)
 			printf("{\"traceEvents\": [\n");
-			is_opened = TRUE;
-		} else {
+		if (is_item_open) {
+			printf("}");
+			is_item_open = FALSE;
+		}
+		if (is_file_open) {
 			printf(",\n");
 		}
-	} else {
-		if (is_opened) {
-			printf("\n");
-			printf("]}\n");
-			fflush(stdout);
-		}
-		is_opened = FALSE;
+		is_file_open = TRUE;
 	}
+
+	/* Array item open/append/close. */
+	if (open_item) {
+		printf("{");
+		is_item_open = TRUE;
+	}
+	if (!open_item && !close_item && !is_close_req) {
+		printf(", ");
+		is_item_open = TRUE;
+	}
+	if (close_item) {
+		printf("}");
+		is_item_open = FALSE;
+	}
+
+	/* Automatic file footer on shutdown. */
+	if (is_close_req && is_file_open) {
+		printf("\n");
+		printf("]}\n");
+	}
+	if (is_close_req)
+		is_file_open = FALSE;
+
+	/* Flush at end of lines, or end of file. */
+	if (close_item || is_close_req)
+		fflush(stdout);
 }
 
 /* Convert uint64 sample number to double timestamp in microseconds. */
@@ -565,29 +594,37 @@ static void jsontrace_annotation(struct srd_decoder *dec,
 	 * BEWARE of the unfortunate JSON format comma limitation. And
 	 * some of the output formatting is motivated by the desire to
 	 * further reduce text size, by eliminating some of the spaces.
+	 * TODO Want to introduce a cJSON dependency to delegate the
+	 * construction of output text?
 	 *
 	 * This implementation is strictly compatible to the initial
 	 * implementation. Which might change in the future to increase
 	 * readability of the output to humans, by generating a layout
 	 * which is closer to other output modes.
 	 */
-	jsontrace_open_close(FALSE);
-	printf("{");
+	jsontrace_open_close(FALSE, TRUE, FALSE);
 	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
-	printf(", \"%s\": \"%s\"", "ph", "B");
-	printf(", \"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
-	printf(", \"%s\": \"%s\"", "tid", row_text);
-	printf(", \"%s\": %lf", "ts", jsontrace_ts_usec(pdata->start_sample));
-	printf("}");
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "ph", "B");
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "tid", row_text);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->start_sample));
 
-	jsontrace_open_close(FALSE);
-	printf("{");
+	jsontrace_open_close(FALSE, TRUE, FALSE);
 	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
-	printf(", \"%s\": \"%s\"", "ph", "E");
-	printf(", \"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
-	printf(", \"%s\": \"%s\"", "tid", row_text);
-	printf(", \"%s\": %lf", "ts", jsontrace_ts_usec(pdata->end_sample));
-	printf("}");
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "ph", "E");
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "tid", row_text);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->end_sample));
+
+	jsontrace_open_close(FALSE, FALSE, TRUE);
 }
 
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
@@ -721,12 +758,12 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 void show_pd_prepare(void)
 {
 	if (opt_pd_jsontrace)
-		jsontrace_open_close(TRUE);
+		jsontrace_open_close(TRUE, FALSE, FALSE);
 }
 
 void show_pd_close(void)
 {
 	if (opt_pd_jsontrace)
-		jsontrace_open_close(TRUE);
+		jsontrace_open_close(TRUE, FALSE, FALSE);
 }
 #endif
