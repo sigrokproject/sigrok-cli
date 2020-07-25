@@ -324,6 +324,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 					g_critical("Failed to configure decode session.");
 					break;
 				}
+				pd_samplerate = samplerate;
 			}
 			if (srd_session_start(srd_sess) != SRD_OK) {
 				g_critical("Failed to start decode session.");
@@ -352,6 +353,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 							g_variant_new_uint64(samplerate)) != SRD_OK) {
 						g_critical("Failed to pass samplerate to decoder.");
 					}
+					pd_samplerate = samplerate;
 				}
 #endif
 				break;

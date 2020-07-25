@@ -87,6 +87,7 @@ int setup_binary_stdout(void);
 
 /* decode.c */
 #ifdef HAVE_SRD
+extern uint64_t pd_samplerate;
 int register_pds(gchar **all_pds, char *opt_pd_annotations);
 int setup_pd_annotations(char *opt_pd_annotations);
 int setup_pd_meta(char *opt_pd_meta);

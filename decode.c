@@ -29,6 +29,8 @@ static GHashTable *pd_meta_visible = NULL;
 static GHashTable *pd_binary_visible = NULL;
 static GHashTable *pd_channel_maps = NULL;
 
+uint64_t pd_samplerate = 0;
+
 extern struct srd_session *srd_sess;
 
 static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
