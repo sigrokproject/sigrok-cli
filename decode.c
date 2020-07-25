@@ -480,6 +480,116 @@ int setup_pd_binary(char *opt_pd_binary)
 	return 0;
 }
 
+/*
+ * Balance JSON object and array parentheses, and separate array items.
+ * Somewhat convoluted API to re-use the routine for individual items as
+ * well as the surrounding array and object, including deferred start of
+ * the output and late flush (and to keep the state strictly local to the
+ * routine). Some additional complexity due to JSON's inability to handle
+ * a trailing comma at the last item. Code phrased such that text literals
+ * are kept in their order of appearance in the output text.
+ */
+static void jsontrace_open_close(gboolean is_close_req)
+{
+	static gboolean is_opened;
+
+	if (!is_close_req) {
+		if (!is_opened) {
+			printf("{\"traceEvents\": [\n");
+			is_opened = TRUE;
+		} else {
+			printf(",\n");
+		}
+	} else {
+		if (is_opened) {
+			printf("\n");
+			printf("]}\n");
+			fflush(stdout);
+		}
+		is_opened = FALSE;
+	}
+}
+
+/* Convert uint64 sample number to double timestamp in microseconds. */
+static double jsontrace_ts_usec(uint64_t snum)
+{
+	double ts_usec;
+
+	ts_usec = snum;
+	ts_usec *= 1e6;
+	ts_usec /= pd_samplerate;
+	return ts_usec;
+}
+
+/* Emit two Google Trace Events (JSON) for one PD annotation (ss, es). */
+static void jsontrace_annotation(struct srd_decoder *dec,
+	struct srd_proto_data_annotation *pda, struct srd_proto_data *pdata)
+{
+	char *row_text;
+	GSList *lrow, *lcls;
+	struct srd_decoder_annotation_row *row;
+	int cls;
+	char **ann_descr;
+
+	/*
+	 * Search for an annotation row for this index, or use the
+	 * annotation's descriptor.
+	 */
+	row_text = NULL;
+	if (dec->annotation_rows) {
+		for (lrow = dec->annotation_rows; lrow; lrow = lrow->next) {
+			row = lrow->data;
+			for (lcls = row->ann_classes; lcls; lcls = lcls->next) {
+				cls = GPOINTER_TO_INT(lcls->data);
+				if (cls == pda->ann_class) {
+					row_text = row->desc;
+					break;
+				}
+			}
+			if (row_text)
+				break;
+		}
+	}
+	if (!row_text) {
+		ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
+		row_text = ann_descr[0];
+	}
+
+	/*
+	 * Emit two Google Trace Events for the start and end times.
+	 * Set the 'pid' (process ID) to the decoder name to group a
+	 * decoder's annotations. Set the 'tid' (thread ID) to the
+	 * annotation row's description. The 'ts' (timestamp) is in
+	 * microseconds. Set 'name' to the longest annotation text.
+	 *
+	 * BEWARE of the unfortunate JSON format comma limitation. And
+	 * some of the output formatting is motivated by the desire to
+	 * further reduce text size, by eliminating some of the spaces.
+	 *
+	 * This implementation is strictly compatible to the initial
+	 * implementation. Which might change in the future to increase
+	 * readability of the output to humans, by generating a layout
+	 * which is closer to other output modes.
+	 */
+	jsontrace_open_close(FALSE);
+	printf("{");
+	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
+	printf(", \"%s\": \"%s\"", "ph", "B");
+	printf(", \"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
+	printf(", \"%s\": \"%s\"", "tid", row_text);
+	printf(", \"%s\": %lf", "ts", jsontrace_ts_usec(pdata->start_sample));
+	printf("}");
+
+	jsontrace_open_close(FALSE);
+	printf("{");
+	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
+	printf(", \"%s\": \"%s\"", "ph", "E");
+	printf(", \"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
+	printf(", \"%s\": \"%s\"", "tid", row_text);
+	printf(", \"%s\": %lf", "ts", jsontrace_ts_usec(pdata->end_sample));
+	printf("}");
+}
+
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_decoder *dec;
@@ -513,6 +623,12 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	}
 	if (!show_ann)
 		return;
+
+	/* Google Trace Events are rather special. Use a separate code path. */
+	if (opt_pd_jsontrace) {
+		jsontrace_annotation(dec, pda, pdata);
+		return;
+	}
 
 	/*
 	 * Determine which fields of the annotation to display. Inspect
@@ -600,5 +716,17 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 	/* Just send the binary output to stdout, no embellishments. */
 	fwrite(pdb->data, pdb->size, 1, stdout);
 	fflush(stdout);
+}
+
+void show_pd_prepare(void)
+{
+	if (opt_pd_jsontrace)
+		jsontrace_open_close(TRUE);
+}
+
+void show_pd_close(void)
+{
+	if (opt_pd_jsontrace)
+		jsontrace_open_close(TRUE);
 }
 #endif

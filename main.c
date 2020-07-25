@@ -261,6 +261,7 @@ int main(int argc, char **argv)
 					show_pd_annotations, NULL) != SRD_OK)
 				goto done;
 		}
+		show_pd_prepare();
 	}
 #endif
 
@@ -300,6 +301,8 @@ int main(int argc, char **argv)
 		show_help();
 
 #ifdef HAVE_SRD
+	if (opt_pds)
+		show_pd_close();
 	if (opt_pds)
 		srd_exit();
 #endif
