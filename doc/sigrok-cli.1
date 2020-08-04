@@ -72,6 +72,17 @@ specification.
 .BR "\-c, \-\-config " <deviceoption>
 A colon-separated list of device options, where each option takes the form
 .BR key=value .
+Multiple occurances of the
+.B \-\-config
+option are supported.
+The first item in the list of options can take the form
+.B channel_group=<name>
+which would override the
+.B \-\-channel\-group
+specification for this list of options. Other option lists in other
+.B \-\-config
+occurances are not affected by this list's channel group name.
+.sp
 For example, to set the samplerate to 1MHz on a device supported by the
 fx2lafw driver, you might specify
 .sp
@@ -86,6 +97,15 @@ The following are all equivalent:
 .RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config samplerate=1m" " [...]"
 .sp
 .RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config \(dqsamplerate=1 MHz\(dq" " [...]"
+.sp
+These examples specify options within a channel group.
+The first two are equivalent.
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-\-channel\-group Logic \-\-config pattern=random [...]"
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-\-config channel_group=Logic:pattern=random [...]"
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-\-config samplerate=1m \-\-config channel_group=Logic:pattern=random [...]"
 .TP
 .BR "\-i, \-\-input\-file " <filename>
 Load input from a file instead of a hardware device. You can specify
@@ -211,6 +231,17 @@ Examples:
 .RB "  $ " "sigrok\-cli \-g CH1" " [...]"
 .sp
 .RB "  $ " "sigrok\-cli \-d demo \-g Logic \-c pattern=graycode" " [...]"
+.sp
+Channel group specifications in
+.B \-\-get
+or
+.B \-\-config
+options take precedence over channel group names in
+.B \-\-channel\-group
+so that a single
+.B sigrok\-cli
+invocation can support the query or manipulation of multiple device options
+which reside in different channel groups.
 .TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form
@@ -503,6 +534,20 @@ Sample continuously until stopped. Not all devices support this.
 Get the value of
 .B <variable>
 from the specified device and print it.
+Multiple variable names can be specified and get separated by colon.
+The list of variable names optionally can be preceeded by
+.B "channel_group=<name>"
+which would override the
+.B \-\-channel\-group
+specification.
+Multiple
+.B \-\-get
+occurances are supported in a single
+.B sigrok\-cli
+invocation.
+.sp
+ $
+.B sigrok\-cli \-d demo \-\-get samplerate:averaging \-\-get channel_group=Logic:pattern
 .TP
 .BR "\-\-set"
 Set one or more variables specified with the \fB\-\-config\fP option, without
