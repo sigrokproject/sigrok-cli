@@ -40,7 +40,11 @@ Name "@PACKAGE_NAME@"
 OutFile "@PACKAGE_NAME@-@SC_PACKAGE_VERSION@-installer.exe"
 
 # Where to install the application.
-InstallDir "$PROGRAMFILES\sigrok\@PACKAGE_NAME@"
+!ifdef PE64
+	InstallDir "$PROGRAMFILES64\sigrok\@PACKAGE_NAME@"
+!else
+	InstallDir "$PROGRAMFILES\sigrok\@PACKAGE_NAME@"
+!endif
 
 # Request admin privileges for Windows Vista and Windows 7.
 # http://nsis.sourceforge.net/Docs/Chapter4.html
