@@ -106,66 +106,110 @@ int maybe_config_list(struct sr_dev_driver *driver,
 	return SR_ERR_NA;
 }
 
-static void get_option(void)
+static void get_option(struct sr_dev_inst *sdi,
+	struct sr_channel_group *cg, const char *opt)
 {
-	struct sr_dev_inst *sdi;
-	struct sr_channel_group *cg;
-	const struct sr_key_info *ci;
-	GSList *devices;
-	GVariant *gvar;
-	GHashTable *devargs;
-	int ret;
-	char *s;
 	struct sr_dev_driver *driver;
+	const struct sr_key_info *ci;
+	int ret;
+	GVariant *gvar;
+	const struct sr_key_info *srci, *srmqi, *srmqfi;
+	uint32_t mq;
+	uint64_t mask, mqflags;
+	unsigned int j;
+	char *s;
 
-	if (!(devices = device_scan())) {
+	driver = sr_dev_inst_driver_get(sdi);
+
+	ci = sr_key_info_name_get(SR_KEY_CONFIG, opt);
+	if (!ci)
+		g_critical("Unknown option '%s'", opt);
+
+	ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar);
+	if (ret != SR_OK)
+		g_critical("Failed to get '%s': %s", opt, sr_strerror(ret));
+
+	srci = sr_key_info_get(SR_KEY_CONFIG, ci->key);
+	if (srci && srci->datatype == SR_T_MQ) {
+		g_variant_get(gvar, "(ut)", &mq, &mqflags);
+		if ((srmqi = sr_key_info_get(SR_KEY_MQ, mq)))
+			printf("%s", srmqi->id);
+		else
+			printf("%d", mq);
+		for (j = 0, mask = 1; j < 32; j++, mask <<= 1) {
+			if (!(mqflags & mask))
+				continue;
+			if ((srmqfi = sr_key_info_get(SR_KEY_MQFLAGS, mqflags & mask)))
+				printf("/%s", srmqfi->id);
+			else
+				printf("/%" PRIu64, mqflags & mask);
+		}
+		printf("\n");
+	} else {
+		s = g_variant_print(gvar, FALSE);
+		printf("%s\n", s);
+		g_free(s);
+	}
+
+	g_variant_unref(gvar);
+}
+
+static void get_options(void)
+{
+	GSList *devices;
+	struct sr_dev_inst *sdi;
+	size_t get_idx;
+	char *get_text, *cg_name;
+	GHashTable *args;
+	GHashTableIter iter;
+	gpointer key, value;
+	struct sr_channel_group *cg;
+
+	/* Lookup and open the device. */
+	devices = device_scan();
+	if (!devices) {
 		g_critical("No devices found.");
 		return;
 	}
 	sdi = devices->data;
 	g_slist_free(devices);
 
-	driver = sr_dev_inst_driver_get(sdi);
-
 	if (sr_dev_open(sdi) != SR_OK) {
 		g_critical("Failed to open device.");
 		return;
 	}
 
-	cg = select_channel_group(sdi);
-	if (!(ci = sr_key_info_name_get(SR_KEY_CONFIG, opt_get)))
-		g_critical("Unknown option '%s'", opt_get);
+	/* Set configuration values when -c was specified. */
+	set_dev_options_array(sdi, opt_configs);
 
-	if ((devargs = parse_generic_arg(opt_config, FALSE)))
-		set_dev_options(sdi, devargs);
-	else
-		devargs = NULL;
+	/* Get configuration values which were specified by --get. */
+	for (get_idx = 0; (get_text = opt_gets[get_idx]); get_idx++) {
+		args = parse_generic_arg(get_text, FALSE, "channel_group");
+		if (!args)
+			continue;
+		cg_name = g_hash_table_lookup(args, "sigrok_key");
+		cg = lookup_channel_group(sdi, cg_name);
+		g_hash_table_iter_init(&iter, args);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			if (g_ascii_strcasecmp(key, "sigrok_key") == 0)
+				continue;
+			get_option(sdi, cg, key);
+		}
+	}
 
-	if ((ret = maybe_config_get(driver, sdi, cg, ci->key, &gvar)) != SR_OK)
-		g_critical("Failed to get '%s': %s", opt_get, sr_strerror(ret));
-	s = g_variant_print(gvar, FALSE);
-	printf("%s\n", s);
-	g_free(s);
-
-	g_variant_unref(gvar);
+	/* Close the device. */
 	sr_dev_close(sdi);
-	if (devargs)
-		g_hash_table_destroy(devargs);
 }
 
 static void set_options(void)
 {
 	struct sr_dev_inst *sdi;
 	GSList *devices;
-	GHashTable *devargs;
 
-	if (!opt_config) {
+	if (!opt_configs) {
 		g_critical("No setting specified.");
 		return;
 	}
-
-	if (!(devargs = parse_generic_arg(opt_config, FALSE)))
-		return;
 
 	if (!(devices = device_scan())) {
 		g_critical("No devices found.");
@@ -179,11 +223,9 @@ static void set_options(void)
 		return;
 	}
 
-	set_dev_options(sdi, devargs);
+	set_dev_options_array(sdi, opt_configs);
 
 	sr_dev_close(sdi);
-	g_hash_table_destroy(devargs);
-
 }
 
 int main(int argc, char **argv)
@@ -202,6 +244,11 @@ int main(int argc, char **argv)
 		goto done;
 
 #ifdef HAVE_SRD
+	if (opt_pd_binary && !opt_pds) {
+		g_critical("Option -B will not take effect in the absence of -P.");
+		goto done;
+	}
+
 	/* Set the loglevel (amount of messages to output) for libsigrokdecode. */
 	if (srd_log_loglevel_set(opt_loglevel) != SRD_OK)
 		goto done;
@@ -220,6 +267,8 @@ int main(int argc, char **argv)
 		if (opt_pd_binary) {
 			if (setup_pd_binary(opt_pd_binary) != 0)
 				goto done;
+			if (setup_binary_stdout() != 0)
+				goto done;
 			if (srd_pd_output_callback_add(srd_sess, SRD_OUTPUT_BINARY,
 					show_pd_binary, NULL) != SRD_OK)
 				goto done;
@@ -237,6 +286,7 @@ int main(int argc, char **argv)
 					show_pd_annotations, NULL) != SRD_OK)
 				goto done;
 		}
+		show_pd_prepare();
 	}
 #endif
 
@@ -244,6 +294,10 @@ int main(int argc, char **argv)
 		show_version();
 	else if (opt_list_supported)
 		show_supported();
+	else if (opt_list_supported_wiki)
+		show_supported_wiki();
+	else if (opt_input_file && opt_show)
+		load_input_file(TRUE);
 	else if (opt_input_format && opt_show)
 		show_input();
 	else if (opt_output_format && opt_show)
@@ -259,17 +313,21 @@ int main(int argc, char **argv)
 	else if (opt_show)
 		show_dev_detail();
 	else if (opt_input_file)
-		load_input_file();
-	else if (opt_get)
-		get_option();
+		load_input_file(FALSE);
+	else if (opt_gets)
+		get_options();
 	else if (opt_set)
 		set_options();
 	else if (opt_samples || opt_time || opt_frames || opt_continuous)
 		run_session();
+	else if (opt_list_serial)
+		show_serial_ports();
 	else
 		show_help();
 
 #ifdef HAVE_SRD
+	if (opt_pds)
+		show_pd_close();
 	if (opt_pds)
 		srd_exit();
 #endif

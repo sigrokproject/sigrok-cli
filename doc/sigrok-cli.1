@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "October 22, 2018"
+.TH SIGROK\-CLI 1 "March 28, 2019"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -28,9 +28,17 @@ version and the versions of libraries used.
 Show information about supported hardware drivers, input file
 formats, output file formats, and protocol decoders.
 .TP
+.B "\-\-list\-supported\-wiki"
+Show information about supported protocol decoders in MediaWiki syntax.
+This is generally only used by developers to easily update the list of
+supported protocol decoders in the sigrok wiki.
+.TP
 \fB\-d, \-\-driver\fP <drivername>
-A driver must always be selected (unless doing a global scan). Use the
-.BR "\-L " ( "\-\-list-supported" ")"
+Unless doing a global scan, users typically select one of the available
+drivers. This can speedup program start, and can avoid false matches for
+ambiguous configurations. Selecting a driver also allows to pass more
+driver specific options. Use the
+.BR "\-L " ( "\-\-list\-supported" ")"
 option to get a list of available drivers.
 .sp
 Drivers can take options, in the form \fBkey=value\fP
@@ -43,8 +51,10 @@ Openbench Logic Sniffer:
 .RB "  $ " "sigrok\-cli \-\-driver=ols:conn=/dev/ttyACM0" " [...]"
 .sp
 Some USB devices don't use a unique VendorID/ProductID combination, and thus
-need that specified as well. This also uses the \fBconn\fP option, using
-either \fBVendorID.ProductID\fP or \fBbus.address\fP:
+need that specified as well. Notice that colons are used to separate the
+driver name from the \fBconn\fP option, thus colons cannot be used within the
+\fBconn\fP option's argument. To select a specific USB device, use either
+\fBVendorID.ProductID\fP or \fBbus.address\fP:
 .sp
 USB \fBVendorID.ProductID\fP example:
 .sp
@@ -54,9 +64,25 @@ USB \fBbus.address\fP example:
 .sp
 .RB "  $ " "sigrok\-cli \-\-driver=uni\-t\-ut61e:conn=4.6" " [...]"
 .TP
+.B "\-D, \-\-dont\-scan"
+Do not automatically scan for device drivers in the absence of a
+.BR "\-d " ( "\-\-driver" )
+specification.
+.TP
 .BR "\-c, \-\-config " <deviceoption>
 A colon-separated list of device options, where each option takes the form
 .BR key=value .
+Multiple occurances of the
+.B \-\-config
+option are supported.
+The first item in the list of options can take the form
+.B channel_group=<name>
+which would override the
+.B \-\-channel\-group
+specification for this list of options. Other option lists in other
+.B \-\-config
+occurances are not affected by this list's channel group name.
+.sp
 For example, to set the samplerate to 1MHz on a device supported by the
 fx2lafw driver, you might specify
 .sp
@@ -71,6 +97,15 @@ The following are all equivalent:
 .RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config samplerate=1m" " [...]"
 .sp
 .RB "  $ " "sigrok\-cli \-d fx2lafw \-\-config \(dqsamplerate=1 MHz\(dq" " [...]"
+.sp
+These examples specify options within a channel group.
+The first two are equivalent.
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-\-channel\-group Logic \-\-config pattern=random [...]"
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-\-config channel_group=Logic:pattern=random [...]"
+.sp
+.RB "  $ " "sigrok\-cli \-d demo \-\-config samplerate=1m \-\-config channel_group=Logic:pattern=random [...]"
 .TP
 .BR "\-i, \-\-input\-file " <filename>
 Load input from a file instead of a hardware device. You can specify
@@ -196,6 +231,17 @@ Examples:
 .RB "  $ " "sigrok\-cli \-g CH1" " [...]"
 .sp
 .RB "  $ " "sigrok\-cli \-d demo \-g Logic \-c pattern=graycode" " [...]"
+.sp
+Channel group specifications in
+.B \-\-get
+or
+.B \-\-config
+options take precedence over channel group names in
+.B \-\-channel\-group
+so that a single
+.B sigrok\-cli
+invocation can support the query or manipulation of multiple device options
+which reside in different channel groups.
 .TP
 .BR "\-t, \-\-triggers " <triggerlist>
 A comma-separated list of triggers to use, of the form
@@ -300,14 +346,14 @@ Example:
 .sp
 .TP
 .BR "\-A, \-\-protocol\-decoder\-annotations " <annotations>
-By default, only the stack's topmost protocol decoder's annotation output is
-shown. With this option another decoder's annotation can be selected for
-display, by specifying its ID:
+By default, all annotation output of all protocol decoders is
+shown. With this option a specific decoder's annotations can be selected for
+display, by specifying the decoder ID:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid \-A i2c"
 .sp
-If a protocol decoder has multiple annotations, you can also specify
+If a protocol decoder has multiple annotation classes, you can also specify
 which one of them to show by specifying its short description like this:
 .sp
  $
@@ -315,15 +361,24 @@ which one of them to show by specifying its short description like this:
 .br
 .B "              \-A i2c=data\-read"
 .sp
-Select multiple annotations by separating them with a colon:
+Select multiple annotation classes by separating them with a colon:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
 .br
 .B "              \-A i2c=data\-read:data\-write"
 .sp
-You can also select multiple protocol decoders, with an optional selected
-annotation each, by separating them with commas:
+Annotation row names will resolve to their respective list of classes.
+Row and class names can be used in combination. When names are ambiguous
+then class names take precedence.
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr> \-P i2c"
+.br
+.B "              \-A i2c=addr\-data:warnings"
+.sp
+You can also select multiple protocol decoders, with optionally selected
+annotation classes each, by separating them with commas:
 .sp
  $
 .B "sigrok\-cli \-i <file.sr> \-P i2c,i2cfilter,edid"
@@ -410,6 +465,13 @@ This also works for protocol decoders, input modules and output modules:
 .B "sigrok\-cli \-\-input\-format csv \-\-show
  $
 .B "sigrok\-cli \-\-output\-format bits \-\-show
+.sp
+This also works for input files, including optional input format specifications:
+.sp
+ $
+.B "sigrok\-cli \-\-input\-file <file.sr> \-\-show
+ $
+.B "sigrok\-cli \-\-input\-file <file.vcd> \-\-input\-format vcd \-\-show
 .TP
 .B "\-\-scan"
 Scan for devices that can be detected automatically.
@@ -472,6 +534,20 @@ Sample continuously until stopped. Not all devices support this.
 Get the value of
 .B <variable>
 from the specified device and print it.
+Multiple variable names can be specified and get separated by colon.
+The list of variable names optionally can be preceeded by
+.B "channel_group=<name>"
+which would override the
+.B \-\-channel\-group
+specification.
+Multiple
+.B \-\-get
+occurances are supported in a single
+.B sigrok\-cli
+invocation.
+.sp
+ $
+.B sigrok\-cli \-d demo \-\-get samplerate:averaging \-\-get channel_group=Logic:pattern
 .TP
 .BR "\-\-set"
 Set one or more variables specified with the \fB\-\-config\fP option, without

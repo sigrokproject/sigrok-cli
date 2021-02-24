@@ -30,7 +30,7 @@
 
 #define CHUNK_SIZE (4 * 1024 * 1024)
 
-static void load_input_file_module(void)
+static void load_input_file_module(struct df_arg_desc *df_arg)
 {
 	struct sr_session *session;
 	const struct sr_input *in;
@@ -51,7 +51,7 @@ static void load_input_file_module(void)
 	mod_id = NULL;
 	mod_args = NULL;
 	if (opt_input_format) {
-		mod_args = parse_generic_arg(opt_input_format, TRUE);
+		mod_args = parse_generic_arg(opt_input_format, TRUE, NULL);
 		mod_id = g_hash_table_lookup(mod_args, "sigrok_key");
 	}
 
@@ -65,9 +65,11 @@ static void load_input_file_module(void)
 		g_hash_table_remove(mod_args, "sigrok_key");
 		if ((options = sr_input_options_get(imod))) {
 			mod_opts = generic_arg_to_opt(options, mod_args);
+			(void)warn_unknown_keys(options, mod_args, NULL);
 			sr_output_options_free(options);
-		} else
+		} else {
 			mod_opts = NULL;
+		}
 		if (!(in = sr_input_new(imod, mod_opts)))
 			g_critical("Error: failed to initialize input module.");
 		if (mod_opts)
@@ -111,7 +113,8 @@ static void load_input_file_module(void)
 			g_critical("Error: no input module found for this file.");
 	}
 	sr_session_new(sr_ctx, &session);
-	sr_session_datafeed_callback_add(session, &datafeed_in, session);
+	df_arg->session = session;
+	sr_session_datafeed_callback_add(session, datafeed_in, df_arg);
 
 	got_sdi = FALSE;
 	while (TRUE) {
@@ -143,21 +146,26 @@ static void load_input_file_module(void)
 	sr_input_free(in);
 	g_string_free(buf, TRUE);
 
+	df_arg->session = NULL;
 	sr_session_destroy(session);
 
 }
 
-void load_input_file(void)
+void load_input_file(gboolean do_props)
 {
+	struct df_arg_desc df_arg;
 	struct sr_session *session;
 	struct sr_dev_inst *sdi;
 	GSList *devices;
 	GMainLoop *main_loop;
 	int ret;
 
+	memset(&df_arg, 0, sizeof(df_arg));
+	df_arg.do_props = do_props;
+
 	if (!strcmp(opt_input_file, "-")) {
 		/* Input from stdin is never a session file. */
-		load_input_file_module();
+		load_input_file_module(&df_arg);
 	} else {
 		if ((ret = sr_session_load(sr_ctx, opt_input_file,
 				&session)) == SR_OK) {
@@ -177,7 +185,9 @@ void load_input_file(void)
 			}
 			main_loop = g_main_loop_new(NULL, FALSE);
 
-			sr_session_datafeed_callback_add(session, datafeed_in, session);
+			df_arg.session = session;
+			sr_session_datafeed_callback_add(session,
+				datafeed_in, &df_arg);
 			sr_session_stopped_callback_set(session,
 				(sr_session_stopped_callback)g_main_loop_quit,
 				main_loop);
@@ -185,13 +195,14 @@ void load_input_file(void)
 				g_main_loop_run(main_loop);
 
 			g_main_loop_unref(main_loop);
+			df_arg.session = NULL;
 			sr_session_destroy(session);
 		} else if (ret != SR_ERR) {
 			/* It's a session file, but it didn't work out somehow. */
 			g_critical("Failed to load session file.");
 		} else {
 			/* Fall back on input modules. */
-			load_input_file_module();
+			load_input_file_module(&df_arg);
 		}
 	}
 }

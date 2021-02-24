@@ -29,6 +29,8 @@ static GHashTable *pd_meta_visible = NULL;
 static GHashTable *pd_binary_visible = NULL;
 static GHashTable *pd_channel_maps = NULL;
 
+uint64_t pd_samplerate = 0;
+
 extern struct srd_session *srd_sess;
 
 static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
@@ -38,6 +40,7 @@ static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 	GSList *optl;
 	GVariant *gvar;
 	gint64 val_int;
+	double val_dbl;
 	int ret;
 	char *val_str, *conv;
 
@@ -53,14 +56,25 @@ static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 		if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_STRING)) {
 			gvar = g_variant_new_string(val_str);
 		} else if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_INT64)) {
+			conv = NULL;
 			val_int = strtoll(val_str, &conv, 0);
-			if (!conv || conv == val_str) {
+			if (!conv || conv == val_str || *conv) {
 				g_critical("Protocol decoder '%s' option '%s' "
 						"requires a number.", dec->name, o->id);
 				ret = FALSE;
 				break;
 			}
 			gvar = g_variant_new_int64(val_int);
+		} else if (g_variant_is_of_type(o->def, G_VARIANT_TYPE_DOUBLE)) {
+			conv = NULL;
+			val_dbl = strtod(val_str, &conv);
+			if (!conv || conv == val_str || *conv) {
+				g_critical("Protocol decoder '%s' option '%s' requires a float number.",
+					dec->name, o->id);
+				ret = FALSE;
+				break;
+			}
+			gvar = g_variant_new_double(val_dbl);
 		} else {
 			g_critical("Unsupported type for option '%s' (%s)",
 					o->id, g_variant_get_type_string(o->def));
@@ -125,7 +139,7 @@ static int register_pd(char *opt_pds, char *opt_pd_annotations)
 
 	pdtokens = g_strsplit(opt_pds, ",", 0);
 	for (pdtok = pdtokens; *pdtok; pdtok++) {
-		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE))) {
+		if (!(pd_opthash = parse_generic_arg(*pdtok, TRUE, NULL))) {
 			g_critical("Invalid protocol decoder option '%s'.", *pdtok);
 			break;
 		}
@@ -259,6 +273,11 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 
 	g_hash_table_iter_init(&iter, channel_map);
 	while (g_hash_table_iter_next(&iter, &channel_id, &channel_target)) {
+		if (!channel_target) {
+			g_printerr("cli: Channel name for \"%s\" missing.\n",
+				   (char *)channel_id);
+			continue;
+		}
 		ch = find_channel(channel_list, channel_target);
 		if (!ch) {
 			g_printerr("cli: No channel with name \"%s\" found.\n",
@@ -298,46 +317,91 @@ int setup_pd_annotations(char *opt_pd_annotations)
 	struct srd_decoder *dec;
 	int ann_class;
 	char **pds, **pdtok, **keyval, **annlist, **ann, **ann_descr;
+	const char *dec_id;
+	const char *ann_txt;
+	const char *ann_id;
+	const struct srd_decoder_annotation_row *row_desc;
+	char **ann_diag;
 
 	/* Set up custom list of PDs and annotations to show. */
 	pds = g_strsplit(opt_pd_annotations, ",", 0);
 	for (pdtok = pds; *pdtok && **pdtok; pdtok++) {
 		keyval = g_strsplit(*pdtok, "=", 0);
-		if (!(dec = srd_decoder_get_by_id(keyval[0]))) {
-			g_critical("Protocol decoder '%s' not found.", keyval[0]);
+		dec_id = keyval[0];
+		if (!(dec = srd_decoder_get_by_id(dec_id))) {
+			g_critical("Protocol decoder '%s' not found.", dec_id);
+			g_strfreev(keyval);
+			g_strfreev(pds);
 			return 1;
 		}
 		if (!dec->annotations) {
-			g_critical("Protocol decoder '%s' has no annotations.", keyval[0]);
+			g_critical("Protocol decoder '%s' has no annotations.", dec_id);
+			g_strfreev(keyval);
+			g_strfreev(pds);
 			return 1;
 		}
-		if (g_strv_length(keyval) == 2 && keyval[1][0] != '\0') {
-			annlist = g_strsplit(keyval[1], ":", 0);
+		ann_txt = (g_strv_length(keyval) == 2) ? keyval[1] : NULL;
+		if (ann_txt && *ann_txt) {
+			annlist = g_strsplit(ann_txt, ":", 0);
 			for (ann = annlist; *ann && **ann; ann++) {
+				ann_id = *ann;
+				g_debug("cli: Lookup decoder %s annotation %s.", dec_id, ann_id);
+				/* Lookup annotation class. */
 				ann_class = 0;
 				for (l = dec->annotations; l; l = l->next, ann_class++) {
 					ann_descr = l->data;
-					if (!canon_cmp(ann_descr[0], *ann))
+					if (!canon_cmp(ann_descr[0], ann_id))
 						/* Found it. */
 						break;
 				}
-				if (!l) {
-					g_critical("Annotation '%s' not found "
-							"for protocol decoder '%s'.", *ann, keyval[0]);
-					return 1;
+				if (l) {
+					l_ann = g_hash_table_lookup(pd_ann_visible, dec_id);
+					l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
+					g_hash_table_replace(pd_ann_visible, g_strdup(dec_id), l_ann);
+					g_debug("cli: Showing protocol decoder %s annotation "
+							"class %d (%s).", dec_id, ann_class, ann_descr[0]);
+					continue;
 				}
-				l_ann = g_hash_table_lookup(pd_ann_visible, keyval[0]);
-				l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
-				g_hash_table_replace(pd_ann_visible, g_strdup(keyval[0]), l_ann);
-				g_debug("cli: Showing protocol decoder %s annotation "
-						"class %d (%s).", keyval[0], ann_class, ann_descr[0]);
+				/* Lookup annotation row. */
+				for (l = dec->annotation_rows; l; l = l->next) {
+					row_desc = l->data;
+					if (!canon_cmp(row_desc->id, ann_id))
+						break;
+				}
+				if (l) {
+					g_debug("cli: Showing decoder %s annotation row %s (%s).",
+						dec_id, row_desc->id, row_desc->desc);
+					l_ann = g_hash_table_lookup(pd_ann_visible, dec_id);
+					for (l = row_desc->ann_classes; l; l = l->next) {
+						/*
+						 * This could just be:
+						 *   l_ann = g_slist_append(l_ann, l->data);
+						 * But we are explicit for readability
+						 * and to access details for diagnostics.
+						 */
+						ann_class = GPOINTER_TO_INT(l->data);
+						l_ann = g_slist_append(l_ann, GINT_TO_POINTER(ann_class));
+						ann_diag = g_slist_nth_data(dec->annotations, ann_class);
+						g_debug("cli: Adding class %d/%s from row %s.",
+							ann_class, ann_diag[0], row_desc->id);
+					}
+					g_hash_table_replace(pd_ann_visible, g_strdup(dec_id), l_ann);
+					continue;
+				}
+				/* No match found. */
+				g_critical("Annotation '%s' not found "
+						"for protocol decoder '%s'.", ann_id, dec_id);
+				g_strfreev(keyval);
+				g_strfreev(pds);
+				return 1;
 			}
 		} else {
 			/* No class specified: show all of them. */
-				g_hash_table_insert(pd_ann_visible, g_strdup(keyval[0]),
-						g_slist_append(NULL, GINT_TO_POINTER(-1)));
+			ann_class = -1;
+			l_ann = g_slist_append(NULL, GINT_TO_POINTER(ann_class));
+			g_hash_table_insert(pd_ann_visible, g_strdup(dec_id), l_ann);
 			g_debug("cli: Showing all annotation classes for protocol "
-					"decoder %s.", keyval[0]);
+					"decoder %s.", dec_id);
 		}
 		g_strfreev(keyval);
 	}
@@ -416,6 +480,147 @@ int setup_pd_binary(char *opt_pd_binary)
 	return 0;
 }
 
+/*
+ * Balance JSON object and array parentheses, and separate array items.
+ * Somewhat convoluted API to re-use the routine for individual items as
+ * well as the surrounding array and object, including deferred start of
+ * the output and late flush (and to keep the state strictly local to the
+ * routine). Some additional complexity due to JSON's inability to handle
+ * a trailing comma at the last item. Code phrased such that text literals
+ * are kept in their order of appearance in the output (where possible).
+ */
+static void jsontrace_open_close(gboolean is_close_req,
+	gboolean open_item, gboolean close_item)
+{
+	static gboolean is_file_open;
+	static gboolean is_item_open;
+
+	if (is_close_req && is_item_open)
+		close_item = TRUE;
+
+	/* Automatic file header, and array item separation. */
+	if (open_item) {
+		if (!is_file_open)
+			printf("{\"traceEvents\": [\n");
+		if (is_item_open) {
+			printf("}");
+			is_item_open = FALSE;
+		}
+		if (is_file_open) {
+			printf(",\n");
+		}
+		is_file_open = TRUE;
+	}
+
+	/* Array item open/append/close. */
+	if (open_item) {
+		printf("{");
+		is_item_open = TRUE;
+	}
+	if (!open_item && !close_item && !is_close_req) {
+		printf(", ");
+		is_item_open = TRUE;
+	}
+	if (close_item) {
+		printf("}");
+		is_item_open = FALSE;
+	}
+
+	/* Automatic file footer on shutdown. */
+	if (is_close_req && is_file_open) {
+		printf("\n");
+		printf("]}\n");
+	}
+	if (is_close_req)
+		is_file_open = FALSE;
+
+	/* Flush at end of lines, or end of file. */
+	if (close_item || is_close_req)
+		fflush(stdout);
+}
+
+/* Convert uint64 sample number to double timestamp in microseconds. */
+static double jsontrace_ts_usec(uint64_t snum)
+{
+	double ts_usec;
+
+	ts_usec = snum;
+	ts_usec *= 1e6;
+	ts_usec /= pd_samplerate;
+	return ts_usec;
+}
+
+/* Emit two Google Trace Events (JSON) for one PD annotation (ss, es). */
+static void jsontrace_annotation(struct srd_decoder *dec,
+	struct srd_proto_data_annotation *pda, struct srd_proto_data *pdata)
+{
+	char *row_text;
+	GSList *lrow, *lcls;
+	struct srd_decoder_annotation_row *row;
+	int cls;
+	char **ann_descr;
+
+	/*
+	 * Search for an annotation row for this index, or use the
+	 * annotation's descriptor.
+	 */
+	row_text = NULL;
+	if (dec->annotation_rows) {
+		for (lrow = dec->annotation_rows; lrow; lrow = lrow->next) {
+			row = lrow->data;
+			for (lcls = row->ann_classes; lcls; lcls = lcls->next) {
+				cls = GPOINTER_TO_INT(lcls->data);
+				if (cls == pda->ann_class) {
+					row_text = row->desc;
+					break;
+				}
+			}
+			if (row_text)
+				break;
+		}
+	}
+	if (!row_text) {
+		ann_descr = g_slist_nth_data(dec->annotations, pda->ann_class);
+		row_text = ann_descr[0];
+	}
+
+	/*
+	 * Emit two Google Trace Events for the start and end times.
+	 * Set the 'pid' (process ID) to the decoder name to group a
+	 * decoder's annotations. Set the 'tid' (thread ID) to the
+	 * annotation row's description. The 'ts' (timestamp) is in
+	 * microseconds. Set 'name' to the longest annotation text.
+	 *
+	 * BEWARE of the unfortunate JSON format limitation, which
+	 * clutters data output calls with format helper calls.
+	 * TODO Want to introduce a cJSON dependency to delegate the
+	 * construction of output text?
+	 */
+	jsontrace_open_close(FALSE, TRUE, FALSE);
+	printf("\"%s\": \"%s\"", "ph", "B");
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->start_sample));
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "tid", row_text);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
+
+	jsontrace_open_close(FALSE, TRUE, FALSE);
+	printf("\"%s\": \"%s\"", "ph", "E");
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": %lf", "ts", jsontrace_ts_usec(pdata->end_sample));
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "pid", pdata->pdo->proto_id);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "tid", row_text);
+	jsontrace_open_close(FALSE, FALSE, FALSE);
+	printf("\"%s\": \"%s\"", "name", pda->ann_text[0]);
+
+	jsontrace_open_close(FALSE, FALSE, TRUE);
+}
+
 void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 {
 	struct srd_decoder *dec;
@@ -449,6 +654,12 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	}
 	if (!show_ann)
 		return;
+
+	/* Google Trace Events are rather special. Use a separate code path. */
+	if (opt_pd_jsontrace) {
+		jsontrace_annotation(dec, pda, pdata);
+		return;
+	}
 
 	/*
 	 * Determine which fields of the annotation to display. Inspect
@@ -536,5 +747,17 @@ void show_pd_binary(struct srd_proto_data *pdata, void *cb_data)
 	/* Just send the binary output to stdout, no embellishments. */
 	fwrite(pdb->data, pdb->size, 1, stdout);
 	fflush(stdout);
+}
+
+void show_pd_prepare(void)
+{
+	if (opt_pd_jsontrace)
+		jsontrace_open_close(TRUE, FALSE, FALSE);
+}
+
+void show_pd_close(void)
+{
+	if (opt_pd_jsontrace)
+		jsontrace_open_close(TRUE, FALSE, FALSE);
 }
 #endif

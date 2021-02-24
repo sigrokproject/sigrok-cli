@@ -92,7 +92,7 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi, FILE 
 		}
 	}
 
-	fmtargs = parse_generic_arg(opt_output_format, TRUE);
+	fmtargs = parse_generic_arg(opt_output_format, TRUE, NULL);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
 		g_critical("Invalid output format.");
@@ -101,17 +101,25 @@ const struct sr_output *setup_output_format(const struct sr_dev_inst *sdi, FILE 
 	g_hash_table_remove(fmtargs, "sigrok_key");
 	if ((options = sr_output_options_get(omod))) {
 		fmtopts = generic_arg_to_opt(options, fmtargs);
+		(void)warn_unknown_keys(options, fmtargs, NULL);
 		sr_output_options_free(options);
-	} else
+	} else {
 		fmtopts = NULL;
+	}
 	o = sr_output_new(omod, fmtopts, sdi, opt_output_file);
 
 	if (opt_output_file) {
-		if (!sr_output_test_flag(omod, SR_OUTPUT_INTERNAL_IO_HANDLING))
+		if (!sr_output_test_flag(omod, SR_OUTPUT_INTERNAL_IO_HANDLING)) {
 			*outfile = g_fopen(opt_output_file, "wb");
-		else
+			if (!*outfile) {
+				g_critical("Cannot write to output file '%s'.",
+					opt_output_file);
+			}
+		} else {
 			*outfile = NULL;
+		}
 	} else {
+		setup_binary_stdout();
 		*outfile = stdout;
 	}
 
@@ -130,7 +138,7 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	GHashTable *fmtargs, *fmtopts;
 	char *fmtspec;
 
-	fmtargs = parse_generic_arg(opt_transform_module, TRUE);
+	fmtargs = parse_generic_arg(opt_transform_module, TRUE, NULL);
 	fmtspec = g_hash_table_lookup(fmtargs, "sigrok_key");
 	if (!fmtspec)
 		g_critical("Invalid transform module.");
@@ -139,9 +147,11 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	g_hash_table_remove(fmtargs, "sigrok_key");
 	if ((options = sr_transform_options_get(tmod))) {
 		fmtopts = generic_arg_to_opt(options, fmtargs);
+		(void)warn_unknown_keys(options, fmtargs, NULL);
 		sr_transform_options_free(options);
-	} else
+	} else {
 		fmtopts = NULL;
+	}
 	t = sr_transform_new(tmod, fmtopts, sdi);
 	if (fmtopts)
 		g_hash_table_destroy(fmtopts);
@@ -150,14 +160,99 @@ const struct sr_transform *setup_transform_module(const struct sr_dev_inst *sdi)
 	return t;
 }
 
+/* Get the input stream's list of channels and their types, once. */
+static void props_get_channels(struct df_arg_desc *args,
+	const struct sr_dev_inst *sdi)
+{
+	struct input_stream_props *props;
+	GSList *l;
+	const struct sr_channel *ch;
+
+	if (!args)
+		return;
+	props = &args->props;
+	if (props->channels)
+		return;
+
+	props->channels = g_slist_copy(sr_dev_inst_channels_get(sdi));
+	if (!props->channels)
+		return;
+	for (l = props->channels; l; l = l->next) {
+		ch = l->data;
+		if (!ch->enabled)
+			continue;
+		if (ch->type != SR_CHANNEL_ANALOG)
+			continue;
+		props->first_analog_channel = ch;
+		break;
+	}
+}
+
+static gboolean props_chk_1st_channel(struct df_arg_desc *args,
+	const struct sr_datafeed_analog *analog)
+{
+	struct sr_channel *ch;
+
+	if (!args || !analog || !analog->meaning)
+		return FALSE;
+	ch = g_slist_nth_data(analog->meaning->channels, 0);
+	if (!ch)
+		return FALSE;
+	return ch == args->props.first_analog_channel;
+}
+
+static void props_dump_details(struct df_arg_desc *args)
+{
+	struct input_stream_props *props;
+	size_t ch_count;
+	GSList *l;
+	const struct sr_channel *ch;
+	const char *type;
+
+	if (!args)
+		return;
+	props = &args->props;
+	if (props->samplerate)
+		printf("Samplerate: %" PRIu64 "\n", props->samplerate);
+	if (props->channels) {
+		ch_count = g_slist_length(props->channels);
+		printf("Channels: %zu\n", ch_count);
+		for (l = props->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type == SR_CHANNEL_ANALOG)
+				type = "analog";
+			else
+				type = "logic";
+			printf("- %s: %s\n", ch->name, type);
+		}
+	}
+	if (props->unitsize)
+		printf("Logic unitsize: %zu\n", props->unitsize);
+	if (props->sample_count_logic)
+		printf("Logic sample count: %" PRIu64 "\n", props->sample_count_logic);
+	if (props->sample_count_analog)
+		printf("Analog sample count: %" PRIu64 "\n", props->sample_count_analog);
+	if (props->frame_count)
+		printf("Frame count: %" PRIu64 "\n", props->frame_count);
+	if (props->triggered)
+		printf("Trigger count: %" PRIu64 "\n", props->triggered);
+}
+
+static void props_cleanup(struct df_arg_desc *args)
+{
+	struct input_stream_props *props;
+
+	if (!args)
+		return;
+	props = &args->props;
+	g_slist_free(props->channels);
+	props->channels = NULL;
+	props->first_analog_channel = NULL;
+}
+
 void datafeed_in(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data)
 {
-	const struct sr_datafeed_meta *meta;
-	const struct sr_datafeed_logic *logic;
-	const struct sr_datafeed_analog *analog;
-	struct sr_session *session;
-	struct sr_config *src;
 	static const struct sr_output *o = NULL;
 	static const struct sr_output *oa = NULL;
 	static uint64_t rcvd_samples_logic = 0;
@@ -165,6 +260,15 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	static uint64_t samplerate = 0;
 	static int triggered = 0;
 	static FILE *outfile = NULL;
+
+	const struct sr_datafeed_meta *meta;
+	const struct sr_datafeed_logic *logic;
+	const struct sr_datafeed_analog *analog;
+	struct df_arg_desc *df_arg;
+	int do_props;
+	struct input_stream_props *props;
+	struct sr_session *session;
+	struct sr_config *src;
 	GSList *l;
 	GString *out;
 	GVariant *gvar;
@@ -178,14 +282,34 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	driver = sr_dev_inst_driver_get(sdi);
 
-	/* If the first packet to come in isn't a header, don't even try. */
+	/* Skip all packets before the first header. */
 	if (packet->type != SR_DF_HEADER && !o)
 		return;
 
-	session = cb_data;
+	/* Prepare to either process data, or "just" gather properties. */
+	df_arg = cb_data;
+	session = df_arg->session;
+	do_props = df_arg->do_props;
+	props = &df_arg->props;
+
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		g_debug("cli: Received SR_DF_HEADER.");
+		if (maybe_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE,
+				&gvar) == SR_OK) {
+			samplerate = g_variant_get_uint64(gvar);
+			g_variant_unref(gvar);
+		}
+		if (do_props) {
+			/* Setup variables for maximum code path re-use. */
+			o = (void *)-1;
+			limit_samples = 0;
+			/* Start collecting input stream properties. */
+			memset(props, 0, sizeof(*props));
+			props->samplerate = samplerate;
+			props_get_channels(df_arg, sdi);
+			break;
+		}
 		if (!(o = setup_output_format(sdi, &outfile)))
 			g_critical("Failed to initialize output module.");
 
@@ -196,12 +320,6 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 		rcvd_samples_logic = rcvd_samples_analog = 0;
 
-		if (maybe_config_get(driver, sdi, NULL, SR_CONF_SAMPLERATE,
-				&gvar) == SR_OK) {
-			samplerate = g_variant_get_uint64(gvar);
-			g_variant_unref(gvar);
-		}
-
 #ifdef HAVE_SRD
 		if (opt_pds) {
 			if (samplerate) {
@@ -210,6 +328,7 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 					g_critical("Failed to configure decode session.");
 					break;
 				}
+				pd_samplerate = samplerate;
 			}
 			if (srd_session_start(srd_sess) != SRD_OK) {
 				g_critical("Failed to start decode session.");
@@ -228,18 +347,27 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 			case SR_CONF_SAMPLERATE:
 				samplerate = g_variant_get_uint64(src->data);
 				g_debug("cli: Got samplerate %"PRIu64" Hz.", samplerate);
+				if (do_props) {
+					props->samplerate = samplerate;
+					break;
+				}
 #ifdef HAVE_SRD
 				if (opt_pds) {
 					if (srd_session_metadata_set(srd_sess, SRD_CONF_SAMPLERATE,
 							g_variant_new_uint64(samplerate)) != SRD_OK) {
 						g_critical("Failed to pass samplerate to decoder.");
 					}
+					pd_samplerate = samplerate;
 				}
 #endif
 				break;
 			case SR_CONF_SAMPLE_INTERVAL:
 				samplerate = g_variant_get_uint64(src->data);
 				g_debug("cli: Got sample interval %"PRIu64" ms.", samplerate);
+				if (do_props) {
+					props->samplerate = samplerate;
+					break;
+				}
 				break;
 			default:
 				/* Unknown metadata is not an error. */
@@ -250,6 +378,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	case SR_DF_TRIGGER:
 		g_debug("cli: Received SR_DF_TRIGGER.");
+		if (do_props) {
+			props->triggered++;
+			break;
+		}
 		triggered = 1;
 		break;
 
@@ -259,6 +391,13 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 				logic->length, logic->unitsize);
 		if (logic->length == 0)
 			break;
+
+		if (do_props) {
+			props_get_channels(df_arg, sdi);
+			props->unitsize = logic->unitsize;
+			props->sample_count_logic += logic->length / logic->unitsize;
+			break;
+		}
 
 		/* Don't store any samples until triggered. */
 		if (opt_wait_trigger && !triggered)
@@ -290,6 +429,15 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		if (analog->num_samples == 0)
 			break;
 
+		if (do_props) {
+			/* Only count the first analog channel. */
+			props_get_channels(df_arg, sdi);
+			if (!props_chk_1st_channel(df_arg, analog))
+				break;
+			props->sample_count_analog += analog->num_samples;
+			break;
+		}
+
 		if (limit_samples && rcvd_samples_analog >= limit_samples)
 			break;
 
@@ -302,13 +450,17 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 
 	case SR_DF_FRAME_END:
 		g_debug("cli: Received SR_DF_FRAME_END.");
+		if (do_props) {
+			props->frame_count++;
+			break;
+		}
 		break;
 
 	default:
 		break;
 	}
 
-	if (o && !opt_pds) {
+	if (!do_props && o && !opt_pds) {
 		if (sr_output_send(o, packet, &out) == SR_OK) {
 			if (oa && !out) {
 				/*
@@ -332,6 +484,12 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	 */
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END.");
+
+		if (do_props) {
+			props_dump_details(df_arg);
+			props_cleanup(df_arg);
+			o = NULL;
+		}
 
 		if (o)
 			sr_output_free(o);
@@ -496,19 +654,51 @@ int opt_to_gvar(char *key, char *value, struct sr_config *src)
 	return ret;
 }
 
+int set_dev_options_array(struct sr_dev_inst *sdi, char **opts)
+{
+	size_t opt_idx;
+	const char *opt_text;
+	GHashTable *args;
+	int ret;
+
+	for (opt_idx = 0; opts && opts[opt_idx]; opt_idx++) {
+		opt_text = opts[opt_idx];
+		args = parse_generic_arg(opt_text, FALSE, "channel_group");
+		if (!args)
+			continue;
+		ret = set_dev_options(sdi, args);
+		g_hash_table_destroy(args);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	return SR_OK;
+}
+
 int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 {
 	struct sr_config src;
+	const char *cg_name;
 	struct sr_channel_group *cg;
 	GHashTableIter iter;
 	gpointer key, value;
 	int ret;
 
+	/*
+	 * Not finding the 'sigrok_key' key (optional user specified
+	 * channel group name) in the current options group's hash table
+	 * is perfectly fine. In that case the -g selection is used,
+	 * which defaults to "the device" (global parameters).
+	 */
+	cg_name = g_hash_table_lookup(args, "sigrok_key");
+	cg = lookup_channel_group(sdi, cg_name);
+
 	g_hash_table_iter_init(&iter, args);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		if (g_ascii_strcasecmp(key, "sigrok_key") == 0)
+			continue;
 		if ((ret = opt_to_gvar(key, value, &src)) != 0)
 			return ret;
-		cg = select_channel_group(sdi);
 		if ((ret = maybe_config_set(sr_dev_inst_driver_get(sdi), sdi, cg,
 				src.key, src.data)) != SR_OK) {
 			g_critical("Failed to set device option '%s': %s.",
@@ -522,8 +712,8 @@ int set_dev_options(struct sr_dev_inst *sdi, GHashTable *args)
 
 void run_session(void)
 {
+	struct df_arg_desc df_arg;
 	GSList *devices, *real_devices, *sd;
-	GHashTable *devargs;
 	GVariant *gvar;
 	struct sr_session *session;
 	struct sr_trigger *trigger;
@@ -535,6 +725,9 @@ void run_session(void)
 	struct sr_dev_driver *driver;
 	const struct sr_transform *t;
 	GMainLoop *main_loop;
+
+	memset(&df_arg, 0, sizeof(df_arg));
+	df_arg.do_props = FALSE;
 
 	devices = device_scan();
 	if (!devices) {
@@ -588,7 +781,9 @@ void run_session(void)
 	g_slist_free(real_devices);
 
 	sr_session_new(sr_ctx, &session);
-	sr_session_datafeed_callback_add(session, datafeed_in, session);
+	df_arg.session = session;
+	sr_session_datafeed_callback_add(session, datafeed_in, &df_arg);
+	df_arg.session = NULL;
 
 	if (sr_dev_open(sdi) != SR_OK) {
 		g_critical("Failed to open device.");
@@ -601,12 +796,9 @@ void run_session(void)
 		return;
 	}
 
-	if (opt_config) {
-		if ((devargs = parse_generic_arg(opt_config, FALSE))) {
-			if (set_dev_options(sdi, devargs) != SR_OK)
-				return;
-			g_hash_table_destroy(devargs);
-		}
+	if (opt_configs) {
+		if (set_dev_options_array(sdi, opt_configs) != SR_OK)
+			return;
 	}
 
 	if (select_channels(sdi) != SR_OK) {

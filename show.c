@@ -22,6 +22,10 @@
 #include <string.h>
 #include "sigrok-cli.h"
 
+#define DECODERS_HAVE_TAGS \
+	((SRD_PACKAGE_VERSION_MAJOR > 0) || \
+	 (SRD_PACKAGE_VERSION_MAJOR == 0) && (SRD_PACKAGE_VERSION_MINOR > 5))
+
 static gint sort_inputs(gconstpointer a, gconstpointer b)
 {
 	return strcmp(sr_input_id_get((struct sr_input_module *)a),
@@ -204,6 +208,84 @@ void show_supported(void)
 #endif
 }
 
+void show_supported_wiki(void)
+{
+#ifndef HAVE_SRD
+	printf("Error, libsigrokdecode support not compiled in.");
+#else
+	const GSList *l;
+	GSList *sl;
+	struct srd_decoder *dec;
+
+	if (srd_init(NULL) != SRD_OK)
+		return;
+
+	srd_decoder_load_all();
+	sl = g_slist_copy((GSList *)srd_decoder_list());
+	sl = g_slist_sort(sl, sort_pds);
+
+	printf("== Supported protocol decoders ==\n\n");
+
+	printf("<!-- Generated via sigrok-cli --list-supported-wiki. -->\n\n");
+
+	printf("Number of currently supported protocol decoders: "
+		"'''%d'''.\n\n", g_slist_length(sl));
+
+	printf("{| border=\"0\" style=\"font-size: smaller\" "
+		"class=\"alternategrey sortable sigroktable\"\n"
+		"|-\n!Protocol\n!Tags\n!Input IDs\n!Output IDs\n!Status\n"
+		"!Full name\n!Description\n\n");
+
+	for (l = sl; l; l = l->next) {
+		dec = l->data;
+
+#if DECODERS_HAVE_TAGS
+		GString *tags = g_string_new(NULL);
+		for (GSList *t = dec->tags; t; t = t->next)
+			g_string_append_printf(tags, "%s, ", (char *)t->data);
+		if (tags->len != 0)
+			g_string_truncate(tags, tags->len - 2);
+#endif
+
+		GString *in = g_string_new(NULL);
+		for (GSList *t = dec->inputs; t; t = t->next)
+			g_string_append_printf(in, "%s, ", (char *)t->data);
+		if (in->len == 0)
+			g_string_append_printf(in, "&mdash;");
+		else
+			g_string_truncate(in, in->len - 2);
+
+		GString *out = g_string_new(NULL);
+		for (GSList *t = dec->outputs; t; t = t->next)
+			g_string_append_printf(out, "%s, ", (char *)t->data);
+		if (out->len == 0)
+			g_string_append_printf(out, "&mdash;");
+		else
+			g_string_truncate(out, out->len - 2);
+
+#if DECODERS_HAVE_TAGS
+		printf("{{pd|%s|%s|%s|%s|%s|%s|%s|supported}}\n",
+			dec->id, dec->name, dec->longname, dec->desc,
+			tags->str, in->str, out->str);
+#else
+		printf("{{pd|%s|%s|%s|%s|%s|%s|supported}}\n",
+			dec->id, dec->name, dec->longname, dec->desc,
+			in->str, out->str);
+#endif
+
+#if DECODERS_HAVE_TAGS
+		g_string_free(tags, TRUE);
+#endif
+		g_string_free(in, TRUE);
+		g_string_free(out, TRUE);
+	}
+	g_slist_free(sl);
+	srd_exit();
+
+	printf("\n|}\n");
+#endif
+}
+
 static gint sort_channels(gconstpointer a, gconstpointer b)
 {
 	const struct sr_channel *pa = a, *pb = b;
@@ -218,12 +300,13 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 	GString *s;
 	GVariant *gvar;
 	struct sr_dev_driver *driver;
-	const char *vendor, *model, *version;
+	const char *vendor, *model, *version, *sernum;
 
 	driver = sr_dev_inst_driver_get(sdi);
 	vendor = sr_dev_inst_vendor_get(sdi);
 	model = sr_dev_inst_model_get(sdi);
 	version = sr_dev_inst_version_get(sdi);
+	sernum = sr_dev_inst_sernum_get(sdi);
 	channels = sr_dev_inst_channels_get(sdi);
 
 	s = g_string_sized_new(128);
@@ -240,6 +323,8 @@ static void print_dev_line(const struct sr_dev_inst *sdi)
 		g_string_append_printf(s, "%s ", model);
 	if (version && version[0])
 		g_string_append_printf(s, "%s ", version);
+	if (sernum && sernum[0])
+		g_string_append_printf(s, "[S/N: %s] ", sernum);
 	if (channels) {
 		if (g_slist_length(channels) == 1) {
 			ch = channels->data;
@@ -321,7 +406,9 @@ void show_dev_detail(void)
 	GVariant *gvar_dict, *gvar_list, *gvar;
 	gsize num_elements;
 	double dlow, dhigh, dcur_low, dcur_high;
-	const uint64_t *uint64, p = 0, q = 0, low = 0, high = 0;
+	const uint64_t *uint64;
+	uint64_t cur_rate, rate;
+	uint64_t p = 0, q = 0, low = 0, high = 0;
 	uint64_t tmp_uint64, mask, cur_low, cur_high, cur_p, cur_q;
 	GArray *opts;
 	const int32_t *int32;
@@ -330,6 +417,9 @@ void show_dev_detail(void)
 	unsigned int num_devices, i, j;
 	char *tmp_str, *s, c;
 	const char **stropts;
+	double tmp_flt;
+	gboolean have_tmp_flt;
+	const double *fltopts;
 
 	if (parse_driver(opt_drv, &driver_from_opt, NULL)) {
 		/* A driver was specified, report driver-wide options now. */
@@ -365,7 +455,7 @@ void show_dev_detail(void)
 	 * returned, or which values for them.
 	 */
 	select_channels(sdi);
-	channel_group = select_channel_group(sdi);
+	channel_group = lookup_channel_group(sdi, NULL);
 
 	if (!(opts = sr_dev_options(driver, sdi, channel_group)))
 		/* Driver supports no device instance options. */
@@ -461,6 +551,13 @@ void show_dev_detail(void)
 		} else if (key == SR_CONF_SAMPLERATE) {
 			/* Supported samplerates */
 			printf("    %s", srci->id);
+			cur_rate = ~0ull;
+			if (maybe_config_get(driver, sdi, channel_group,
+				SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
+				if (g_variant_is_of_type(gvar, G_VARIANT_TYPE_UINT64))
+					cur_rate = g_variant_get_uint64(gvar);
+				g_variant_unref(gvar);
+			}
 			if (maybe_config_list(driver, sdi, channel_group, SR_CONF_SAMPLERATE,
 					&gvar_dict) != SR_OK) {
 				printf("\n");
@@ -472,9 +569,14 @@ void show_dev_detail(void)
 						&num_elements, sizeof(uint64_t));
 				printf(" - supported samplerates:\n");
 				for (i = 0; i < num_elements; i++) {
-					if (!(s = sr_samplerate_string(uint64[i])))
+					rate = uint64[i];
+					s = sr_samplerate_string(rate);
+					if (!s)
 						continue;
-					printf("      %s\n", s);
+					printf("      %s", s);
+					if (rate == cur_rate)
+						printf(" (current)");
+					printf("\n");
 					g_free(s);
 				}
 				g_variant_unref(gvar_list);
@@ -637,12 +739,34 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_FLOAT) {
 			printf("    %s: ", srci->id);
+			tmp_flt = 0.0;
+			have_tmp_flt = FALSE;
 			if (maybe_config_get(driver, sdi, channel_group, key,
 					&gvar) == SR_OK) {
-				printf("%f\n", g_variant_get_double(gvar));
+				tmp_flt = g_variant_get_double(gvar);
+				have_tmp_flt = TRUE;
 				g_variant_unref(gvar);
-			} else
+			}
+			if (maybe_config_list(driver, sdi, channel_group, key,
+					&gvar) != SR_OK) {
+				if (have_tmp_flt) {
+					/* Can't list, but got a value to show. */
+					printf("%f (current)", tmp_flt);
+				}
 				printf("\n");
+				continue;
+			}
+			fltopts = g_variant_get_fixed_array(gvar,
+				&num_elements, sizeof(tmp_flt));
+			for (i = 0; i < num_elements; i++) {
+				if (i)
+					printf(", ");
+				printf("%f", fltopts[i]);
+				if (have_tmp_flt && fltopts[i] == tmp_flt)
+					printf(" (current)");
+			}
+			printf("\n");
+			g_variant_unref(gvar);
 
 		} else if (srci->datatype == SR_T_RATIONAL_PERIOD
 				|| srci->datatype == SR_T_RATIONAL_VOLT) {
@@ -769,6 +893,17 @@ static void show_pd_detail_single(const char *pd)
 		} else {
 			printf("None.\n");
 		}
+		printf("Decoder tags:\n");
+#if DECODERS_HAVE_TAGS
+		if (dec->tags) {
+			for (l = dec->tags; l; l = l->next) {
+				str = l->data;
+				printf("- %s\n", str);
+			}
+		} else {
+			printf("None.\n");
+		}
+#endif
 		printf("Annotation classes:\n");
 		if (dec->annotations) {
 			for (l = dec->annotations; l; l = l->next) {
@@ -976,4 +1111,26 @@ void show_transform(void)
 		sr_transform_options_free(opts);
 	}
 	g_strfreev(tok);
+}
+
+static void print_serial_port(gpointer data, gpointer user_data)
+{
+	struct sr_serial_port *port;
+
+	port = (void *)data;
+	(void)user_data;
+	printf("  %s\t%s\n", port->name, port->description);
+}
+
+void show_serial_ports(void)
+{
+	GSList *serial_ports;
+
+	serial_ports = sr_serial_list(NULL);
+	if (!serial_ports)
+		return;
+
+	printf("Available serial/HID/BT/BLE ports:\n");
+	g_slist_foreach(serial_ports, print_serial_port, NULL);
+	g_slist_free_full(serial_ports, (GDestroyNotify)sr_serial_free);
 }

@@ -23,13 +23,15 @@
 
 gboolean opt_version = FALSE;
 gboolean opt_list_supported = FALSE;
+gboolean opt_list_supported_wiki = FALSE;
 gint opt_loglevel = SR_LOG_WARN; /* Show errors+warnings by default. */
 gboolean opt_scan_devs = FALSE;
+gboolean opt_dont_scan = FALSE;
 gboolean opt_wait_trigger = FALSE;
 gchar *opt_input_file = NULL;
 gchar *opt_output_file = NULL;
 gchar *opt_drv = NULL;
-gchar *opt_config = NULL;
+gchar **opt_configs = NULL;
 gchar *opt_channels = NULL;
 gchar *opt_channel_group = NULL;
 gchar *opt_triggers = NULL;
@@ -39,6 +41,7 @@ gchar *opt_pd_annotations = NULL;
 gchar *opt_pd_meta = NULL;
 gchar *opt_pd_binary = NULL;
 gboolean opt_pd_samplenum = FALSE;
+gboolean opt_pd_jsontrace = FALSE;
 #endif
 gchar *opt_input_format = NULL;
 gchar *opt_output_format = NULL;
@@ -48,8 +51,9 @@ gchar *opt_time = NULL;
 gchar *opt_samples = NULL;
 gchar *opt_frames = NULL;
 gboolean opt_continuous = FALSE;
-gchar *opt_get = NULL;
+gchar **opt_gets = NULL;
 gboolean opt_set = FALSE;
+gboolean opt_list_serial = FALSE;
 
 /*
  * Defines a callback function that generates an error if an
@@ -75,7 +79,6 @@ static gboolean check_ ## option                                          \
 }
 
 CHECK_ONCE(opt_drv)
-CHECK_ONCE(opt_config)
 CHECK_ONCE(opt_input_format)
 CHECK_ONCE(opt_output_format)
 CHECK_ONCE(opt_transform_module)
@@ -90,7 +93,6 @@ CHECK_ONCE(opt_pd_binary)
 CHECK_ONCE(opt_time)
 CHECK_ONCE(opt_samples)
 CHECK_ONCE(opt_frames)
-CHECK_ONCE(opt_get)
 
 #undef CHECK_STR_ONCE
 
@@ -102,11 +104,13 @@ static const GOptionEntry optargs[] = {
 			"Show version", NULL},
 	{"list-supported", 'L', 0, G_OPTION_ARG_NONE, &opt_list_supported,
 			"List supported devices/modules/decoders", NULL},
+	{"list-supported-wiki", 0, 0, G_OPTION_ARG_NONE, &opt_list_supported_wiki,
+			"List supported decoders (MediaWiki)", NULL},
 	{"loglevel", 'l', 0, G_OPTION_ARG_INT, &opt_loglevel,
 			"Set loglevel (5 is most verbose)", NULL},
 	{"driver", 'd', 0, G_OPTION_ARG_CALLBACK, &check_opt_drv,
 			"The driver to use", NULL},
-	{"config", 'c', 0, G_OPTION_ARG_CALLBACK, &check_opt_config,
+	{"config", 'c', 0, G_OPTION_ARG_STRING_ARRAY, &opt_configs,
 			"Specify device configuration options", NULL},
 	{"input-file", 'i', 0, G_OPTION_ARG_FILENAME_ARRAY, &input_file_array,
 			"Load input from file", NULL},
@@ -137,9 +141,13 @@ static const GOptionEntry optargs[] = {
 			"Protocol decoder binary output to show", NULL},
 	{"protocol-decoder-samplenum", 0, 0, G_OPTION_ARG_NONE, &opt_pd_samplenum,
 			"Show sample numbers in decoder output", NULL},
+	{"protocol-decoder-jsontrace", 0, 0, G_OPTION_ARG_NONE, &opt_pd_jsontrace,
+			"Output in Google Trace Event format (JSON)", NULL},
 #endif
 	{"scan", 0, 0, G_OPTION_ARG_NONE, &opt_scan_devs,
 			"Scan for devices", NULL},
+	{"dont-scan", 'D', 0, G_OPTION_ARG_NONE, &opt_dont_scan,
+			"Don't auto-scan (use -d spec only)", NULL},
 	{"show", 0, 0, G_OPTION_ARG_NONE, &opt_show,
 			"Show device/format/decoder details", NULL},
 	{"time", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_time,
@@ -150,8 +158,10 @@ static const GOptionEntry optargs[] = {
 			"Number of frames to acquire", NULL},
 	{"continuous", 0, 0, G_OPTION_ARG_NONE, &opt_continuous,
 			"Sample continuously", NULL},
-	{"get", 0, 0, G_OPTION_ARG_CALLBACK, &check_opt_get, "Get device options only", NULL},
+	{"get", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_gets,
+			"Get device options only", NULL},
 	{"set", 0, 0, G_OPTION_ARG_NONE, &opt_set, "Set device options only", NULL},
+	{"list-serial", 0, 0, G_OPTION_ARG_NONE, &opt_list_serial, "List available serial/HID/BT/BLE ports", NULL},
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
 
