@@ -1,3 +1,41 @@
+0.7.2 (2021-03-01)
+------------------
+
+ * Command line option changes:
+   - Add the -D|--dont-scan option.
+   - Add the --list-serial option.
+   - Add the --list-supported-wiki option (internal, developer-only).
+   - Accept multiple --config requests for multiple channel groups.
+   - Accept multiple --get requests for multiple channel groups.
+ * Protocol decoding:
+   - Add support for Google Trace Event output (JSON).
+   - Add support for float option data type (bug #1247).
+   - Perform stricter checks for integer decoder options.
+   - Accept annotation rows for -A specs.
+   - Fix memory leaks in annotation setup error paths.
+   - Add sanity check when mapping channels (bug #1515).
+ * Manpage:
+   - Fix -A description wrt default annotations shown.
+   - Clarify annotation classes in -A description.
+   - Improve/clarify documentation of the -d option.
+ * --show:
+   - Mark currently selected samplerate item in samplerates lists.
+   - Support arrays of floats, unbreaks LCR output frequency listing.
+   - Do print floating point results even if value is zero.
+   - List protocol decoder tags (if available).
+   - Synchronize --get output for MQ with --show output.
+   - Add support for -i <file> --show, provide details on input stream.
+ * --scan: Show device serial number if available.
+ * Warn about unknown input/output module option keys (bug #1549).
+ * Extend options parser, support optional ID in key-value lists.
+ * Terminate with error when -B was specified but -P is missing (bug #1180).
+ * Fix listing of some configuration options (bug #1331).
+ * Print error message when output file creation fails (bug #1372).
+ * Windows:
+   - Set stdout to binary mode on Windows as needed (bug #1427).
+   - nsis: Ship Python stdlib *.pyd files needed by some PDs (bug #1409).
+   - nsis: Install 64bit Windows programs into 'Program Files' (bug #1082).
+
 0.7.1 (2018-10-26)
 ------------------
 
