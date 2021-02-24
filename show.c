@@ -22,6 +22,10 @@
 #include <string.h>
 #include "sigrok-cli.h"
 
+#define DECODERS_HAVE_TAGS \
+	((SRD_PACKAGE_VERSION_MAJOR > 0) || \
+	 (SRD_PACKAGE_VERSION_MAJOR == 0) && (SRD_PACKAGE_VERSION_MINOR > 5))
+
 static gint sort_inputs(gconstpointer a, gconstpointer b)
 {
 	return strcmp(sr_input_id_get((struct sr_input_module *)a),
@@ -235,11 +239,13 @@ void show_supported_wiki(void)
 	for (l = sl; l; l = l->next) {
 		dec = l->data;
 
+#if DECODERS_HAVE_TAGS
 		GString *tags = g_string_new(NULL);
 		for (GSList *t = dec->tags; t; t = t->next)
 			g_string_append_printf(tags, "%s, ", (char *)t->data);
 		if (tags->len != 0)
 			g_string_truncate(tags, tags->len - 2);
+#endif
 
 		GString *in = g_string_new(NULL);
 		for (GSList *t = dec->inputs; t; t = t->next)
@@ -257,11 +263,19 @@ void show_supported_wiki(void)
 		else
 			g_string_truncate(out, out->len - 2);
 
+#if DECODERS_HAVE_TAGS
 		printf("{{pd|%s|%s|%s|%s|%s|%s|%s|supported}}\n",
 			dec->id, dec->name, dec->longname, dec->desc,
 			tags->str, in->str, out->str);
+#else
+		printf("{{pd|%s|%s|%s|%s|%s|%s|supported}}\n",
+			dec->id, dec->name, dec->longname, dec->desc,
+			in->str, out->str);
+#endif
 
+#if DECODERS_HAVE_TAGS
 		g_string_free(tags, TRUE);
+#endif
 		g_string_free(in, TRUE);
 		g_string_free(out, TRUE);
 	}
@@ -880,6 +894,7 @@ static void show_pd_detail_single(const char *pd)
 			printf("None.\n");
 		}
 		printf("Decoder tags:\n");
+#if DECODERS_HAVE_TAGS
 		if (dec->tags) {
 			for (l = dec->tags; l; l = l->next) {
 				str = l->data;
@@ -888,6 +903,7 @@ static void show_pd_detail_single(const char *pd)
 		} else {
 			printf("None.\n");
 		}
+#endif
 		printf("Annotation classes:\n");
 		if (dec->annotations) {
 			for (l = dec->annotations; l; l = l->next) {
