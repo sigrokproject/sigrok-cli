@@ -201,13 +201,15 @@ The default is to use all the channels available on a device. You can name
 a channel like this:
 .BR "1=CLK" .
 A range of channels can also be given, in the form
-.BR "1\-5" .
+.BR "1\-5"
+or (if they have a common prefix)
+.BR "CH1\-5" .
 .sp
 Example:
 .sp
 .RB "  $ " "sigrok\-cli \-\-driver fx2lafw \-\-samples 100"
 .br
-.B "               \-\-channels 1=CLK,2\-4,7"
+.B "               \-\-channels D1=CLK,D2\-4,D7"
 .br
  CLK:11111111 11111111 11111111 11111111 [...]
    2:11111111 11111111 11111111 11111111 [...]
