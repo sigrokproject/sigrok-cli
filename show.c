@@ -465,8 +465,11 @@ void show_dev_detail(void)
 		printf("Channel groups:\n");
 		for (cgl = channel_groups; cgl; cgl = cgl->next) {
 			cg = cgl->data;
-			printf("    %s: channel%s", cg->name,
-					g_slist_length(cg->channels) > 1 ? "s" : "");
+			printf("    %s: ", cg->name);
+			if (g_slist_length(cg->channels) == 0)
+				printf("No channels");
+			else
+				printf("channel%s", g_slist_length(cg->channels) > 1 ? "s" : "");
 			for (chl = cg->channels; chl; chl = chl->next) {
 				ch = chl->data;
 				printf(" %s", ch->name);
