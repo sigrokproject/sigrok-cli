@@ -91,6 +91,15 @@ AC_SYS_LARGEFILE
 PKG_CHECK_MODULES([SIGROK_CLI],
 	[glib-2.0 >= 2.32.0 libsigrok >= 0.5.0 $SC_PKGLIBS])
 
+# Check for version dependent availability of functions.
+srd_save_cflags=$CFLAGS
+srd_save_libs=$LIBS
+CFLAGS="$SIGROK_CLI_CFLAGS $CFLAGS"
+LIBS="$SIGROK_CLI_LIBS $LIBS"
+AC_CHECK_FUNCS([srd_session_send_eof])
+CFLAGS=$srd_save_cflags
+LIBS=$srd_save_libs
+
 sc_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sc_libsigrok_version=`$PKG_CONFIG --modversion libsigrok 2>&AS_MESSAGE_LOG_FD`
 
