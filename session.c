@@ -485,6 +485,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	if (packet->type == SR_DF_END) {
 		g_debug("cli: Received SR_DF_END.");
 
+#if defined HAVE_SRD_SESSION_SEND_EOF && HAVE_SRD_SESSION_SEND_EOF
+		(void)srd_session_send_eof(srd_sess);
+#endif
+
 		if (do_props) {
 			props_dump_details(df_arg);
 			props_cleanup(df_arg);
