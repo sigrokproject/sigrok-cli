@@ -418,7 +418,7 @@ void show_dev_detail(void)
 	char *tmp_str, *s, c;
 	const char **stropts;
 	double tmp_flt;
-	gboolean have_tmp_flt;
+	gboolean have_tmp_flt, have_curr;
 	const double *fltopts;
 
 	if (parse_driver(opt_drv, &driver_from_opt, NULL)) {
@@ -718,12 +718,11 @@ void show_dev_detail(void)
 				continue;
 			}
 
+			have_curr = FALSE;
 			if (maybe_config_get(driver, sdi, channel_group, key, &gvar) == SR_OK) {
 				g_variant_get(gvar, "(dd)", &dcur_low, &dcur_high);
 				g_variant_unref(gvar);
-			} else {
-				dcur_low = 0;
-				dcur_high = 0;
+				have_curr = TRUE;
 			}
 
 			num_elements = g_variant_n_children(gvar_list);
@@ -734,6 +733,8 @@ void show_dev_detail(void)
 				if (i)
 					printf(", ");
 				printf("%.1f-%.1f", dlow, dhigh);
+				if (!have_curr)
+					continue;
 				if (dlow == dcur_low && dhigh == dcur_high)
 					printf(" (current)");
 			}
