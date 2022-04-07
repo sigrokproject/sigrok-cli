@@ -44,6 +44,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 	ssize_t len;
 	char *mod_id;
 	gboolean is_stdin;
+	gboolean push_scan_data;
 
 	if (!sr_input_list())
 		g_critical("No supported input formats available.");
@@ -56,6 +57,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 	}
 
 	is_stdin = strcmp(opt_input_file, "-") == 0;
+	push_scan_data = FALSE;
 	fd = 0;
 	buf = g_string_sized_new(CHUNK_SIZE);
 	if (mod_id) {
@@ -108,6 +110,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 						g_strerror(errno));
 			buf->len = len;
 			sr_input_scan_buffer(buf, &in);
+			push_scan_data = TRUE;
 		}
 		if (!in)
 			g_critical("Error: no input module found for this file.");
@@ -116,15 +119,33 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 	df_arg->session = session;
 	sr_session_datafeed_callback_add(session, datafeed_in, df_arg);
 
+	/*
+	 * Implementation detail: The combination of reading from stdin
+	 * and automatic file format detection may have pushed the first
+	 * chunk of input data into the input module's data accumulator,
+	 * _bypassing_ the .receive() callback. It is essential to call
+	 * .receive() before calling .end() for files of size smaller than
+	 * CHUNK_SIZE (which is a typical case). So that sdi becomes ready.
+	 * Fortunately all input modules accept .receive() calls with
+	 * a zero length, and inspect whatever was accumulated so far.
+	 *
+	 * After that optional initial push of data which was queued
+	 * above during format detection, continue reading remaining
+	 * chunks from the input file until EOF is seen.
+	 */
 	got_sdi = FALSE;
 	while (TRUE) {
 		g_string_truncate(buf, 0);
-		len = read(fd, buf->str, CHUNK_SIZE);
+		if (push_scan_data)
+			len = 0;
+		else
+			len = read(fd, buf->str, CHUNK_SIZE);
 		if (len < 0)
 			g_critical("Read failed: %s", g_strerror(errno));
-		if (len == 0)
+		if (len == 0 && !push_scan_data)
 			/* End of file or stream. */
 			break;
+		push_scan_data = FALSE;
 		buf->len = len;
 		if (sr_input_send(in, buf) != SR_OK)
 			break;
@@ -148,7 +169,6 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 
 	df_arg->session = NULL;
 	sr_session_destroy(session);
-
 }
 
 void load_input_file(gboolean do_props)
