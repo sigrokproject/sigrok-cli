@@ -68,7 +68,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 		if ((options = sr_input_options_get(imod))) {
 			mod_opts = generic_arg_to_opt(options, mod_args);
 			(void)warn_unknown_keys(options, mod_args, NULL);
-			sr_output_options_free(options);
+			sr_input_options_free(options);
 		} else {
 			mod_opts = NULL;
 		}
@@ -105,7 +105,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 					g_critical("Failed to load %s: %s.", opt_input_file,
 							g_strerror(errno));
 			}
-			if ((len = read(fd, buf->str, CHUNK_SIZE)) < 1)
+			if ((len = read(fd, buf->str, buf->allocated_len)) < 1)
 				g_critical("Failed to read %s: %s.", opt_input_file,
 						g_strerror(errno));
 			buf->len = len;
@@ -139,7 +139,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 		if (push_scan_data)
 			len = 0;
 		else
-			len = read(fd, buf->str, CHUNK_SIZE);
+			len = read(fd, buf->str, buf->allocated_len);
 		if (len < 0)
 			g_critical("Read failed: %s", g_strerror(errno));
 		if (len == 0 && !push_scan_data)
@@ -166,6 +166,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 	sr_input_end(in);
 	sr_input_free(in);
 	g_string_free(buf, TRUE);
+	close(fd);
 
 	df_arg->session = NULL;
 	sr_session_destroy(session);
