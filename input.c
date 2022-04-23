@@ -147,14 +147,18 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 			break;
 		push_scan_data = FALSE;
 		buf->len = len;
-		if (sr_input_send(in, buf) != SR_OK)
+		if (sr_input_send(in, buf) != SR_OK) {
+			g_critical("File import failed (read)");
 			break;
+		}
 
 		sdi = sr_input_dev_inst_get(in);
 		if (!got_sdi && sdi) {
 			/* First time we got a valid sdi. */
-			if (select_channels(sdi) != SR_OK)
+			if (select_channels(sdi) != SR_OK) {
+				g_critical("File import failed (channels)");
 				return;
+			}
 			if (sr_session_dev_add(session, sdi) != SR_OK) {
 				g_critical("Failed to use device.");
 				sr_session_destroy(session);
