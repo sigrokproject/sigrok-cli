@@ -628,7 +628,7 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	GSList *ann_list, *l;
 	int i;
 	char **ann_descr;
-	gboolean show_ann, show_snum, show_class, show_quotes, show_abbrev;
+	gboolean show_ann, show_tstamp, show_snum, show_class, show_quotes, show_abbrev;
 	const char *quote;
 
 	(void)cb_data;
@@ -673,7 +673,10 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	 * - Optionally put quote marks around annotation text, when
 	 *   recipients might have to deal with a set of text variants.
 	 */
-	show_snum = show_class = show_quotes = show_abbrev = FALSE;
+	show_tstamp = show_snum = show_class = show_quotes = show_abbrev = FALSE;
+	if (opt_pd_timestamp) {
+		show_tstamp = TRUE;
+	}
 	if (opt_pd_samplenum || opt_loglevel > SR_LOG_WARN) {
 		show_snum = TRUE;
 	}
@@ -692,6 +695,11 @@ void show_pd_annotations(struct srd_proto_data *pdata, void *cb_data)
 	if (show_snum) {
 		printf("%" PRIu64 "-%" PRIu64 " ",
 			pdata->start_sample, pdata->end_sample);
+	}
+	if (show_tstamp && pd_samplerate) {
+		double ts_sec = pdata->start_sample;
+		ts_sec /= pd_samplerate;
+		printf("%9.3lf ", ts_sec);
 	}
 	printf("%s: ", pdata->pdo->proto_id);
 	if (show_class) {
