@@ -140,6 +140,7 @@ extern gchar **opt_pds;
 extern gchar *opt_pd_annotations;
 extern gchar *opt_pd_meta;
 extern gchar *opt_pd_binary;
+extern gboolean opt_pd_ann_class;
 extern gboolean opt_pd_samplenum;
 extern gboolean opt_pd_jsontrace;
 #endif
