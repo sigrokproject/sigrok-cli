@@ -40,6 +40,7 @@ gchar **opt_pds = NULL;
 gchar *opt_pd_annotations = NULL;
 gchar *opt_pd_meta = NULL;
 gchar *opt_pd_binary = NULL;
+gboolean opt_pd_ann_class = FALSE;
 gboolean opt_pd_samplenum = FALSE;
 gboolean opt_pd_jsontrace = FALSE;
 #endif
@@ -139,6 +140,8 @@ static const GOptionEntry optargs[] = {
 			"Protocol decoder meta output to show", NULL},
 	{"protocol-decoder-binary", 'B', 0, G_OPTION_ARG_CALLBACK, &check_opt_pd_binary,
 			"Protocol decoder binary output to show", NULL},
+	{"protocol-decoder-ann-class", 0, 0, G_OPTION_ARG_NONE, &opt_pd_ann_class,
+			"Show annotation class in decoder output", NULL},
 	{"protocol-decoder-samplenum", 0, 0, G_OPTION_ARG_NONE, &opt_pd_samplenum,
 			"Show sample numbers in decoder output", NULL},
 	{"protocol-decoder-jsontrace", 0, 0, G_OPTION_ARG_NONE, &opt_pd_jsontrace,
