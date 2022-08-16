@@ -139,8 +139,7 @@ range_fail:
 			}
 			if (names[1]) {
 				/* Rename channel. */
-				g_free(ch->name);
-				ch->name = g_strdup(names[1]);
+				sr_dev_channel_name_set(ch, names[1]);
 			}
 			channellist = g_slist_append(channellist, ch);
 
