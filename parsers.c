@@ -364,6 +364,8 @@ GHashTable *parse_generic_arg(const char *arg,
 		i++;
 	}
 	for (; elements[i]; i++) {
+		if (!elements[i][0])
+			continue;
 		split_key_value(elements[i], &k, &v);
 		k = g_strdup(k);
 		v = v ? g_strdup(v) : NULL;
