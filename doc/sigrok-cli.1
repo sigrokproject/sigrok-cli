@@ -588,6 +588,25 @@ To turn on internal logging on a Lascar EL-USB series device:
 .SH "EXIT STATUS"
 .B sigrok\-cli
 exits with 0 on success, 1 on most failures.
+.SH "ENVIRONMENT"
+.TP
+.B SIGROK_FIRMWARE_DIR
+A single path where to search for firmware images, in addition to a
+builtin list of locations.
+.TP
+.B SIGROK_FIRMWARE_PATH
+Multiple path entries where to search for firmware images, in addition
+to builtin locations.
+.TP
+When decoder support was enabled in the application's configuration:
+.TP
+.B SIGROKDECODE_DIR
+A single path where to search for protocol decoders, in addition to
+a builtin list of locations.
+.TP
+.B SIGROKDECODE_PATH
+Multiple path entries where to search for protocol decoders, in addition
+to builtin locations.
 .SH "SEE ALSO"
 \fBpulseview\fP(1)
 .SH "BUGS"
