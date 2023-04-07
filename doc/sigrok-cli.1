@@ -1,4 +1,4 @@
-.TH SIGROK\-CLI 1 "March 28, 2019"
+.TH SIGROK\-CLI 1 "April 07, 2023"
 .SH "NAME"
 sigrok\-cli \- Command-line client for the sigrok software
 .SH "SYNOPSIS"
@@ -311,15 +311,27 @@ In this example,
 .B wordsize
 is an option supported by the
 .B spi
-protocol decoder. Additionally, the user tells sigrok to decode the SPI
+protocol decoder. Additionally, the user requests sigrok to decode the SPI
 protocol using channel 1 as MISO signal for SPI, channel 5 as MOSI, channel 3
 as CLK, and channel 0 as CS# signal.
 .sp
-Notice that the
+The
 .B sigrok\-cli
-application does not support "name matching". Instead it's assumed that the
-traces in the input stream match the order of the decoder's input signals,
-or that users explicitly specify the input channel to decoder signal mapping.
+application can automatically assign logic channels to decoder inputs
+in their strict channel index order (by means of the
+.B auto_index
+keyword), or can automatically assign logic channels to decoder inputs
+when their names match (case insensitive match,
+.B auto_names
+keyword). Users need to explicitly request this assignment, the default
+behaviour is to not automatically assign any signals.
+.sp
+Example:
+.sp
+ $
+.B "sigrok\-cli \-i <file.sr>"
+.br
+.B "              \-P ieee488:assign_channels=auto_names"
 .br
 .sp
 When multiple decoders are specified in the same
