@@ -89,7 +89,7 @@ static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 	return ret;
 }
 
-static int move_hash_element(GHashTable *src, GHashTable *dest, void *key)
+static int move_hash_element(GHashTable *src, GHashTable *dest, const void *key)
 {
 	void *orig_key, *value;
 
