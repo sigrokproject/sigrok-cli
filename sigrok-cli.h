@@ -103,7 +103,8 @@ void map_pd_channels(struct sr_dev_inst *sdi);
 #endif
 
 /* parsers.c */
-struct sr_channel *find_channel(GSList *channellist, const char *channelname);
+struct sr_channel *find_channel(GSList *channellist, const char *channelname,
+	gboolean exact_case);
 GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring);
 int parse_triggerstring(const struct sr_dev_inst *sdi, const char *s,
 		struct sr_trigger **trigger);

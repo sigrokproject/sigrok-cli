@@ -278,7 +278,7 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 				   (char *)channel_id);
 			continue;
 		}
-		ch = find_channel(channel_list, channel_target);
+		ch = find_channel(channel_list, channel_target, TRUE);
 		if (!ch) {
 			g_printerr("cli: No channel with name \"%s\" found.\n",
 				   (char *)channel_target);

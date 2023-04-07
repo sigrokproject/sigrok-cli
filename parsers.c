@@ -25,7 +25,8 @@
 #include <glib.h>
 #include "sigrok-cli.h"
 
-struct sr_channel *find_channel(GSList *channellist, const char *channelname)
+struct sr_channel *find_channel(GSList *channellist, const char *channelname,
+	gboolean exact_case)
 {
 	struct sr_channel *ch;
 	GSList *l;
@@ -33,8 +34,13 @@ struct sr_channel *find_channel(GSList *channellist, const char *channelname)
 	ch = NULL;
 	for (l = channellist; l; l = l->next) {
 		ch = l->data;
-		if (!strcmp(ch->name, channelname))
-			break;
+		if (exact_case) {
+			if (strcmp(ch->name, channelname) == 0)
+				break;
+		} else {
+			if (g_ascii_strcasecmp(ch->name, channelname) == 0)
+				break;
+		}
 	}
 	ch = l ? l->data : NULL;
 
@@ -105,7 +111,7 @@ GSList *parse_channelstring(struct sr_dev_inst *sdi, const char *channelstring)
 					ret = SR_ERR;
 					break;
 				}
-				ch = find_channel(channels, str);
+				ch = find_channel(channels, str, TRUE);
 				if (!ch) {
 					g_critical("unknown channel '%d'.", b);
 					ret = SR_ERR;
@@ -130,7 +136,7 @@ range_fail:
 				break;
 			}
 
-			ch = find_channel(channels, names[0]);
+			ch = find_channel(channels, names[0], TRUE);
 			if (!ch) {
 				g_critical("unknown channel '%s'.", names[0]);
 				g_strfreev(names);
