@@ -33,6 +33,10 @@ uint64_t pd_samplerate = 0;
 
 extern struct srd_session *srd_sess;
 
+static const char *keyword_assign = "assign_channels";
+static const char *assign_by_index = "auto_index";
+static const char *assign_by_name = "auto_names";
+
 static int opts_to_gvar(struct srd_decoder *dec, GHashTable *hash,
 		GHashTable **options)
 {
@@ -111,6 +115,7 @@ static GHashTable *extract_channel_map(struct srd_decoder *dec, GHashTable *hash
 	channel_map = g_hash_table_new_full(g_str_hash, g_str_equal,
 					  g_free, g_free);
 
+	move_hash_element(hash, channel_map, keyword_assign);
 	for (l = dec->channels; l; l = l->next) {
 		pdch = l->data;
 		move_hash_element(hash, channel_map, pdch->id);
@@ -253,11 +258,21 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 	GHashTable *channel_indices;
 	GSList *channel_list;
 	struct srd_decoder_inst *di;
+	struct srd_decoder *pd;
 	GVariant *var;
 	void *channel_id;
 	void *channel_target;
 	struct sr_channel *ch;
 	GHashTableIter iter;
+	enum assign_t {
+		ASSIGN_UNKNOWN,
+		ASSIGN_USER_SPEC,
+		ASSIGN_BY_INDEX,
+		ASSIGN_BY_NAMES,
+	} assign;
+	const char *keyword;
+	GSList *l_pd, *l_pdo, *l_ch;
+	struct srd_channel *pdch;
 
 	channel_map = value;
 	channel_list = user_data;
@@ -271,8 +286,102 @@ static void map_pd_inst_channels(void *key, void *value, void *user_data)
 	channel_indices = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
 					      (GDestroyNotify)g_variant_unref);
 
+	/*
+	 * The typical mode of operation is to apply a user specified
+	 * mapping of sigrok channels to decoder inputs. Lack of mapping
+	 * specs will assign no signals (compatible behaviour to earlier
+	 * implementations).
+	 *
+	 * Alternatively we can assign sigrok logic channels to decoder
+	 * inputs in the strict order of channel indices, or when their
+	 * names match. Users need to request this automatic assignment
+	 * though, because this behaviour differs from earlier versions.
+	 *
+	 * Even more sophisticated heuristics of mapping sigrok channels
+	 * to decoder inputs are not implemented here. Later versions
+	 * could translate the Pulseview approach to the C language, but
+	 * it's better to stabilize that logic first before porting it.
+	 */
+	assign = ASSIGN_USER_SPEC;
+	keyword = g_hash_table_lookup(channel_map, keyword_assign);
+	if (g_hash_table_size(channel_map) != 1) {
+		assign = ASSIGN_USER_SPEC;
+	} else if (!keyword) {
+		assign = ASSIGN_USER_SPEC;
+	} else if (strcmp(keyword, assign_by_index) == 0) {
+		assign = ASSIGN_BY_INDEX;
+	} else if (strcmp(keyword, assign_by_name) == 0) {
+		assign = ASSIGN_BY_NAMES;
+	} else {
+		g_critical("Unknown type of decoder channel assignment: %s.",
+			keyword);
+		return;
+	}
+
+	pd = di->decoder;
+	if (assign == ASSIGN_BY_INDEX) {
+		/*
+		 * Iterate the protocol decoder's list of input signals
+		 * (mandatory and optional, never more than the decoder's
+		 * total channels count). Assign sigrok logic channels
+		 * until either is exhausted. Use sigrok channels in the
+		 * very order of their declaration in the input stream.
+		 */
+		l_ch = channel_list;
+		l_pd = pd->channels;
+		while (l_ch && l_pd) {
+			ch = l_ch->data;
+			l_ch = l_ch->next;
+			if (ch->type != SR_CHANNEL_LOGIC)
+				break;
+			if (ch->index >= di->dec_num_channels)
+				break;
+			pdch = l_pd->data;
+			l_pd = l_pd->next;
+			if (!l_pd)
+				l_pd = pd->opt_channels;
+			/* TODO Emit an INFO message. */
+			g_hash_table_insert(channel_map,
+				g_strdup(pdch->id), g_strdup(ch->name));
+		}
+	} else if (assign == ASSIGN_BY_NAMES) {
+		/*
+		 * Iterate the protocol decoder's list of input signals.
+		 * Search for sigrok logic channels that have matching
+		 * names (case insensitive comparison). Not finding a
+		 * sigrok channel of a given name is non-fatal (could be
+		 * an optional channel, the decoder will check later for
+		 * all mandatory channels to be assigned).
+		 */
+		l_pd = pd->channels;
+		l_pdo = pd->opt_channels;
+		while (l_pd) {
+			pdch = l_pd->data;
+			l_pd = l_pd->next;
+			if (!l_pd) {
+				l_pd = l_pdo;
+				l_pdo = NULL;
+			}
+			ch = find_channel(channel_list, pdch->id, FALSE);
+			if (!ch) {
+				/* TODO Emit a WARN message. */
+				/* if (l_pdo) ...; */
+				continue;
+			}
+			if (ch->type != SR_CHANNEL_LOGIC) {
+				/* TODO Emit a WARN message. */
+				continue;
+			}
+			/* TODO Emit an INFO message. */
+			g_hash_table_insert(channel_map,
+				g_strdup(pdch->id), g_strdup(ch->name));
+		}
+	}
+
 	g_hash_table_iter_init(&iter, channel_map);
 	while (g_hash_table_iter_next(&iter, &channel_id, &channel_target)) {
+		if (strcmp(channel_id, keyword_assign) == 0)
+			continue;
 		if (!channel_target) {
 			g_printerr("cli: Channel name for \"%s\" missing.\n",
 				   (char *)channel_id);
