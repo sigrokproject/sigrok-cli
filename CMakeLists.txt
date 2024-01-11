@@ -88,7 +88,7 @@ message("\nDetected libraries (required):")
 message(" - glib-2.0 >= 2.32.0.............. ${SIGROK_CLI_VERSION}")
 message(" - libsigrok >= 0.5.0.............. ${SIGROK_CLI_VERSION}")
 
-if (libsigrokdecode_FOUND)
+if (LIBSIGROKDECODE_FOUND)
     message("\nDetected libraries (optional):")
     message(" - libsigrokdecode >= 0.5.0....... ${LIBSIGROKDECODE_VERSION}")
 endif()
