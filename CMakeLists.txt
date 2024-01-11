@@ -40,14 +40,17 @@ pkg_check_modules(SIGROK_CLI REQUIRED
 )
 
 # Optional dependencies
-find_package(libsigrokdecode 0.5.0 QUIET)
+pkg_check_modules(LIBSIGROKDECODE
+    libsigrokdecode>=0.5.0
+)
 
 # Compiler flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")  # Enable C99 standard
 
 # Include directories
 include_directories(${SIGROK_CLI_INCLUDE_DIRS})
-if (libsigrokdecode_FOUND)
+if (LIBSIGROKDECODE_FOUND)
+    add_definitions("-DHAVE_SRD")
     include_directories(${LIBSIGROKDECODE_INCLUDE_DIRS})
 endif()
 
@@ -57,7 +60,7 @@ target_include_directories(sigrok-cli PRIVATE ${CMAKE_BINARY_DIR}) # config.h
 
 # Link libraries
 target_link_libraries(sigrok-cli ${SIGROK_CLI_LIBRARIES})
-if (libsigrokdecode_FOUND)
+if (LIBSIGROKDECODE_FOUND)
     target_link_libraries(sigrok-cli ${LIBSIGROKDECODE_LIBRARIES})
 endif()
 
