@@ -28,3 +28,4 @@
 /sigrok-cli-*.tar.*
 /sigrok-cli.exe
 /stamp-h?
+CMakeLists.txt.user
