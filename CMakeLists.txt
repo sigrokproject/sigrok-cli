@@ -39,20 +39,11 @@ pkg_check_modules(SIGROK_CLI REQUIRED
     libsigrok>=0.5.0
 )
 
-# Optional dependencies
-pkg_check_modules(LIBSIGROKDECODE
-    libsigrokdecode>=0.5.0
-)
-
 # Compiler flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")  # Enable C99 standard
 
 # Include directories
 include_directories(${SIGROK_CLI_INCLUDE_DIRS})
-if (LIBSIGROKDECODE_FOUND)
-    add_definitions("-DHAVE_SRD")
-    include_directories(${LIBSIGROKDECODE_INCLUDE_DIRS})
-endif()
 
 # Build executable
 add_executable(sigrok-cli ${SR_SOURCES})
@@ -60,8 +51,28 @@ target_include_directories(sigrok-cli PRIVATE ${CMAKE_BINARY_DIR}) # config.h
 
 # Link libraries
 target_link_libraries(sigrok-cli ${SIGROK_CLI_LIBRARIES})
-if (LIBSIGROKDECODE_FOUND)
-    target_link_libraries(sigrok-cli ${LIBSIGROKDECODE_LIBRARIES})
+
+# libsigrokdecode
+option(LOCAL_LIBSIGROKDECODE "Use local libsigrokdecode" false)
+if (${LOCAL_LIBSIGROKDECODE})
+    Include(FetchContent)
+    FetchContent_Declare(libsigrokdecode
+        GIT_REPOSITORY https://github.com/Murmele/libsigrokdecode.git
+        GIT_TAG master
+    )
+    FetchContent_MakeAvailable(libsigrokdecode) # name of the target in the CMakeLists.txt
+    target_include_directories(sigrok-cli PRIVATE ${libsigrokdecode_SOURCE_DIR})
+    target_link_libraries(sigrok-cli sigrokdecode)
+    target_compile_definitions(sigrok-cli PRIVATE "-DHAVE_SRD")
+else()
+    pkg_check_modules(LIBSIGROKDECODE
+        libsigrokdecode>=0.5.0
+    )
+    if (LIBSIGROKDECODE_FOUND)
+        target_link_libraries(sigrok-cli ${LIBSIGROKDECODE_LIBRARIES})
+        target_compile_definitions(sigrok-cli PRIVATE "-DHAVE_SRD")
+        target_include_directories(sigrok-cli PRIVATE ${LIBSIGROKDECODE_INCLUDE_DIRS})
+    endif()
 endif()
 
 # Install executable
