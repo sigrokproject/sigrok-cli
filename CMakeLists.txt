@@ -59,7 +59,7 @@ if (${LOCAL_LIBSIGROKDECODE})
     FetchContent_Declare(libsigrokdecode
         # GIT_REPOSITORY https://github.com/sigrokproject/libsigrokdecode.git
         GIT_REPOSITORY https://github.com/Murmele/libsigrokdecode.git # TODO: remove as soon as libsigrokdecode supports cmake!
-        GIT_TAG master
+        GIT_TAG cmake # GIT_TAG master TODO: change when merged
     )
     FetchContent_MakeAvailable(libsigrokdecode) # name of the target in the CMakeLists.txt
     target_include_directories(sigrok-cli PRIVATE ${libsigrokdecode_SOURCE_DIR})
