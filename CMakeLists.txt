@@ -36,8 +36,11 @@ configure_file(cmake/config.h.in config.h)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SIGROK_CLI REQUIRED
     glib-2.0>=2.32.0
-    libsigrok>=0.5.0
+    #libsigrok>=0.5.0
 )
+
+list(APPEND CMAKE_PREFIX_PATH "/home/martin/GIT/SigrokInstall/lib/libsigrok")
+#set(SIGROK_CLI_INCLUDE_DIRS ${SIGROK_CLI_INCLUDE_DIRS} "/home/martin/GIT/SigrokInstall/include" "/home/martin/GIT/SigrokInstall/include/libsigrok" "/home/martin/GIT/SigrokInstall/include/libsigrokcxx")
 
 # Compiler flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")  # Enable C99 standard
@@ -51,6 +54,7 @@ target_include_directories(sigrok-cli PRIVATE ${CMAKE_BINARY_DIR}) # config.h
 
 # Link libraries
 target_link_libraries(sigrok-cli ${SIGROK_CLI_LIBRARIES})
+target_include_directories(sigrok-cli PRIVATE "/home/martin/GIT/SigrokInstall/include")
 
 # libsigrokdecode
 option(LOCAL_LIBSIGROKDECODE "Use local libsigrokdecode" false)
@@ -75,6 +79,9 @@ else()
         target_include_directories(sigrok-cli PRIVATE ${LIBSIGROKDECODE_INCLUDE_DIRS})
     endif()
 endif()
+
+link_directories(BEFORE "/home/martin/GIT/SigrokInstall/lib")
+target_link_libraries(sigrok-cli "/home/martin/GIT/SigrokInstall/lib/libsigrok.so")
 
 # Install executable
 install(TARGETS sigrok-cli DESTINATION bin)
