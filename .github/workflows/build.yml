@@ -1,4 +1,4 @@
-name: sigrok Artifacts Builder Workflow
+name: sigrok-cli Artifact Builder Workflow
 
 on:
   push:
