@@ -20,7 +20,7 @@ jobs:
     steps:
     - name: Get PR hash
       id: sha
-      uses: actions/github-script
+      uses: actions/github-script@v7
       with:
         result-encoding: string
         script: |
@@ -33,7 +33,7 @@ jobs:
           return pr.data.head.sha
 
     - name: Create pending status check
-      uses: actions/github-script
+      uses: actions/github-script@v7
       with:
         script: |
           github.rest.repos.createCommitStatus({
@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Get PR hash
         id: sha
-        uses: actions/github-script
+        uses: actions/github-script@v7
         with:
           result-encoding: string
           script: |
@@ -71,7 +71,7 @@ jobs:
             return pr.data.head.sha
 
       - name: Update status
-        uses: actions/github-script
+        uses: actions/github-script@v7
         with:
           script: |
             github.rest.repos.createCommitStatus({
@@ -95,7 +95,7 @@ jobs:
     steps:
       - name: Get PR hash
         id: sha
-        uses: actions/github-script
+        uses: actions/github-script@v7
         with:
           result-encoding: string
           script: |
@@ -108,7 +108,7 @@ jobs:
             return pr.data.head.sha
 
       - name: Update status
-        uses: actions/github-script
+        uses: actions/github-script@v7
         with:
           script: |
             github.rest.repos.createCommitStatus({
