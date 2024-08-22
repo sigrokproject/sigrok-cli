@@ -126,5 +126,4 @@ jobs:
 
   call-build-workflow:
     name: Sigrok artifact builder
-    id: build
     uses: sigrokproject/sigrok-build/.github/workflows/build.yml@master
