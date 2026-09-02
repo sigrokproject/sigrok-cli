@@ -36,6 +36,17 @@ static DWORD stdin_mode;
 static struct termios term_orig;
 #endif
 static unsigned int watch_id = 0;
+static gboolean anykey_enabled = FALSE;
+
+/* Whether stdin is an interactive terminal. */
+static gboolean stdin_is_interactive(void)
+{
+#ifdef _WIN32
+	return TRUE;	/* Not implemented; keep prior behavior on Windows. */
+#else
+	return isatty(STDIN_FILENO) == 1;
+#endif
+}
 
 static gboolean received_anykey(GIOChannel *source,
 		GIOCondition condition, void *data)
@@ -57,6 +68,13 @@ static gboolean received_anykey(GIOChannel *source,
 void add_anykey(struct sr_session *session)
 {
 	GIOChannel *channel;
+
+	/*
+	 * The "press any key to stop" feature only makes sense when stdin is
+	 * an interactive terminal.
+	 */
+	if (!stdin_is_interactive())
+		return;
 
 #ifdef _WIN32
 	stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
@@ -83,6 +101,8 @@ void add_anykey(struct sr_session *session)
 	watch_id = g_io_add_watch(channel, G_IO_IN, &received_anykey, session);
 	g_io_channel_unref(channel);
 
+	anykey_enabled = TRUE;
+
 	g_message("Press any key to stop acquisition.");
 }
 
@@ -90,6 +110,11 @@ void add_anykey(struct sr_session *session)
  */
 void clear_anykey(void)
 {
+	/* Nothing to do if the key watch was never installed. */
+	if (!anykey_enabled)
+		return;
+	anykey_enabled = FALSE;
+
 	if (watch_id != 0) {
 		g_source_remove(watch_id);
 		watch_id = 0;
