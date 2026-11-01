@@ -23,6 +23,7 @@
 #include "sigrok-cli.h"
 
 struct sr_context *sr_ctx = NULL;
+int cli_exit_status = EXIT_SUCCESS;
 #ifdef HAVE_SRD
 struct srd_session *srd_sess = NULL;
 #endif
@@ -336,5 +337,5 @@ done:
 	if (sr_ctx)
 		sr_exit(sr_ctx);
 
-	return 0;
+	return cli_exit_status;
 }

@@ -415,8 +415,10 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		if (opt_pds) {
 #ifdef HAVE_SRD
 			if (srd_session_send(srd_sess, rcvd_samples_logic, end_sample,
-					logic->data, input_len, logic->unitsize) != SRD_OK)
+					logic->data, input_len, logic->unitsize) != SRD_OK) {
+				cli_exit_status = EXIT_FAILURE;
 				sr_session_stop(session);
+			}
 #endif
 		}
 
@@ -487,7 +489,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 		g_debug("cli: Received SR_DF_END.");
 
 #if defined HAVE_SRD_SESSION_SEND_EOF && HAVE_SRD_SESSION_SEND_EOF
-		(void)srd_session_send_eof(srd_sess);
+		if (srd_sess && srd_session_send_eof(srd_sess) != SRD_OK)
+			cli_exit_status = EXIT_FAILURE;
 #endif
 
 		if (do_props) {
