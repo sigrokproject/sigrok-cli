@@ -31,6 +31,7 @@
 
 /* main.c */
 extern struct sr_context *sr_ctx;
+extern int cli_exit_status;
 int select_channels(struct sr_dev_inst *sdi);
 int maybe_config_get(struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, struct sr_channel_group *cg,

@@ -21,6 +21,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#ifdef _WIN32
+#include <io.h>
+#define INPUT_OPEN_FLAGS (O_RDONLY | _O_BINARY)
+#else
+#define INPUT_OPEN_FLAGS O_RDONLY
+#endif
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -59,6 +66,10 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 	is_stdin = strcmp(opt_input_file, "-") == 0;
 	push_scan_data = FALSE;
 	fd = 0;
+#ifdef _WIN32
+	if (is_stdin && _setmode(fd, _O_BINARY) == -1)
+		g_critical("Failed to set binary stdin mode: %s", g_strerror(errno));
+#endif
 	buf = g_string_sized_new(CHUNK_SIZE);
 	if (mod_id) {
 		/* User specified an input module to use. */
@@ -78,7 +89,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 			g_hash_table_destroy(mod_opts);
 		if (mod_args)
 			g_hash_table_destroy(mod_args);
-		if (!is_stdin && (fd = open(opt_input_file, O_RDONLY)) < 0)
+		if (!is_stdin && (fd = open(opt_input_file, INPUT_OPEN_FLAGS)) < 0)
 			g_critical("Failed to load %s: %s.", opt_input_file,
 					g_strerror(errno));
 	} else {
@@ -89,7 +100,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 			 */
 			if (sr_input_scan_file(opt_input_file, &in) == SR_OK) {
 				/* That worked, reopen the file for reading. */
-				fd = open(opt_input_file, O_RDONLY);
+				fd = open(opt_input_file, INPUT_OPEN_FLAGS);
 			}
 		} else {
 			/*
@@ -100,7 +111,7 @@ static void load_input_file_module(struct df_arg_desc *df_arg)
 				/* stdin */
 				fd = 0;
 			} else {
-				fd = open(opt_input_file, O_RDONLY);
+				fd = open(opt_input_file, INPUT_OPEN_FLAGS);
 				if (fd == -1)
 					g_critical("Failed to load %s: %s.", opt_input_file,
 							g_strerror(errno));

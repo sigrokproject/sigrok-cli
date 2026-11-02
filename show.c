@@ -608,20 +608,35 @@ void show_dev_detail(void)
 
 		} else if (srci->datatype == SR_T_UINT64) {
 			printf("    %s: ", srci->id);
-			gvar = NULL;
-			if (maybe_config_get(driver, sdi, channel_group, key,
-					&gvar) == SR_OK) {
+			have_curr = maybe_config_get(driver, sdi, channel_group,
+				key, &gvar) == SR_OK;
+			if (have_curr) {
 				tmp_uint64 = g_variant_get_uint64(gvar);
 				g_variant_unref(gvar);
 			} else
 				tmp_uint64 = 0;
 			if (maybe_config_list(driver, sdi, channel_group,
 					key, &gvar_list) != SR_OK) {
-				if (gvar) {
+				if (have_curr) {
 					/* Can't list it, but we have a value to show. */
 					printf("%"PRIu64" (current)", tmp_uint64);
 				}
 				printf("\n");
+				continue;
+			}
+			if (g_variant_is_of_type(gvar_list, G_VARIANT_TYPE("(tt)"))) {
+				g_variant_get(gvar_list, "(tt)", &low, &high);
+				printf("%"PRIu64" - %"PRIu64, low, high);
+				if (have_curr)
+					printf(" (current: %"PRIu64")", tmp_uint64);
+				printf("\n");
+				g_variant_unref(gvar_list);
+				continue;
+			}
+			if (!g_variant_is_of_type(gvar_list, G_VARIANT_TYPE("at"))) {
+				printf("unsupported value list type '%s'\n",
+					g_variant_get_type_string(gvar_list));
+				g_variant_unref(gvar_list);
 				continue;
 			}
 			uint64 = g_variant_get_fixed_array(gvar_list,
@@ -629,7 +644,7 @@ void show_dev_detail(void)
 			printf(" - supported values:\n");
 			for (i = 0; i < num_elements; i++) {
 				printf("      %"PRIu64, uint64[i]);
-				if (gvar && tmp_uint64 == uint64[i])
+				if (have_curr && tmp_uint64 == uint64[i])
 					printf(" (current)");
 				printf("\n");
 			}
