@@ -262,6 +262,8 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	static FILE *outfile = NULL;
 
 	const struct sr_datafeed_meta *meta;
+	const struct sr_key_info *capture_status;
+	const char *status;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog *analog;
 	struct df_arg_desc *df_arg;
@@ -341,8 +343,19 @@ void datafeed_in(const struct sr_dev_inst *sdi,
 	case SR_DF_META:
 		g_debug("cli: Received SR_DF_META.");
 		meta = packet->payload;
+		/* Older libraries need not provide acquisition outcome metadata. */
+		capture_status = sr_key_info_name_get(SR_KEY_CONFIG, "capture_status");
 		for (l = meta->config; l; l = l->next) {
 			src = l->data;
+			if (capture_status && src->key == capture_status->key &&
+					g_variant_is_of_type(src->data, G_VARIANT_TYPE_STRING)) {
+				status = g_variant_get_string(src->data, NULL);
+				if (!strcmp(status, "error") || !strcmp(status, "timeout") ||
+						!strcmp(status, "disconnected")) {
+					g_warning("Acquisition failed (%s).", status);
+					cli_exit_status = EXIT_FAILURE;
+				}
+			}
 			switch (src->key) {
 			case SR_CONF_SAMPLERATE:
 				samplerate = g_variant_get_uint64(src->data);
